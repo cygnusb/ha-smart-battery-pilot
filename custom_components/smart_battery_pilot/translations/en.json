@@ -1,0 +1,109 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Electricity price source",
+        "description": "Select the entity that provides the dynamic electricity price forecast. Nordpool, EPEX Spot, ENTSO-E, aWATTar and hourly price arrays are detected automatically.",
+        "data": {
+          "price_entity": "Price forecast entity",
+          "price_offset": "Price offset (grid fees, taxes per kWh)",
+          "feed_in_tariff": "Feed-in tariff (0 = use market price)"
+        }
+      },
+      "battery": {
+        "title": "Battery parameters",
+        "description": "Describe your home battery. The state of charge is read live from the selected entity.",
+        "data": {
+          "soc_entity": "State of charge entity (%)",
+          "capacity_kwh": "Usable capacity",
+          "max_charge_power_w": "Maximum charge power",
+          "max_discharge_power_w": "Maximum discharge power",
+          "min_soc": "Minimum SOC",
+          "max_soc": "Maximum SOC",
+          "efficiency": "Roundtrip efficiency"
+        }
+      },
+      "control": {
+        "title": "Battery control scripts",
+        "description": "Smart Battery Pilot controls your battery through Home Assistant scripts. Create one script per action for your inverter (see the documentation for vendor examples). The charge script receives the variable `power_w`.",
+        "data": {
+          "script_charge": "Script: force charge from grid",
+          "script_idle": "Script: block discharging (idle)",
+          "script_auto": "Script: normal auto mode",
+          "script_export": "Script: force discharge to grid (optional)"
+        }
+      },
+      "consumption": {
+        "title": "Household consumption",
+        "description": "Select the sensor measuring total house consumption (power in W or energy in kWh). It is used to learn your consumption profile from history.",
+        "data": {
+          "consumption_entity": "Consumption sensor",
+          "temperature_entity": "Outdoor temperature sensor (optional)",
+          "has_heat_pump": "Heat pump present"
+        }
+      },
+      "pv": {
+        "title": "PV forecast (optional)",
+        "description": "If you have solar, select daily production forecast sensors (kWh). Expected PV is subtracted from the consumption forecast.",
+        "data": {
+          "pv_forecast_today": "PV forecast today (kWh)",
+          "pv_forecast_tomorrow": "PV forecast tomorrow (kWh)",
+          "pv_power_entity": "Current PV power (optional)"
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "Entity not found.",
+      "unsupported_price_format": "The price format of this entity was not recognized. See the documentation for supported integrations.",
+      "no_future_prices": "The entity contains no future prices.",
+      "soc_range_invalid": "Minimum SOC must be below maximum SOC."
+    },
+    "abort": {
+      "already_configured": "Already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Smart Battery Pilot options",
+        "data": {
+          "spread_threshold": "Minimum price spread (charge vs. discharge)",
+          "discharge_mode": "Discharge mode",
+          "price_offset": "Price offset (grid fees, taxes per kWh)",
+          "feed_in_tariff": "Feed-in tariff (0 = use market price)",
+          "training_days": "History days used for consumption training"
+        }
+      }
+    }
+  },
+  "selector": {
+    "discharge_mode": {
+      "options": {
+        "self_consumption": "Self-consumption only",
+        "export": "Self-consumption + grid export at peak prices"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "current_action": { "name": "Current action" },
+      "next_action": { "name": "Next action" },
+      "charge_plan": { "name": "Charge plan" },
+      "estimated_savings": { "name": "Estimated savings" },
+      "consumption_forecast": { "name": "Consumption forecast 24h" }
+    },
+    "switch": {
+      "enabled": { "name": "Enabled" },
+      "dry_run": { "name": "Dry run" }
+    },
+    "binary_sensor": {
+      "plan_problem": { "name": "Plan problem" }
+    }
+  },
+  "services": {
+    "replan": {
+      "name": "Re-plan",
+      "description": "Recompute the charge plan immediately."
+    }
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Strompreis-Quelle",
+        "description": "Wähle die Entity mit der dynamischen Strompreis-Prognose. Nordpool, EPEX Spot, ENTSO-E, aWATTar und stündliche Preislisten werden automatisch erkannt.",
+        "data": {
+          "price_entity": "Preis-Prognose-Entity",
+          "price_offset": "Preisaufschlag (Netzentgelte, Steuern pro kWh)",
+          "feed_in_tariff": "Einspeisevergütung (0 = Marktpreis verwenden)"
+        }
+      },
+      "battery": {
+        "title": "Batterie-Parameter",
+        "description": "Beschreibe deine Hausbatterie. Der Ladezustand wird live aus der gewählten Entity gelesen.",
+        "data": {
+          "soc_entity": "Ladezustands-Entity (%)",
+          "capacity_kwh": "Nutzbare Kapazität",
+          "max_charge_power_w": "Maximale Ladeleistung",
+          "max_discharge_power_w": "Maximale Entladeleistung",
+          "min_soc": "Minimaler SOC",
+          "max_soc": "Maximaler SOC",
+          "efficiency": "Roundtrip-Wirkungsgrad"
+        }
+      },
+      "control": {
+        "title": "Steuerungs-Scripts",
+        "description": "Smart Battery Pilot steuert die Batterie über Home-Assistant-Scripts. Lege je Aktion ein Script für deinen Wechselrichter an (Hersteller-Beispiele in der Doku). Das Lade-Script erhält die Variable `power_w`.",
+        "data": {
+          "script_charge": "Script: Laden aus dem Netz erzwingen",
+          "script_idle": "Script: Entladen sperren (Idle)",
+          "script_auto": "Script: Normaler Auto-Modus",
+          "script_export": "Script: Entladen ins Netz erzwingen (optional)"
+        }
+      },
+      "consumption": {
+        "title": "Hausverbrauch",
+        "description": "Wähle den Sensor für den Gesamt-Hausverbrauch (Leistung in W oder Energie in kWh). Daraus wird das Verbrauchsprofil aus der Historie gelernt.",
+        "data": {
+          "consumption_entity": "Verbrauchssensor",
+          "temperature_entity": "Außentemperatur-Sensor (optional)",
+          "has_heat_pump": "Wärmepumpe vorhanden"
+        }
+      },
+      "pv": {
+        "title": "PV-Prognose (optional)",
+        "description": "Mit PV-Anlage: Wähle die Tagesprognose-Sensoren (kWh). Die erwartete PV-Produktion wird von der Verbrauchsprognose abgezogen.",
+        "data": {
+          "pv_forecast_today": "PV-Prognose heute (kWh)",
+          "pv_forecast_tomorrow": "PV-Prognose morgen (kWh)",
+          "pv_power_entity": "Aktuelle PV-Leistung (optional)"
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "Entity nicht gefunden.",
+      "unsupported_price_format": "Das Preisformat dieser Entity wurde nicht erkannt. Unterstützte Integrationen siehe Dokumentation.",
+      "no_future_prices": "Die Entity enthält keine zukünftigen Preise.",
+      "soc_range_invalid": "Minimaler SOC muss unter dem maximalen SOC liegen."
+    },
+    "abort": {
+      "already_configured": "Bereits konfiguriert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Smart Battery Pilot Optionen",
+        "data": {
+          "spread_threshold": "Mindest-Preisdifferenz (Laden vs. Entladen)",
+          "discharge_mode": "Entlade-Modus",
+          "price_offset": "Preisaufschlag (Netzentgelte, Steuern pro kWh)",
+          "feed_in_tariff": "Einspeisevergütung (0 = Marktpreis verwenden)",
+          "training_days": "Historien-Tage für das Verbrauchs-Training"
+        }
+      }
+    }
+  },
+  "selector": {
+    "discharge_mode": {
+      "options": {
+        "self_consumption": "Nur Eigenverbrauch",
+        "export": "Eigenverbrauch + Netzeinspeisung bei Spitzenpreisen"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "current_action": { "name": "Aktuelle Aktion" },
+      "next_action": { "name": "Nächste Aktion" },
+      "charge_plan": { "name": "Ladeplan" },
+      "estimated_savings": { "name": "Geschätzte Ersparnis" },
+      "consumption_forecast": { "name": "Verbrauchsprognose 24h" }
+    },
+    "switch": {
+      "enabled": { "name": "Aktiviert" },
+      "dry_run": { "name": "Testmodus (Dry Run)" }
+    },
+    "binary_sensor": {
+      "plan_problem": { "name": "Plan-Problem" }
+    }
+  },
+  "services": {
+    "replan": {
+      "name": "Neu planen",
+      "description": "Ladeplan sofort neu berechnen."
+    }
+  }
+}
