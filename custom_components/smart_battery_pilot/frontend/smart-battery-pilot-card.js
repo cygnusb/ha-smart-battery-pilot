@@ -38,17 +38,51 @@ class SmartBatteryPilotCard extends HTMLElement {
     return 5;
   }
 
-  static getStubConfig() {
-    return { entity: "sensor.smart_battery_pilot_charge_plan" };
+  static _findPlanEntity(hass) {
+    return Object.keys(hass.states).find(
+      (id) =>
+        id.startsWith("sensor.") &&
+        hass.states[id].attributes &&
+        hass.states[id].attributes.price_adapter !== undefined &&
+        Array.isArray(hass.states[id].attributes.slots)
+    );
+  }
+
+  static getStubConfig(hass) {
+    const entity =
+      (hass && SmartBatteryPilotCard._findPlanEntity(hass)) ||
+      "sensor.smart_battery_pilot_charge_plan";
+    return { entity };
   }
 
   _render() {
     if (!this._hass || !this._config) return;
-    const state = this._hass.states[this._config.entity];
+    let entityId = this._config.entity;
+    let state = this._hass.states[entityId];
+    if (!state) {
+      // Configured entity missing (e.g. localized entity_id) - auto-discover.
+      const found = SmartBatteryPilotCard._findPlanEntity(this._hass);
+      if (found) {
+        entityId = found;
+        state = this._hass.states[found];
+      }
+    }
     const title = this._config.title || "Smart Battery Pilot";
 
-    if (!state || !state.attributes.slots || state.attributes.slots.length === 0) {
-      this._html(title, `<div class="empty">Kein gültiger Ladeplan</div>`);
+    if (!state) {
+      this._html(
+        title,
+        `<div class="empty">Entity <code>${this._config.entity}</code> nicht gefunden und keine Ladeplan-Entity erkannt.</div>`
+      );
+      return;
+    }
+    if (!state.attributes.slots || state.attributes.slots.length === 0) {
+      this._html(
+        title,
+        `<div class="empty">Kein gültiger Ladeplan (Entity: <code>${entityId}</code>, Fehler: ${
+          state.attributes.error || "unbekannt"
+        })</div>`
+      );
       return;
     }
 
