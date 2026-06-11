@@ -1,0 +1,106 @@
+"""Tests for consumption and PV forecasting."""
+
+from datetime import datetime, timedelta, timezone
+
+import pytest
+
+from smart_battery_pilot.forecast.consumption import (
+    ConsumptionForecaster,
+    TrainingSample,
+)
+from smart_battery_pilot.forecast.pv import pv_kwh_for_slot
+
+TZ = timezone(timedelta(hours=2))
+
+
+def _synthetic_samples(days: int, with_temp: bool = False) -> list[TrainingSample]:
+    """Synthetic household: base 0.3 kWh/h, morning/evening peaks, weekend +20%."""
+    samples = []
+    start = datetime(2026, 4, 1, 0, 0, tzinfo=TZ)
+    for d in range(days):
+        for h in range(24):
+            when = start + timedelta(days=d, hours=h)
+            kwh = 0.3
+            if 6 <= h <= 8:
+                kwh += 0.5
+            if 18 <= h <= 21:
+                kwh += 0.8
+            if when.weekday() >= 5:
+                kwh *= 1.2
+            temp = 10.0 + 8 * (h - 12) / 12 if with_temp else None
+            samples.append(TrainingSample(start=when, kwh=kwh, temperature=temp))
+    return samples
+
+
+def test_profile_fallback_with_few_days():
+    forecaster = ConsumptionForecaster()
+    forecaster.train(_synthetic_samples(days=5))
+    assert forecaster.model_type == "hourly_profile"
+
+    monday_evening = datetime(2026, 6, 8, 19, 0, tzinfo=TZ)
+    monday_night = datetime(2026, 6, 8, 2, 0, tzinfo=TZ)
+    assert forecaster.predict_kwh(monday_evening, 1.0) == pytest.approx(1.1, abs=0.05)
+    assert forecaster.predict_kwh(monday_night, 1.0) == pytest.approx(0.3, abs=0.05)
+
+
+def test_ridge_with_enough_days():
+    forecaster = ConsumptionForecaster()
+    forecaster.train(_synthetic_samples(days=30))
+    assert forecaster.model_type == "ridge_regression"
+
+    evening = forecaster.predict_kwh(datetime(2026, 6, 8, 19, 30, tzinfo=TZ), 1.0)
+    night = forecaster.predict_kwh(datetime(2026, 6, 8, 2, 0, tzinfo=TZ), 1.0)
+    # Smooth model: peaks less sharp than profile, but ordering must hold
+    assert evening > night
+    assert evening > 0.6
+    assert 0.0 <= night < 0.6
+
+
+def test_slot_scaling():
+    forecaster = ConsumptionForecaster()
+    forecaster.train(_synthetic_samples(days=5))
+    when = datetime(2026, 6, 8, 2, 0, tzinfo=TZ)
+    full = forecaster.predict_kwh(when, 1.0)
+    quarter = forecaster.predict_kwh(when, 0.25)
+    assert quarter == pytest.approx(full / 4)
+
+
+def test_empty_training_uses_default():
+    forecaster = ConsumptionForecaster()
+    forecaster.train([])
+    assert forecaster.model_type == "default"
+    assert forecaster.predict_kwh(datetime(2026, 6, 8, 12, 0, tzinfo=TZ), 1.0) > 0
+
+
+def test_roundtrip_serialization():
+    forecaster = ConsumptionForecaster()
+    forecaster.train(_synthetic_samples(days=30, with_temp=True))
+    restored = ConsumptionForecaster.from_dict(forecaster.to_dict())
+    when = datetime(2026, 6, 8, 19, 0, tzinfo=TZ)
+    assert restored.predict_kwh(when, 1.0, temperature=5.0) == pytest.approx(
+        forecaster.predict_kwh(when, 1.0, temperature=5.0)
+    )
+
+
+def test_pv_distribution():
+    now = datetime(2026, 6, 11, 8, 0, tzinfo=TZ)
+    noon = pv_kwh_for_slot(datetime(2026, 6, 11, 13, 0, tzinfo=TZ), 1.0, 30.0, 20.0, now)
+    night = pv_kwh_for_slot(datetime(2026, 6, 11, 23, 0, tzinfo=TZ), 1.0, 30.0, 20.0, now)
+    tomorrow_noon = pv_kwh_for_slot(
+        datetime(2026, 6, 12, 13, 0, tzinfo=TZ), 1.0, 30.0, 20.0, now
+    )
+    assert noon > 2.0  # noon hour carries far more than average
+    assert night == 0.0
+    assert tomorrow_noon == pytest.approx(noon * 20 / 30, rel=0.05)
+
+    # Sum over all hours of today ≈ daily total
+    total = sum(
+        pv_kwh_for_slot(datetime(2026, 6, 11, h, 0, tzinfo=TZ), 1.0, 30.0, None, now)
+        for h in range(24)
+    )
+    assert total == pytest.approx(30.0, rel=0.02)
+
+
+def test_pv_none_forecast():
+    now = datetime(2026, 6, 11, 8, 0, tzinfo=TZ)
+    assert pv_kwh_for_slot(now, 1.0, None, None, now) == 0.0
