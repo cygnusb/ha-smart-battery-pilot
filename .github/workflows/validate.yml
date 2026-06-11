@@ -20,6 +20,8 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
+          # Remove once the brands PR (assets/BRANDS.md) is merged upstream
+          ignore: brands
 
   tests:
     runs-on: ubuntu-latest
