@@ -25,7 +25,9 @@ vendor configurations.
    dependencies) is trained daily from your Home Assistant history: hour of
    day, weekday/weekend and optionally outdoor temperature (heat pump aware).
 3. **PV forecast** — optional; expected solar production is subtracted so the
-   plan only covers the *net* grid demand.
+   plan only covers the *net* grid demand, and forecasted PV surplus is
+   modeled as battery charging in the SOC simulation — so on sunny days the
+   planner doesn't lock the battery needlessly.
 4. **Optimization** — a deterministic planner pairs the cheapest charge slots
    with the most expensive consumption slots, respecting battery capacity,
    power limits, SOC limits and roundtrip efficiency. Charging only happens if
@@ -73,19 +75,28 @@ Details and the full option reference: [docs/configuration.md](docs/configuratio
 | `switch.…_dry_run`                       | Plan only, don't call scripts                |
 | `binary_sensor.…_plan_problem`           | On when no valid plan exists                 |
 
+> Entity IDs are generated from the **localized** entity names — on a German
+> installation the plan sensor is `sensor.smart_battery_pilot_ladeplan`, on
+> an English one `sensor.smart_battery_pilot_charge_plan`. The UI languages
+> shipped are English and German.
+
 Service: `smart_battery_pilot.replan` — recompute the plan immediately.
 
 ## Dashboard card
 
-The integration ships its own Lovelace card (registered automatically):
+The integration ships its own Lovelace card (registered automatically as a
+frontend module and lovelace resource):
 
 ```yaml
 type: custom:smart-battery-pilot-card
-entity: sensor.smart_battery_pilot_charge_plan
+entity: sensor.smart_battery_pilot_charge_plan   # optional - auto-discovered
 ```
 
-It shows the price curve, the planned actions as colored bands and the
-projected SOC. See [docs/configuration.md](docs/configuration.md#dashboard).
+It shows the price curve with a labeled price grid, the planned actions as
+colored bands, the PV forecast, the projected SOC, day separators and a
+hover tooltip with price/SOC/action/PV per slot. If `entity` is omitted or
+wrong, the card finds the plan sensor automatically.
+See [docs/configuration.md](docs/configuration.md#dashboard).
 
 ## Vendor examples
 

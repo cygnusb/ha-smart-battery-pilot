@@ -61,6 +61,21 @@ Without PV, simply leave the fields empty.
 
 ## Options (Settings → Integrations → Configure)
 
+The configure dialog opens a **menu** in which every input from the initial
+setup can be reviewed and changed later — each section shows the currently
+configured entities/values pre-filled:
+
+* **Optimizer tuning** — spread, discharge mode, training days
+* **Price source & offsets** — price entity, price offset, feed-in tariff
+* **Battery parameters** — SOC entity, capacity, power limits, SOC window, efficiency
+* **Control scripts** — the four action scripts
+* **Consumption & temperature** — consumption sensor, temperature, heat pump
+* **PV forecast** — forecast entities
+
+Sections return to the menu after submitting; changes are collected and only
+persisted via **“💾 Save & close”** (closing the dialog otherwise discards
+them). Saving reloads the integration and recomputes the plan.
+
 | Option | Default | Description |
 |---|---|---|
 | Minimum price spread | 0.20 EUR/kWh | Grid charging only happens if `discharge price > charge price / efficiency + spread`. Raise it to be more conservative (fewer cycles), lower it to arbitrage more aggressively. |
@@ -80,13 +95,21 @@ calls your *auto mode* script once and stops interfering.
 
 ## Dashboard
 
-The bundled card (auto-registered, no resource setup needed):
+The bundled card (auto-registered as frontend module *and* lovelace
+resource, no manual resource setup needed):
 
 ```yaml
 type: custom:smart-battery-pilot-card
-entity: sensor.smart_battery_pilot_charge_plan
-soc_entity: sensor.byd_battery_box_premium_hv_ladezustand
+entity: sensor.smart_battery_pilot_charge_plan  # optional - auto-discovered
+title: Smart Battery Pilot                      # optional
 ```
+
+Features: price step curve with labeled grid, action bands
+(charge/idle/export), PV forecast area, projected SOC, local-midnight day
+separators with date, "now" marker and a hover tooltip showing time slot,
+action, price, SOC forecast, PV and net demand. `entity` may be omitted —
+the card auto-discovers the plan sensor (entity IDs are localized, e.g.
+`…_ladeplan` on German installations).
 
 Alternative with [ApexCharts Card](https://github.com/RomRider/apexcharts-card):
 
