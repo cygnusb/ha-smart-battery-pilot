@@ -3,7 +3,7 @@
   "name": "Smart Battery Pilot",
   "codeowners": ["@cygnusb"],
   "config_flow": true,
-  "dependencies": ["recorder", "http"],
+  "dependencies": ["recorder", "http", "frontend"],
   "documentation": "https://github.com/cygnusb/ha-smart-battery-pilot",
   "integration_type": "service",
   "iot_class": "calculated",

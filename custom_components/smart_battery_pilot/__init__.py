@@ -1,0 +1,74 @@
+"""Smart Battery Pilot: charge your home battery when electricity is cheap."""
+
+from __future__ import annotations
+
+import logging
+from pathlib import Path
+
+from homeassistant.components.frontend import add_extra_js_url
+from homeassistant.components.http import StaticPathConfig
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.helpers.typing import ConfigType
+
+from .const import DOMAIN, FRONTEND_SCRIPT_URL, SERVICE_REPLAN
+from .coordinator import SBPCoordinator
+from .executor import PlanExecutor
+
+_LOGGER = logging.getLogger(__name__)
+
+PLATFORMS = ["sensor", "switch", "binary_sensor"]
+
+type SBPConfigEntry = ConfigEntry["SBPRuntimeData"]
+
+
+class SBPRuntimeData:
+    """Runtime objects stored on the config entry."""
+
+    def __init__(self, coordinator: SBPCoordinator, executor: PlanExecutor) -> None:
+        self.coordinator = coordinator
+        self.executor = executor
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Register the bundled Lovelace card resource."""
+    card_path = Path(__file__).parent / "frontend" / "smart-battery-pilot-card.js"
+    if card_path.exists():
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(FRONTEND_SCRIPT_URL, str(card_path), cache_headers=False)]
+        )
+        add_extra_js_url(hass, FRONTEND_SCRIPT_URL)
+    return True
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: SBPConfigEntry) -> bool:
+    coordinator = SBPCoordinator(hass, entry)
+    await coordinator.async_setup()
+    await coordinator.async_config_entry_first_refresh()
+
+    executor = PlanExecutor(hass, coordinator)
+    entry.runtime_data = SBPRuntimeData(coordinator, executor)
+
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    await executor.async_start()
+
+    async def _handle_replan(_call: ServiceCall) -> None:
+        await coordinator.async_request_refresh()
+
+    if not hass.services.has_service(DOMAIN, SERVICE_REPLAN):
+        hass.services.async_register(DOMAIN, SERVICE_REPLAN, _handle_replan)
+
+    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
+    return True
+
+
+async def _async_update_listener(hass: HomeAssistant, entry: SBPConfigEntry) -> None:
+    """Reload the entry when options change."""
+    await hass.config_entries.async_reload(entry.entry_id)
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: SBPConfigEntry) -> bool:
+    runtime: SBPRuntimeData = entry.runtime_data
+    await runtime.executor.async_stop(restore_auto=True)
+    await runtime.coordinator.async_shutdown()
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
