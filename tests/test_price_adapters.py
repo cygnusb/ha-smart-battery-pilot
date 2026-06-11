@@ -1,0 +1,154 @@
+"""Tests for the price source adapters."""
+
+from datetime import datetime, timedelta, timezone
+
+import pytest
+
+from smart_battery_pilot.price_adapters import detect_adapter
+from smart_battery_pilot.price_adapters.base import PriceSlot, merge_future_slots
+
+TZ = timezone(timedelta(hours=2))
+NOW = datetime(2026, 6, 11, 10, 5, tzinfo=TZ)
+
+
+def _iso(day: int, hour: int, minute: int = 0) -> str:
+    return datetime(2026, 6, day, hour, minute, tzinfo=TZ).isoformat()
+
+
+# --- Nordpool ---------------------------------------------------------------
+
+
+def _nordpool_attrs(tomorrow_valid: bool = True) -> dict:
+    def day(day_no: int) -> list[dict]:
+        return [
+            {
+                "start": _iso(day_no, h, m),
+                "end": _iso(day_no, h, m + 15) if m < 45 else _iso(day_no, h + 1 if h < 23 else h, 0 if h < 23 else 59),
+                "value": 0.10 + h * 0.001,
+            }
+            for h in range(24)
+            for m in (0, 15, 30, 45)
+        ]
+
+    return {
+        "raw_today": day(11),
+        "raw_tomorrow": day(12) if tomorrow_valid else [],
+        "tomorrow_valid": tomorrow_valid,
+        "current_price": 0.167,
+    }
+
+
+def test_nordpool_detect_and_parse():
+    attrs = _nordpool_attrs()
+    adapter = detect_adapter(attrs)
+    assert adapter is not None and adapter.name == "nordpool"
+
+    slots = adapter.parse(attrs, NOW)
+    # Past slots dropped: today from 10:00, plus all of tomorrow
+    assert slots[0].start.hour == 10
+    assert slots[-1].start.day == 12
+    assert all(s.end > NOW for s in slots)
+    assert slots[0].price == pytest.approx(0.11)
+
+
+def test_nordpool_without_tomorrow():
+    attrs = _nordpool_attrs(tomorrow_valid=False)
+    slots = detect_adapter(attrs).parse(attrs, NOW)
+    assert all(s.start.day == 11 for s in slots)
+
+
+# --- EPEX Spot ---------------------------------------------------------------
+
+
+def test_epex_eur_per_mwh():
+    attrs = {
+        "data": [
+            {"start_time": _iso(11, h), "end_time": _iso(11, h + 1) if h < 23 else _iso(12, 0), "price_eur_per_mwh": 100.0 + h}
+            for h in range(24)
+        ]
+    }
+    adapter = detect_adapter(attrs)
+    assert adapter.name == "epex_spot"
+    slots = adapter.parse(attrs, NOW)
+    assert slots[0].price == pytest.approx(0.110)  # 110 EUR/MWh at 10:00
+    assert slots[0].hours == pytest.approx(1.0)
+
+
+def test_epex_ct_per_kwh():
+    attrs = {
+        "data": [
+            {"start_time": _iso(11, 12), "end_time": _iso(11, 13), "price_ct_per_kwh": 25.0}
+        ]
+    }
+    slots = detect_adapter(attrs).parse(attrs, NOW)
+    assert slots[0].price == pytest.approx(0.25)
+
+
+# --- ENTSO-E -----------------------------------------------------------------
+
+
+def test_entsoe():
+    attrs = {
+        "prices": [{"time": _iso(11, h), "price": 0.05 + h * 0.01} for h in range(24)]
+    }
+    adapter = detect_adapter(attrs)
+    assert adapter.name == "entsoe"
+    slots = adapter.parse(attrs, NOW)
+    # end inferred from next entry start
+    assert slots[0].hours == pytest.approx(1.0)
+    assert slots[0].start.hour == 10
+
+
+# --- aWATTar -----------------------------------------------------------------
+
+
+def test_awattar():
+    attrs = {
+        "prices": [
+            {"start_time": _iso(11, h), "end_time": _iso(11, h + 1) if h < 23 else _iso(12, 0), "marketprice": 90.0}
+            for h in range(24)
+        ]
+    }
+    adapter = detect_adapter(attrs)
+    assert adapter.name == "awattar"
+    slots = adapter.parse(attrs, NOW)
+    assert slots[0].price == pytest.approx(0.09)
+
+
+# --- Hourly arrays (Tibber style) -------------------------------------------
+
+
+def test_hourly_arrays():
+    attrs = {
+        "today": [0.20] * 24,
+        "tomorrow": [0.30] * 24,
+        "tomorrow_valid": True,
+    }
+    adapter = detect_adapter(attrs)
+    assert adapter.name == "hourly_arrays"
+    slots = adapter.parse(attrs, NOW)
+    assert slots[0].start.hour == 10
+    assert slots[-1].price == pytest.approx(0.30)
+    assert len(slots) == 14 + 24
+
+
+def test_quarter_hour_arrays():
+    attrs = {"today": [0.20] * 96, "tomorrow": [], "tomorrow_valid": False}
+    slots = detect_adapter(attrs).parse(attrs, NOW)
+    assert slots[0].hours == pytest.approx(0.25)
+    # 10:00 slot kept because it contains NOW (10:05)
+    assert slots[0].start.hour == 10 and slots[0].start.minute == 0
+
+
+# --- misc --------------------------------------------------------------------
+
+
+def test_detect_unknown_format():
+    assert detect_adapter({"foo": "bar"}) is None
+
+
+def test_merge_future_slots_dedupes():
+    slot = PriceSlot(start=NOW, end=NOW + timedelta(hours=1), price=0.1)
+    dupe = PriceSlot(start=NOW, end=NOW + timedelta(hours=1), price=0.2)
+    merged = merge_future_slots([slot, dupe], NOW)
+    assert len(merged) == 1 and merged[0].price == 0.2
