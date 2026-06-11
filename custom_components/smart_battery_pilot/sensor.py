@@ -131,6 +131,7 @@ class ChargePlanSensor(SBPEntity, SensorEntity):
                     "action": s.action,
                     "price": round(s.price, 4),
                     "net_demand_kwh": round(s.net_demand_kwh, 3),
+                    "pv_kwh": round(s.pv_kwh, 3),
                     "charge_power_w": s.charge_power_w,
                     "discharge_kwh": s.discharge_kwh,
                     "soc_forecast": s.soc_forecast,

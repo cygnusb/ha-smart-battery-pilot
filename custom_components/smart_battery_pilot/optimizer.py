@@ -61,6 +61,7 @@ class InputSlot:
 
     price_slot: PriceSlot
     net_demand_kwh: float
+    pv_kwh: float = 0.0  # forecasted PV production in this slot (for display/simulation)
 
 
 @dataclass(slots=True)
@@ -72,6 +73,7 @@ class PlanSlot:
     action: str
     price: float
     net_demand_kwh: float
+    pv_kwh: float = 0.0
     charge_power_w: float = 0.0
     discharge_kwh: float = 0.0  # energy delivered (to load or grid)
     soc_forecast: float = 0.0  # SOC at end of slot, percent
@@ -115,12 +117,26 @@ def build_plan(
     charge_cap = [battery.max_charge_power_w / 1000.0 * h * eta_one_way for h in hours]
     discharge_cap = [battery.max_discharge_power_w / 1000.0 * h for h in hours]
 
+    # PV surplus (negative net demand) charges the battery in auto mode -
+    # model it so summer days don't trigger needless reservations (idle) or
+    # grid charging, and the SOC forecast rises with the sun.
+    pv_surplus_stored = [
+        min(
+            max(0.0, -slots[i].net_demand_kwh) * eta_one_way,
+            charge_cap[i],
+        )
+        for i in range(n)
+    ]
+
     def timeline() -> list[float]:
-        """Stored energy (above min SOC) at the END of each slot."""
+        """Stored energy (above min SOC) at the END of each slot.
+
+        PV surplus charging is clamped at max SOC (excess is exported)."""
         levels = []
         e = e_init
         for i in range(n):
             e += charge_stored[i] - discharge_stored[i] - export_stored[i]
+            e = min(e + pv_surplus_stored[i], e_max)
             levels.append(e)
         return levels
 
@@ -210,8 +226,10 @@ def build_plan(
             action = ACTION_EXPORT
         elif discharge_stored[i] > 1e-9:
             action = ACTION_AUTO
-        elif max_future_price[i] > prices[i] and levels[i] > 1e-9:
-            # Battery holds energy reserved for a pricier future slot.
+        elif demand[i] > 1e-9 and max_future_price[i] > prices[i] and levels[i] > 1e-9:
+            # Demand exists, but the stored energy is reserved for a pricier
+            # future slot. Surplus slots (no demand) stay in auto mode: the
+            # inverter charges from PV and won't discharge anyway.
             action = ACTION_IDLE
 
         if delivered > 0:
@@ -224,6 +242,7 @@ def build_plan(
                 action=action,
                 price=prices[i],
                 net_demand_kwh=slot.net_demand_kwh,
+                pv_kwh=slot.pv_kwh,
                 charge_power_w=round(charge_power, 1),
                 discharge_kwh=round(delivered, 3),
                 soc_forecast=round(

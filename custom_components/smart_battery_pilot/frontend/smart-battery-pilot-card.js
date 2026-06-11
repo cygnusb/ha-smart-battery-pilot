@@ -124,6 +124,21 @@ class SmartBatteryPilotCard extends HTMLElement {
       ).toFixed(1)}" height="${plotH}" fill="${color}"/>`;
     }
 
+    // PV forecast as a filled step area (own scale, lower half of the plot)
+    let pvArea = "";
+    const pvVals = slots.map((s) => s.pv_kwh || 0);
+    const pvMax = Math.max(...pvVals);
+    if (pvMax > 0) {
+      const yPv = (kwh) => PAD_T + plotH - (kwh / pvMax) * plotH * 0.45;
+      let d = `M${x(slots[0].startMs).toFixed(1)},${(PAD_T + plotH).toFixed(1)} `;
+      for (const s of slots) {
+        const y = yPv(s.pv_kwh || 0).toFixed(1);
+        d += `L${x(s.startMs).toFixed(1)},${y} L${x(s.endMs).toFixed(1)},${y} `;
+      }
+      d += `L${x(slots[slots.length - 1].endMs).toFixed(1)},${(PAD_T + plotH).toFixed(1)} Z`;
+      pvArea = `<path d="${d}" class="pvarea"/>`;
+    }
+
     // Price step line
     let pricePath = "";
     for (const s of slots) {
@@ -206,6 +221,7 @@ class SmartBatteryPilotCard extends HTMLElement {
       <div class="status">${statusBits.join(" ")}</div>
       <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
         ${bands}
+        ${pvArea}
         ${xLabels}
         ${yLabels}
         <path d="${pricePath}" class="price"/>
@@ -215,6 +231,7 @@ class SmartBatteryPilotCard extends HTMLElement {
       <div class="legend">${legend}
         <span class="lg"><i class="li price-i"></i>Preis</span>
         <span class="lg"><i class="li soc-i"></i>SOC</span>
+        <span class="lg"><i class="pv-i"></i>PV-Prognose</span>
       </div>`
     );
   }
@@ -242,6 +259,9 @@ class SmartBatteryPilotCard extends HTMLElement {
           .lg .li { height: 3px; border-radius: 1px; }
           .price-i { background: #ffb300; }
           .soc-i { background: #7e57c2; }
+          .pvarea { fill: rgba(255, 213, 79, 0.30); stroke: rgba(251, 192, 45, 0.7); stroke-width: 1; }
+          .pv-i { width: 12px; height: 12px; border-radius: 2px; display: inline-block;
+                  background: rgba(255, 213, 79, 0.5); border: 1px solid rgba(251, 192, 45, 0.9); }
         </style>
         ${body}
       </ha-card>`;

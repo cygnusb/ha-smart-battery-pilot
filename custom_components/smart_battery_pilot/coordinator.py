@@ -169,7 +169,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 consumption_24h += consumption
                 pv_24h += pv
             input_slots.append(
-                InputSlot(price_slot=slot, net_demand_kwh=consumption - pv)
+                InputSlot(price_slot=slot, net_demand_kwh=consumption - pv, pv_kwh=pv)
             )
 
         battery = BatteryState(
