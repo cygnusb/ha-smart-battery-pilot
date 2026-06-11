@@ -214,12 +214,14 @@ class SmartBatteryPilotCard extends HTMLElement {
   }
 }
 
-customElements.define("smart-battery-pilot-card", SmartBatteryPilotCard);
-
-window.customCards = window.customCards || [];
-window.customCards.push({
-  type: "smart-battery-pilot-card",
-  name: "Smart Battery Pilot Card",
-  description: "Price curve, planned battery actions and SOC forecast",
-  preview: false,
-});
+// Guard against double-loading (extra_module_url + lovelace resource)
+if (!customElements.get("smart-battery-pilot-card")) {
+  customElements.define("smart-battery-pilot-card", SmartBatteryPilotCard);
+  window.customCards = window.customCards || [];
+  window.customCards.push({
+    type: "smart-battery-pilot-card",
+    name: "Smart Battery Pilot Card",
+    description: "Price curve, planned battery actions and SOC forecast",
+    preview: false,
+  });
+}
