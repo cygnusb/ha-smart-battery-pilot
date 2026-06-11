@@ -176,18 +176,30 @@ class SmartBatteryPilotCard extends HTMLElement {
       ).toFixed(1)}" height="${PLOT_H}" fill="${color}"/>`;
     }
 
-    // --- PV forecast area (own scale, lower 45% of plot) ---
-    let pvArea = "";
+    // --- PV forecast area + consumption forecast line ---
+    // Shared kWh scale (lower 45% of the plot) so both are comparable.
+    const consumption = (s) => Math.max(0, (s.net_demand_kwh || 0) + (s.pv_kwh || 0));
     const pvMax = Math.max(...slots.map((s) => s.pv_kwh || 0));
-    if (pvMax > 0) {
-      const yPv = (kwh) => PAD_T + PLOT_H - (kwh / pvMax) * PLOT_H * 0.45;
-      let d = `M${x(slots[0].startMs).toFixed(1)},${(PAD_T + PLOT_H).toFixed(1)} `;
-      for (const s of slots) {
-        const y = yPv(s.pv_kwh || 0).toFixed(1);
-        d += `L${x(s.startMs).toFixed(1)},${y} L${x(s.endMs).toFixed(1)},${y} `;
+    const kwhMax = Math.max(pvMax, ...slots.map(consumption));
+    let pvArea = "";
+    let consPath = "";
+    if (kwhMax > 0) {
+      const yKwh = (kwh) => PAD_T + PLOT_H - (kwh / kwhMax) * PLOT_H * 0.45;
+      if (pvMax > 0) {
+        let d = `M${x(slots[0].startMs).toFixed(1)},${(PAD_T + PLOT_H).toFixed(1)} `;
+        for (const s of slots) {
+          const y = yKwh(s.pv_kwh || 0).toFixed(1);
+          d += `L${x(s.startMs).toFixed(1)},${y} L${x(s.endMs).toFixed(1)},${y} `;
+        }
+        d += `L${x(slots[slots.length - 1].endMs).toFixed(1)},${(PAD_T + PLOT_H).toFixed(1)} Z`;
+        pvArea = `<path d="${d}" class="pvarea"/>`;
       }
-      d += `L${x(slots[slots.length - 1].endMs).toFixed(1)},${(PAD_T + PLOT_H).toFixed(1)} Z`;
-      pvArea = `<path d="${d}" class="pvarea"/>`;
+      for (const s of slots) {
+        const y = yKwh(consumption(s)).toFixed(1);
+        consPath += `${consPath ? "L" : "M"}${x(s.startMs).toFixed(1)},${y} L${x(
+          s.endMs
+        ).toFixed(1)},${y} `;
+      }
     }
 
     // --- price step line + SOC line ---
@@ -240,6 +252,7 @@ class SmartBatteryPilotCard extends HTMLElement {
         .join("") +
       `<span class="lg"><i class="li price-i"></i>Preis</span>` +
       `<span class="lg"><i class="li soc-i"></i>SOC</span>` +
+      `<span class="lg"><i class="li cons-i"></i>Verbrauch</span>` +
       (pvMax > 0 ? `<span class="lg"><i class="pv-i"></i>PV</span>` : "");
 
     this._html(
@@ -251,6 +264,7 @@ class SmartBatteryPilotCard extends HTMLElement {
           ${bands}
           ${pvArea}
           ${grid}
+          ${consPath ? `<path d="${consPath}" class="consline"/>` : ""}
           <path d="${pricePath}" class="price"/>
           <path d="${socPath}" class="socline"/>
           ${nowLine}
@@ -293,6 +307,8 @@ class SmartBatteryPilotCard extends HTMLElement {
         `Preis: <b>${slot.price.toFixed(4)} €/kWh</b>`,
         `SOC-Prognose: <b>${slot.soc_forecast}%</b>`,
       ];
+      const cons = Math.max(0, (slot.net_demand_kwh || 0) + (slot.pv_kwh || 0));
+      rows.push(`Verbrauch: ${cons.toFixed(2)} kWh`);
       if (slot.pv_kwh) rows.push(`PV: ${slot.pv_kwh.toFixed(2)} kWh`);
       if (slot.net_demand_kwh !== undefined)
         rows.push(`Netto-Bedarf: ${slot.net_demand_kwh.toFixed(2)} kWh`);
@@ -349,6 +365,8 @@ class SmartBatteryPilotCard extends HTMLElement {
           .grid.zero { stroke: var(--primary-text-color, #444); stroke-width: 0.8; opacity: 0.5; }
           .price { fill: none; stroke: #ffb300; stroke-width: 2; }
           .socline { fill: none; stroke: #7e57c2; stroke-width: 1.5; stroke-dasharray: 4 3; }
+          .consline { fill: none; stroke: #26a69a; stroke-width: 1.3; opacity: 0.85; }
+          .cons-i { background: #26a69a; }
           .pvarea { fill: rgba(255, 213, 79, 0.25); stroke: rgba(251, 192, 45, 0.6); stroke-width: 1; }
           .now { stroke: var(--error-color, #f44336); stroke-width: 1.5; }
           .cursor { stroke: var(--primary-text-color, #555); stroke-width: 0.8; stroke-dasharray: 2 2; }
