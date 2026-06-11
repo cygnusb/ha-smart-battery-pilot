@@ -1,0 +1,2 @@
+class SwitchEntity:
+    pass
