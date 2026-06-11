@@ -127,8 +127,10 @@
           "battery": "Batterie-Parameter",
           "control": "Steuerungs-Scripts",
           "consumption": "Verbrauch & Temperatur",
-          "pv": "PV-Prognose"
-        }
+          "pv": "PV-Prognose",
+          "apply": "💾 Speichern & schließen"
+        },
+        "description": "Änderungen in den Unterpunkten werden gesammelt und erst über „Speichern & schließen“ übernommen."
       }
     },
     "error": {

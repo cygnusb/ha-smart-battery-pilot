@@ -127,8 +127,10 @@
           "battery": "Battery parameters",
           "control": "Control scripts",
           "consumption": "Consumption & temperature",
-          "pv": "PV forecast"
-        }
+          "pv": "PV forecast",
+          "apply": "💾 Save & close"
+        },
+        "description": "Changes in the sections below are collected and only saved via “Save & close”."
       }
     },
     "error": {

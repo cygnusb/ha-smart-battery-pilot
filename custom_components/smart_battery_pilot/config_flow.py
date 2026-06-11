@@ -308,26 +308,48 @@ class SBPConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class SBPOptionsFlow(OptionsFlow):
-    """Reconfigure every input (entities, scripts, tuning) after setup."""
+    """Reconfigure every input (entities, scripts, tuning) after setup.
+
+    Section steps return to the main menu and collect changes in _pending;
+    only the 'apply' menu entry persists them (create_entry reloads the
+    integration once, not per section).
+    """
+
+    def __init__(self) -> None:
+        self._pending: dict[str, Any] = {}
 
     @property
     def _merged(self) -> dict[str, Any]:
-        return {**self.config_entry.data, **self.config_entry.options}
+        return {**self.config_entry.data, **self.config_entry.options, **self._pending}
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         return self.async_show_menu(
             step_id="init",
-            menu_options=["tuning", "prices", "battery", "control", "consumption", "pv"],
+            menu_options=[
+                "tuning",
+                "prices",
+                "battery",
+                "control",
+                "consumption",
+                "pv",
+                "apply",
+            ],
         )
 
-    def _save_step(self, step: str, user_input: dict[str, Any]) -> ConfigFlowResult:
-        """Merge the step's fields into options (absent optional fields -> None)."""
-        new_options = dict(self.config_entry.options)
+    async def _save_step(self, step: str, user_input: dict[str, Any]) -> ConfigFlowResult:
+        """Stash the step's fields (absent optional fields -> None), back to menu."""
         for key in STEP_FIELDS[step]:
-            new_options[key] = user_input.get(key)
-        return self.async_create_entry(data=new_options)
+            self._pending[key] = user_input.get(key)
+        return await self.async_step_init()
+
+    async def async_step_apply(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        return self.async_create_entry(
+            data={**self.config_entry.options, **self._pending}
+        )
 
     async def async_step_prices(
         self, user_input: dict[str, Any] | None = None
@@ -338,7 +360,7 @@ class SBPOptionsFlow(OptionsFlow):
             if error:
                 errors[CONF_PRICE_ENTITY] = error
             else:
-                return self._save_step("prices", user_input)
+                return await self._save_step("prices", user_input)
         return self.async_show_form(
             step_id="prices", data_schema=schema_prices(self._merged), errors=errors
         )
@@ -351,7 +373,7 @@ class SBPOptionsFlow(OptionsFlow):
             if user_input[CONF_MIN_SOC] >= user_input[CONF_MAX_SOC]:
                 errors["base"] = "soc_range_invalid"
             else:
-                return self._save_step("battery", user_input)
+                return await self._save_step("battery", user_input)
         return self.async_show_form(
             step_id="battery", data_schema=schema_battery(self._merged), errors=errors
         )
@@ -360,14 +382,14 @@ class SBPOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         if user_input is not None:
-            return self._save_step("control", user_input)
+            return await self._save_step("control", user_input)
         return self.async_show_form(step_id="control", data_schema=schema_control(self._merged))
 
     async def async_step_consumption(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         if user_input is not None:
-            return self._save_step("consumption", user_input)
+            return await self._save_step("consumption", user_input)
         return self.async_show_form(
             step_id="consumption", data_schema=schema_consumption(self._merged)
         )
@@ -376,12 +398,12 @@ class SBPOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         if user_input is not None:
-            return self._save_step("pv", user_input)
+            return await self._save_step("pv", user_input)
         return self.async_show_form(step_id="pv", data_schema=schema_pv(self._merged))
 
     async def async_step_tuning(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         if user_input is not None:
-            return self._save_step("tuning", user_input)
+            return await self._save_step("tuning", user_input)
         return self.async_show_form(step_id="tuning", data_schema=schema_tuning(self._merged))
