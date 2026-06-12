@@ -11,7 +11,7 @@ const ACTION_COLORS = {
   charge: "rgba(67, 160, 71, 0.40)",
   idle: "rgba(120, 130, 140, 0.28)",
   export: "rgba(255, 152, 0, 0.40)",
-  auto: "transparent",
+  auto: "rgba(3, 169, 244, 0.07)",
 };
 
 const ACTION_LABELS = {
@@ -169,8 +169,7 @@ class SmartBatteryPilotCard extends HTMLElement {
     // --- action bands ---
     let bands = "";
     for (const s of slots) {
-      const color = ACTION_COLORS[s.action] || "transparent";
-      if (color === "transparent") continue;
+      const color = ACTION_COLORS[s.action] || "rgba(3, 169, 244, 0.07)";
       bands += `<rect x="${x(s.startMs).toFixed(1)}" y="${PAD_T}" width="${(
         x(s.endMs) - x(s.startMs)
       ).toFixed(1)}" height="${PLOT_H}" fill="${color}"/>`;
@@ -229,9 +228,9 @@ class SmartBatteryPilotCard extends HTMLElement {
       new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     const statusBits = [];
     if (current) {
-      const cc = ACTION_COLORS[current.action];
+      const cc = ACTION_COLORS[current.action] || "rgba(3,169,244,0.25)";
       statusBits.push(
-        `<span class="chip" style="background:${cc === "transparent" ? "rgba(3,169,244,0.25)" : cc}">${
+        `<span class="chip" style="background:${cc}">${
           ACTION_LABELS[current.action] || current.action
         }</span>`
       );
