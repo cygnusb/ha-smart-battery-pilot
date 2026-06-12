@@ -101,6 +101,10 @@ hover tooltip with price/SOC/action/PV per slot. If `entity` is omitted or
 wrong, the card finds the plan sensor automatically.
 See [docs/configuration.md](docs/configuration.md#dashboard).
 
+| Winter arbitrage | Summer PV export | Dunkelflaute |
+|:---:|:---:|:---:|
+| ![Winter arbitrage](assets/screenshots/card_winter_arbitrage.png) | ![Summer PV export](assets/screenshots/card_summer_export.png) | ![Dunkelflaute](assets/screenshots/card_dunkelflaute.png) |
+
 ## Vendor examples
 
 * [BYD Battery-Box Premium HVM + Fronius Gen24 (Modbus TCP)](docs/examples/byd-fronius-gen24.md)
