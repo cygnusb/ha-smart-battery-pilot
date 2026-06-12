@@ -245,7 +245,7 @@ class SavingsSensor(SBPEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement = "EUR"
     _attr_suggested_display_precision = 2
-    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_state_class = SensorStateClass.TOTAL
 
     def __init__(self, coordinator: SBPCoordinator) -> None:
         super().__init__(coordinator, "estimated_savings")
@@ -323,7 +323,7 @@ class ActualSavingsEurSensor(SBPEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement = "EUR"
     _attr_suggested_display_precision = 2
-    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_state_class = SensorStateClass.TOTAL
 
     def __init__(self, coordinator: SBPCoordinator) -> None:
         super().__init__(coordinator, "actual_savings_eur")
