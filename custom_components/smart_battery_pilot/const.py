@@ -12,6 +12,8 @@ CONF_FEED_IN_TARIFF = "feed_in_tariff"  # EUR/kWh earned when exporting
 
 # Step: battery
 CONF_SOC_ENTITY = "soc_entity"
+CONF_BATTERY_CHARGE_ENERGY_ENTITY = "battery_charge_energy_entity"
+CONF_BATTERY_DISCHARGE_ENERGY_ENTITY = "battery_discharge_energy_entity"
 CONF_CAPACITY_KWH = "capacity_kwh"
 CONF_MAX_CHARGE_POWER_W = "max_charge_power_w"
 CONF_MAX_DISCHARGE_POWER_W = "max_discharge_power_w"
@@ -46,7 +48,7 @@ DISCHARGE_MODE_EXPORT = "export"
 
 # --- Defaults ---
 DEFAULT_PRICE_OFFSET = 0.0
-DEFAULT_FEED_IN_TARIFF = 0.0
+DEFAULT_FEED_IN_TARIFF = 0.08  # typical German residential feed-in tariff
 DEFAULT_MIN_SOC = 10
 DEFAULT_MAX_SOC = 95
 DEFAULT_EFFICIENCY = 90

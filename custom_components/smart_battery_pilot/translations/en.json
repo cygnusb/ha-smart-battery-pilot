@@ -20,7 +20,9 @@
           "max_discharge_power_w": "Maximum discharge power",
           "min_soc": "Minimum SOC",
           "max_soc": "Maximum SOC",
-          "efficiency": "Roundtrip efficiency"
+          "efficiency": "Roundtrip efficiency",
+          "battery_charge_energy_entity": "Battery charge energy entity (kWh, optional)",
+          "battery_discharge_energy_entity": "Battery discharge energy entity (kWh, optional)"
         }
       },
       "control": {
@@ -81,7 +83,9 @@
           "max_discharge_power_w": "Maximum discharge power",
           "min_soc": "Minimum SOC",
           "max_soc": "Maximum SOC",
-          "efficiency": "Roundtrip efficiency"
+          "efficiency": "Roundtrip efficiency",
+          "battery_charge_energy_entity": "Battery charge energy entity (kWh, optional)",
+          "battery_discharge_energy_entity": "Battery discharge energy entity (kWh, optional)"
         }
       },
       "control": {
@@ -194,6 +198,12 @@
       },
       "konfiguration": {
         "name": "Configuration"
+      },
+      "actual_savings_eur": {
+        "name": "Actual savings"
+      },
+      "actual_savings_kwh": {
+        "name": "Actual energy gain"
       }
     },
     "switch": {

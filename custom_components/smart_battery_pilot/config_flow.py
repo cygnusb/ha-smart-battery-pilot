@@ -37,6 +37,8 @@ from .const import (
     CONF_SCRIPT_CHARGE,
     CONF_SCRIPT_EXPORT,
     CONF_SCRIPT_IDLE,
+    CONF_BATTERY_CHARGE_ENERGY_ENTITY,
+    CONF_BATTERY_DISCHARGE_ENERGY_ENTITY,
     CONF_SOC_ENTITY,
     CONF_SPREAD_THRESHOLD,
     CONF_TEMPERATURE_ENTITY,
@@ -123,6 +125,14 @@ def schema_battery(d: dict[str, Any]) -> vol.Schema:
             vol.Required(
                 CONF_EFFICIENCY, default=d.get(CONF_EFFICIENCY, DEFAULT_EFFICIENCY)
             ): num(50, 100, 1, "%"),
+            vol.Optional(
+                CONF_BATTERY_CHARGE_ENERGY_ENTITY,
+                description=_sugg(d.get(CONF_BATTERY_CHARGE_ENERGY_ENTITY)),
+            ): _ENTITY,
+            vol.Optional(
+                CONF_BATTERY_DISCHARGE_ENERGY_ENTITY,
+                description=_sugg(d.get(CONF_BATTERY_DISCHARGE_ENERGY_ENTITY)),
+            ): _ENTITY,
         }
     )
 
@@ -207,6 +217,8 @@ STEP_FIELDS: dict[str, list[str]] = {
         CONF_MIN_SOC,
         CONF_MAX_SOC,
         CONF_EFFICIENCY,
+        CONF_BATTERY_CHARGE_ENERGY_ENTITY,
+        CONF_BATTERY_DISCHARGE_ENERGY_ENTITY,
     ],
     "control": [CONF_SCRIPT_CHARGE, CONF_SCRIPT_IDLE, CONF_SCRIPT_AUTO, CONF_SCRIPT_EXPORT],
     "consumption": [CONF_CONSUMPTION_ENTITY, CONF_TEMPERATURE_ENTITY, CONF_HAS_HEAT_PUMP],

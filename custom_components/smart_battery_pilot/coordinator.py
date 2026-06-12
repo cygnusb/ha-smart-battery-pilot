@@ -17,6 +17,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    CONF_BATTERY_CHARGE_ENERGY_ENTITY,
+    CONF_BATTERY_DISCHARGE_ENERGY_ENTITY,
     CONF_CAPACITY_KWH,
     CONF_CONSUMPTION_ENTITY,
     CONF_DISCHARGE_MODE,
@@ -75,6 +77,10 @@ class SBPData:
     updated_at: datetime | None = None
     consumption_forecast_24h_kwh: float = 0.0
     pv_forecast_24h_kwh: float = 0.0
+    # Actual savings accumulation (only set when energy entities are configured)
+    actual_savings_eur: float | None = None
+    actual_charge_kwh: float | None = None
+    actual_discharge_kwh: float | None = None
 
 
 class SBPCoordinator(DataUpdateCoordinator[SBPData]):
@@ -97,6 +103,13 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         self.enabled: bool = False
         self.dry_run: bool = self.opt(CONF_DRY_RUN, DEFAULT_DRY_RUN)
 
+        # Actual savings tracking
+        self._prev_charge_kwh: float | None = None
+        self._prev_discharge_kwh: float | None = None
+        self._acc_savings_eur: float = 0.0
+        self._acc_charge_kwh: float = 0.0
+        self._acc_discharge_kwh: float = 0.0
+
     # --- config helpers -------------------------------------------------------
 
     def conf(self, key: str, default: Any = None) -> Any:
@@ -117,6 +130,12 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 self._last_training = dt_util.parse_datetime(last) if last else None
             except (KeyError, TypeError, ValueError) as err:
                 _LOGGER.warning("Could not restore consumption model: %s", err)
+
+        if stored and stored.get("savings"):
+            sv = stored["savings"]
+            self._acc_savings_eur = float(sv.get("savings_eur", 0.0))
+            self._acc_charge_kwh = float(sv.get("charge_kwh", 0.0))
+            self._acc_discharge_kwh = float(sv.get("discharge_kwh", 0.0))
 
         price_entity = self.conf(CONF_PRICE_ENTITY)
         if price_entity:
@@ -192,6 +211,13 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         plan = await self.hass.async_add_executor_job(
             build_plan, input_slots, battery, config
         )
+
+        self._update_actual_savings(plan, now)
+
+        actual_savings = self._acc_savings_eur if self._has_energy_entities() else None
+        actual_charge = self._acc_charge_kwh if self._has_energy_entities() else None
+        actual_discharge = self._acc_discharge_kwh if self._has_energy_entities() else None
+
         return SBPData(
             plan=plan,
             valid=True,
@@ -202,6 +228,9 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             updated_at=now,
             consumption_forecast_24h_kwh=round(consumption_24h, 2),
             pv_forecast_24h_kwh=round(pv_24h, 2),
+            actual_savings_eur=round(actual_savings, 3) if actual_savings is not None else None,
+            actual_charge_kwh=round(actual_charge, 2) if actual_charge is not None else None,
+            actual_discharge_kwh=round(actual_discharge, 2) if actual_discharge is not None else None,
         )
 
     _adapter_name: str | None = None
@@ -274,9 +303,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
 
         await self.hass.async_add_executor_job(self.forecaster.train, samples)
         self._last_training = now
-        await self._store.async_save(
-            {"model": self.forecaster.to_dict(), "trained_at": now.isoformat()}
-        )
+        await self._persist_store(now)
         _LOGGER.debug(
             "Trained consumption model (%s) with %d samples",
             self.forecaster.model_type,
@@ -328,3 +355,76 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 TrainingSample(start=start_dt, kwh=kwh, temperature=temps.get(row["start"]))
             )
         return samples
+
+    # --- actual savings tracking --------------------------------------------------
+
+    def _has_energy_entities(self) -> bool:
+        return bool(
+            self.conf(CONF_BATTERY_CHARGE_ENERGY_ENTITY)
+            or self.conf(CONF_BATTERY_DISCHARGE_ENERGY_ENTITY)
+        )
+
+    def _update_actual_savings(self, plan: Plan, now: datetime) -> None:
+        """Read energy meter deltas and accumulate actual savings."""
+        charge_entity = self.conf(CONF_BATTERY_CHARGE_ENERGY_ENTITY)
+        discharge_entity = self.conf(CONF_BATTERY_DISCHARGE_ENERGY_ENTITY)
+        if not charge_entity and not discharge_entity:
+            return
+
+        cur_charge = self._read_float_state(charge_entity) or 0.0
+        cur_discharge = self._read_float_state(discharge_entity) or 0.0
+
+        if self._prev_charge_kwh is None or self._prev_discharge_kwh is None:
+            # First reading — just store baseline, don't accumulate yet
+            self._prev_charge_kwh = cur_charge
+            self._prev_discharge_kwh = cur_discharge
+            return
+
+        delta_charge = max(0.0, cur_charge - self._prev_charge_kwh)
+        delta_discharge = max(0.0, cur_discharge - self._prev_discharge_kwh)
+        self._prev_charge_kwh = cur_charge
+        self._prev_discharge_kwh = cur_discharge
+
+        if delta_charge == 0.0 and delta_discharge == 0.0:
+            return
+
+        # Derive representative prices from past plan slots
+        avg_charge_price = self._avg_price_for_action(plan, "charge", now)
+        avg_discharge_price = self._avg_price_for_action_discharged(plan, now)
+
+        savings = delta_discharge * avg_discharge_price - delta_charge * avg_charge_price
+        self._acc_savings_eur += savings
+        self._acc_charge_kwh += delta_charge
+        self._acc_discharge_kwh += delta_discharge
+
+        self.hass.async_create_task(self._persist_store(now))
+
+    def _avg_price_for_action(self, plan: Plan, action: str, now: datetime) -> float:
+        """Average price of slots with the given action in the plan horizon."""
+        slots = [s for s in plan.slots if s.action == action]
+        if not slots:
+            return 0.0
+        return sum(s.price for s in slots) / len(slots)
+
+    def _avg_price_for_action_discharged(self, plan: Plan, now: datetime) -> float:
+        """Average price during auto/export slots (where battery discharges)."""
+        slots = [s for s in plan.slots if s.action in ("auto", "export")]
+        if not slots:
+            # Fallback: average of all slots
+            if plan.slots:
+                return sum(s.price for s in plan.slots) / len(plan.slots)
+            return 0.0
+        return sum(s.price for s in slots) / len(slots)
+
+    async def _persist_store(self, now: datetime) -> None:
+        await self._store.async_save(
+            {
+                "model": self.forecaster.to_dict(),
+                "trained_at": self._last_training.isoformat() if self._last_training else None,
+                "savings": {
+                    "savings_eur": self._acc_savings_eur,
+                    "charge_kwh": self._acc_charge_kwh,
+                    "discharge_kwh": self._acc_discharge_kwh,
+                },
+            }
+        )
