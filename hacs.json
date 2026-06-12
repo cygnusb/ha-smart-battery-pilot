@@ -1,5 +1,36 @@
 {
   "name": "Smart Battery Pilot",
   "render_readme": true,
-  "homeassistant": "2024.6.0"
+  "homeassistant": "2024.6.0",
+  "keywords": [
+    "battery",
+    "battery management",
+    "home battery",
+    "energy storage",
+    "energy arbitrage",
+    "dynamic tariff",
+    "dynamic electricity",
+    "Tibber",
+    "aWATTar",
+    "Octopus Energy",
+    "Ostrom",
+    "Voltego",
+    "Rabot Charge",
+    "Lichtblick",
+    "Nordpool",
+    "EPEX",
+    "ENTSO-E",
+    "charge optimization",
+    "solar",
+    "PV",
+    "Fronius",
+    "BYD",
+    "Victron",
+    "SMA",
+    "Sungrow",
+    "E3DC",
+    "Dunkelflaute",
+    "energy saving",
+    "cost optimization"
+  ]
 }

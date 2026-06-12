@@ -5,8 +5,9 @@
 **Charge your home battery when electricity is cheap — use it when it's expensive.**
 
 Smart Battery Pilot is a Home Assistant integration for households with a home
-battery and a dynamic electricity tariff (Nordpool, EPEX Spot, Tibber, aWATTar,
-ENTSO-E, …). It learns your household's consumption profile, combines it with
+battery and a dynamic electricity tariff (Tibber, aWATTar, Octopus Energy,
+Ostrom, Voltego, Rabot Charge, Lichtblick, …). It learns your household's
+consumption profile, combines it with
 the price forecast for the next 24–36 hours and your PV production forecast,
 and computes an optimal charge/discharge plan — especially valuable during
 dark winter weeks ("Dunkelflaute") when prices swing heavily within a day.
@@ -20,7 +21,9 @@ vendor configurations.
 ## How it works
 
 1. **Price forecast** — the price entity of your existing tariff integration is
-   parsed automatically (15-minute or hourly slots, today + tomorrow).
+   parsed automatically (15-minute or hourly slots, today + tomorrow). Supported
+   price integrations: Nordpool, EPEX Spot, ENTSO-E, Tibber, aWATTar and any
+   integration that exposes an hourly price list as a sensor attribute.
 2. **Consumption forecast** — a lightweight model (pure Python, no heavy ML
    dependencies) is trained daily from your Home Assistant history: hour of
    day, weekday/weekend and optionally outdoor temperature (heat pump aware).
