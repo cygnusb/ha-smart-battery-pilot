@@ -20,7 +20,9 @@
           "max_discharge_power_w": "Maximale Entladeleistung",
           "min_soc": "Minimaler SOC",
           "max_soc": "Maximaler SOC",
-          "efficiency": "Roundtrip-Wirkungsgrad"
+          "efficiency": "Roundtrip-Wirkungsgrad",
+          "battery_charge_energy_entity": "Geladene Energie-Entity (kWh, optional)",
+          "battery_discharge_energy_entity": "Entladene Energie-Entity (kWh, optional)"
         }
       },
       "control": {
@@ -81,7 +83,9 @@
           "max_discharge_power_w": "Maximale Entladeleistung",
           "min_soc": "Minimaler SOC",
           "max_soc": "Maximaler SOC",
-          "efficiency": "Roundtrip-Wirkungsgrad"
+          "efficiency": "Roundtrip-Wirkungsgrad",
+          "battery_charge_energy_entity": "Geladene Energie-Entity (kWh, optional)",
+          "battery_discharge_energy_entity": "Entladene Energie-Entity (kWh, optional)"
         }
       },
       "control": {
@@ -194,6 +198,12 @@
       },
       "konfiguration": {
         "name": "Konfiguration"
+      },
+      "actual_savings_eur": {
+        "name": "Tatsächliche Ersparnis"
+      },
+      "actual_savings_kwh": {
+        "name": "Tatsächlicher Energiegewinn"
       }
     },
     "switch": {

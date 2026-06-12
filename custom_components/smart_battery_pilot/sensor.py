@@ -52,6 +52,8 @@ async def async_setup_entry(
             ChargePlanSensor(coordinator),
             PlanStatusSensor(coordinator),
             SavingsSensor(coordinator),
+            ActualSavingsEurSensor(coordinator),
+            ActualSavingsKwhSensor(coordinator),
             ConsumptionForecastSensor(coordinator),
             ConfigSensor(coordinator),
         ]
@@ -309,3 +311,57 @@ class ConfigSensor(SBPEntity, SensorEntity):
             "training_tage": c(CONF_TRAINING_DAYS, DEFAULT_TRAINING_DAYS),
             "dry_run": self.coordinator.dry_run,
         }
+
+
+class ActualSavingsEurSensor(SBPEntity, SensorEntity):
+    """Accumulated actual savings in EUR since integration start.
+
+    Only available when battery charge/discharge energy entities are configured.
+    Uses actual energy meter deltas correlated with plan prices.
+    """
+
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = "EUR"
+    _attr_suggested_display_precision = 2
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+
+    def __init__(self, coordinator: SBPCoordinator) -> None:
+        super().__init__(coordinator, "actual_savings_eur")
+
+    @property
+    def native_value(self) -> float | None:
+        data = self.coordinator.data
+        return data.actual_savings_eur if data else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self.coordinator.data
+        if not data:
+            return {}
+        return {
+            "charge_kwh_total": data.actual_charge_kwh,
+            "discharge_kwh_total": data.actual_discharge_kwh,
+        }
+
+
+class ActualSavingsKwhSensor(SBPEntity, SensorEntity):
+    """Net kWh benefit: battery discharge minus grid charge since integration start.
+
+    Only available when battery charge/discharge energy entities are configured.
+    Positive = net energy benefit from arbitrage, negative = net loss.
+    """
+
+    _attr_device_class = SensorDeviceClass.ENERGY
+    _attr_native_unit_of_measurement = "kWh"
+    _attr_suggested_display_precision = 2
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+
+    def __init__(self, coordinator: SBPCoordinator) -> None:
+        super().__init__(coordinator, "actual_savings_kwh")
+
+    @property
+    def native_value(self) -> float | None:
+        data = self.coordinator.data
+        if data is None or data.actual_discharge_kwh is None or data.actual_charge_kwh is None:
+            return None
+        return round(data.actual_discharge_kwh - data.actual_charge_kwh, 2)
