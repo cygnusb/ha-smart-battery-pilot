@@ -151,19 +151,49 @@
   "entity": {
     "sensor": {
       "current_action": {
-        "name": "Aktuelle Aktion"
+        "name": "Aktuelle Aktion",
+        "state": {
+          "charge": "Laden",
+          "auto": "Auto",
+          "idle": "Gesperrt",
+          "export": "Einspeisen",
+          "unknown": "Unbekannt"
+        }
       },
       "next_action": {
-        "name": "Nächste Aktion"
+        "name": "Nächste Aktion",
+        "state": {
+          "charge": "Laden",
+          "auto": "Auto",
+          "idle": "Gesperrt",
+          "export": "Einspeisen",
+          "keine_aenderung": "Keine Änderung"
+        }
+      },
+      "current_price": {
+        "name": "Aktueller Strompreis"
       },
       "charge_plan": {
-        "name": "Ladeplan"
+        "name": "Aktive Planaktionen"
+      },
+      "plan_status": {
+        "name": "Plan-Status",
+        "state": {
+          "ok": "OK",
+          "kein_preis": "Kein Preis",
+          "kein_soc": "Kein Ladezustand",
+          "kein_preisadapter": "Preisformat unbekannt",
+          "fehler": "Fehler"
+        }
       },
       "estimated_savings": {
         "name": "Geschätzte Ersparnis"
       },
       "consumption_forecast": {
         "name": "Verbrauchsprognose 24h"
+      },
+      "konfiguration": {
+        "name": "Konfiguration"
       }
     },
     "switch": {

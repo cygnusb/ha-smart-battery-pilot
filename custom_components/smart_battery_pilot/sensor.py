@@ -4,13 +4,36 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from . import SBPConfigEntry
-from .const import ACTION_AUTO, ATTR_SLOTS
+from .const import (
+    ACTION_AUTO,
+    ATTR_SLOTS,
+    CONF_CAPACITY_KWH,
+    CONF_DISCHARGE_MODE,
+    CONF_EFFICIENCY,
+    CONF_FEED_IN_TARIFF,
+    CONF_MAX_CHARGE_POWER_W,
+    CONF_MAX_DISCHARGE_POWER_W,
+    CONF_MAX_SOC,
+    CONF_MIN_SOC,
+    CONF_PRICE_OFFSET,
+    CONF_SPREAD_THRESHOLD,
+    CONF_TRAINING_DAYS,
+    DEFAULT_DISCHARGE_MODE,
+    DEFAULT_EFFICIENCY,
+    DEFAULT_FEED_IN_TARIFF,
+    DEFAULT_MAX_SOC,
+    DEFAULT_MIN_SOC,
+    DEFAULT_PRICE_OFFSET,
+    DEFAULT_SPREAD_THRESHOLD,
+    DEFAULT_TRAINING_DAYS,
+)
 from .coordinator import SBPCoordinator
 from .entity import SBPEntity
 
@@ -25,9 +48,12 @@ async def async_setup_entry(
         [
             CurrentActionSensor(coordinator),
             NextActionSensor(coordinator),
+            CurrentPriceSensor(coordinator),
             ChargePlanSensor(coordinator),
+            PlanStatusSensor(coordinator),
             SavingsSensor(coordinator),
             ConsumptionForecastSensor(coordinator),
+            ConfigSensor(coordinator),
         ]
     )
 
@@ -75,6 +101,9 @@ class CurrentActionSensor(SBPEntity, SensorEntity):
 class NextActionSensor(SBPEntity, SensorEntity):
     """The next action that differs from the current one."""
 
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["charge", "auto", "idle", "export", "keine_aenderung"]
+
     def __init__(self, coordinator: SBPCoordinator) -> None:
         super().__init__(coordinator, "next_action")
 
@@ -91,24 +120,46 @@ class NextActionSensor(SBPEntity, SensorEntity):
         return None
 
     @property
-    def native_value(self) -> str | None:
+    def native_value(self) -> str:
         slot = self._next_change()
-        return slot.action if slot else None
+        return slot.action if slot else "keine_aenderung"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         slot = self._next_change()
         if not slot:
             return {}
+        now = dt_util.now()
+        delta = slot.start - now
+        minutes = int(delta.total_seconds() / 60)
         return {
             "start": slot.start.isoformat(),
+            "in_minutes": minutes,
             "price": slot.price,
             "charge_power_w": slot.charge_power_w,
         }
 
 
+class CurrentPriceSensor(SBPEntity, SensorEntity):
+    """Current electricity price from the active plan slot."""
+
+    _attr_native_unit_of_measurement = "EUR/kWh"
+    _attr_suggested_display_precision = 4
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator: SBPCoordinator) -> None:
+        super().__init__(coordinator, "current_price")
+
+    @property
+    def native_value(self) -> float | None:
+        slot = _find_current_slot(self.coordinator)
+        return round(slot.price, 4) if slot else None
+
+
 class ChargePlanSensor(SBPEntity, SensorEntity):
-    """Full plan as attributes; state is the number of planned slots."""
+    """Full plan as attributes; state is the number of actively planned (non-auto) slots."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, coordinator: SBPCoordinator) -> None:
         super().__init__(coordinator, "charge_plan")
@@ -116,7 +167,9 @@ class ChargePlanSensor(SBPEntity, SensorEntity):
     @property
     def native_value(self) -> int:
         data = self.coordinator.data
-        return len(data.plan.slots) if data and data.valid else 0
+        if not data or not data.valid:
+            return 0
+        return sum(1 for s in data.plan.slots if s.action != ACTION_AUTO)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -138,11 +191,49 @@ class ChargePlanSensor(SBPEntity, SensorEntity):
                 }
                 for s in data.plan.slots
             ],
+            "total_slots": len(data.plan.slots),
             "grid_charge_kwh": round(data.plan.grid_charge_kwh, 2),
             "battery_discharge_kwh": round(data.plan.battery_discharge_kwh, 2),
             "price_adapter": data.adapter_name,
             "updated_at": data.updated_at.isoformat() if data.updated_at else None,
             "error": data.error,
+        }
+
+
+class PlanStatusSensor(SBPEntity, SensorEntity):
+    """Plan validity status — diagnostic, not recorded."""
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["ok", "kein_preis", "kein_soc", "kein_preisadapter", "fehler"]
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: SBPCoordinator) -> None:
+        super().__init__(coordinator, "plan_status")
+
+    @property
+    def native_value(self) -> str:
+        data = self.coordinator.data
+        if not data:
+            return "fehler"
+        if not data.valid:
+            error_map = {
+                "no_price_data": "kein_preis",
+                "soc_unavailable": "kein_soc",
+            }
+            return error_map.get(data.error or "", "fehler")
+        return "ok"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self.coordinator.data
+        if not data:
+            return {}
+        return {
+            "error_detail": data.error,
+            "adapter": data.adapter_name,
+            "updated_at": data.updated_at.isoformat() if data.updated_at else None,
+            "model_type": data.model_type,
+            "training_samples": data.training_samples,
         }
 
 
@@ -152,6 +243,7 @@ class SavingsSensor(SBPEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement = "EUR"
     _attr_suggested_display_precision = 2
+    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, coordinator: SBPCoordinator) -> None:
         super().__init__(coordinator, "estimated_savings")
@@ -186,4 +278,34 @@ class ConsumptionForecastSensor(SBPEntity, SensorEntity):
             "model_type": data.model_type,
             "training_samples": data.training_samples,
             "pv_forecast_24h_kwh": data.pv_forecast_24h_kwh,
+        }
+
+
+class ConfigSensor(SBPEntity, SensorEntity):
+    """Active integration configuration — diagnostic, not intended for automations."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_should_poll = False
+
+    def __init__(self, coordinator: SBPCoordinator) -> None:
+        super().__init__(coordinator, "konfiguration")
+
+    @property
+    def native_value(self) -> str:
+        return "aktiv" if self.coordinator.enabled else "inaktiv"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        c = self.coordinator.conf
+        return {
+            "kapazitaet_kwh": c(CONF_CAPACITY_KWH, 10.0),
+            "min_soc_prozent": c(CONF_MIN_SOC, DEFAULT_MIN_SOC),
+            "max_soc_prozent": c(CONF_MAX_SOC, DEFAULT_MAX_SOC),
+            "wirkungsgrad_prozent": c(CONF_EFFICIENCY, DEFAULT_EFFICIENCY),
+            "mindest_preisdifferenz_eur_kwh": c(CONF_SPREAD_THRESHOLD, DEFAULT_SPREAD_THRESHOLD),
+            "entlade_modus": c(CONF_DISCHARGE_MODE, DEFAULT_DISCHARGE_MODE),
+            "preisaufschlag_eur_kwh": c(CONF_PRICE_OFFSET, DEFAULT_PRICE_OFFSET),
+            "einspeiseverguetung_eur_kwh": c(CONF_FEED_IN_TARIFF, DEFAULT_FEED_IN_TARIFF),
+            "training_tage": c(CONF_TRAINING_DAYS, DEFAULT_TRAINING_DAYS),
+            "dry_run": self.coordinator.dry_run,
         }

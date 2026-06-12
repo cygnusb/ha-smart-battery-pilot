@@ -151,19 +151,49 @@
   "entity": {
     "sensor": {
       "current_action": {
-        "name": "Current action"
+        "name": "Current action",
+        "state": {
+          "charge": "Charge",
+          "auto": "Auto",
+          "idle": "Idle",
+          "export": "Export",
+          "unknown": "Unknown"
+        }
       },
       "next_action": {
-        "name": "Next action"
+        "name": "Next action",
+        "state": {
+          "charge": "Charge",
+          "auto": "Auto",
+          "idle": "Idle",
+          "export": "Export",
+          "keine_aenderung": "No change"
+        }
+      },
+      "current_price": {
+        "name": "Current electricity price"
       },
       "charge_plan": {
-        "name": "Charge plan"
+        "name": "Active plan actions"
+      },
+      "plan_status": {
+        "name": "Plan status",
+        "state": {
+          "ok": "OK",
+          "kein_preis": "No price data",
+          "kein_soc": "No state of charge",
+          "kein_preisadapter": "Unknown price format",
+          "fehler": "Error"
+        }
       },
       "estimated_savings": {
         "name": "Estimated savings"
       },
       "consumption_forecast": {
         "name": "Consumption forecast 24h"
+      },
+      "konfiguration": {
+        "name": "Configuration"
       }
     },
     "switch": {
