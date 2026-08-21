@@ -171,7 +171,7 @@
           "auto": "Auto",
           "idle": "Idle",
           "export": "Export",
-          "keine_aenderung": "No change"
+          "no_change": "No change"
         }
       },
       "current_price": {
@@ -184,10 +184,10 @@
         "name": "Plan status",
         "state": {
           "ok": "OK",
-          "kein_preis": "No price data",
-          "kein_soc": "No state of charge",
-          "kein_preisadapter": "Unknown price format",
-          "fehler": "Error"
+          "no_price_data": "No price data",
+          "no_soc": "No state of charge",
+          "no_price_adapter": "Unknown price format",
+          "error": "Error"
         }
       },
       "estimated_savings": {

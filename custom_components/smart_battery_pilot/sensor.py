@@ -104,7 +104,7 @@ class NextActionSensor(SBPEntity, SensorEntity):
     """The next action that differs from the current one."""
 
     _attr_device_class = SensorDeviceClass.ENUM
-    _attr_options = ["charge", "auto", "idle", "export", "keine_aenderung"]
+    _attr_options = ["charge", "auto", "idle", "export", "no_change"]
 
     def __init__(self, coordinator: SBPCoordinator) -> None:
         super().__init__(coordinator, "next_action")
@@ -124,7 +124,7 @@ class NextActionSensor(SBPEntity, SensorEntity):
     @property
     def native_value(self) -> str:
         slot = self._next_change()
-        return slot.action if slot else "keine_aenderung"
+        return slot.action if slot else "no_change"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -206,7 +206,7 @@ class PlanStatusSensor(SBPEntity, SensorEntity):
     """Plan validity status — diagnostic, not recorded."""
 
     _attr_device_class = SensorDeviceClass.ENUM
-    _attr_options = ["ok", "kein_preis", "kein_soc", "kein_preisadapter", "fehler"]
+    _attr_options = ["ok", "no_price_data", "no_soc", "no_price_adapter", "error"]
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, coordinator: SBPCoordinator) -> None:
@@ -216,13 +216,13 @@ class PlanStatusSensor(SBPEntity, SensorEntity):
     def native_value(self) -> str:
         data = self.coordinator.data
         if not data:
-            return "fehler"
+            return "error"
         if not data.valid:
             error_map = {
-                "no_price_data": "kein_preis",
-                "soc_unavailable": "kein_soc",
+                "no_price_data": "no_price_data",
+                "soc_unavailable": "no_soc",
             }
-            return error_map.get(data.error or "", "fehler")
+            return error_map.get(data.error or "", "error")
         return "ok"
 
     @property

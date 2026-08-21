@@ -33,7 +33,7 @@ class SBPRuntimeData:
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register the bundled Lovelace card resource."""
     card_path = Path(__file__).parent / "frontend" / "smart-battery-pilot-card.js"
-    if card_path.exists():
+    if await hass.async_add_executor_job(card_path.exists):
         await hass.http.async_register_static_paths(
             [StaticPathConfig(FRONTEND_SCRIPT_URL, str(card_path), cache_headers=False)]
         )
