@@ -14,12 +14,74 @@ const ACTION_COLORS = {
   auto: "rgba(3, 169, 244, 0.07)",
 };
 
-const ACTION_LABELS = {
-  charge: "Laden",
-  idle: "Gesperrt",
-  export: "Einspeisen",
-  auto: "Auto",
+// Action keys as they arrive in the charge_plan slots; ACTIONS drives the legend
+// order, "auto" is the implicit default and therefore not listed in the legend.
+const ACTIONS = ["charge", "idle", "export"];
+
+const TRANSLATIONS = {
+  en: {
+    action_charge: "Charge",
+    action_idle: "Blocked",
+    action_export: "Export",
+    action_auto: "Auto",
+    price: "Price",
+    soc: "SOC",
+    soc_forecast: "SOC forecast",
+    consumption: "Consumption",
+    pv: "PV",
+    net_demand: "Net demand",
+    charge_power: "Charge power",
+    entity_missing: "Entity {entity} not found, and no charge plan entity was detected.",
+    no_plan: "No valid charge plan (error: {error})",
+    unknown: "unknown",
+    next_at: "{action} at {time}",
+  },
+  de: {
+    action_charge: "Laden",
+    action_idle: "Gesperrt",
+    action_export: "Einspeisen",
+    action_auto: "Auto",
+    price: "Preis",
+    soc: "SOC",
+    soc_forecast: "SOC-Prognose",
+    consumption: "Verbrauch",
+    pv: "PV",
+    net_demand: "Netto-Bedarf",
+    charge_power: "Ladeleistung",
+    entity_missing: "Entity {entity} nicht gefunden und keine Ladeplan-Entity erkannt.",
+    no_plan: "Kein gültiger Ladeplan (Fehler: {error})",
+    unknown: "unbekannt",
+    next_at: "{action} um {time}",
+  },
 };
+
+const DEFAULT_LANGUAGE = "en";
+
+// HA's own language wins; fall back to the browser and finally to English.
+// "de-CH" and friends resolve via their base tag.
+function resolveLanguage(hass) {
+  const candidates = [
+    hass && hass.locale && hass.locale.language,
+    hass && hass.language,
+    typeof navigator !== "undefined" ? navigator.language : null,
+  ];
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    if (TRANSLATIONS[candidate]) return candidate;
+    const base = String(candidate).split("-")[0];
+    if (TRANSLATIONS[base]) return base;
+  }
+  return DEFAULT_LANGUAGE;
+}
+
+// Entity ids and coordinator error codes end up in innerHTML.
+function esc(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
 const W = 480;
 const H = 230;
@@ -50,10 +112,36 @@ class SmartBatteryPilotCard extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
+    const lang = resolveLanguage(hass);
     const state = this._resolveState();
-    if (state === this._renderedState) return; // plan unchanged - keep DOM (and tooltip)
+    // plan and language unchanged - keep DOM (and tooltip)
+    if (state === this._renderedState && lang === this._lang) return;
+    this._lang = lang;
     this._renderedState = state;
     this._render(state);
+  }
+
+  _tr(key, vars) {
+    const table = TRANSLATIONS[this._lang] || TRANSLATIONS[DEFAULT_LANGUAGE];
+    let text = table[key];
+    if (text === undefined) text = TRANSLATIONS[DEFAULT_LANGUAGE][key];
+    if (text === undefined) return key;
+    if (!vars) return text;
+    return text.replace(/\{(\w+)\}/g, (match, name) =>
+      vars[name] === undefined ? match : vars[name]
+    );
+  }
+
+  _actionLabel(action) {
+    const table = TRANSLATIONS[this._lang] || TRANSLATIONS[DEFAULT_LANGUAGE];
+    return table[`action_${action}`] || action;
+  }
+
+  _fmtTime(ms) {
+    return new Date(ms).toLocaleTimeString(this._lang, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
 
   getCardSize() {
@@ -93,18 +181,18 @@ class SmartBatteryPilotCard extends HTMLElement {
     if (!state) {
       this._html(
         title,
-        `<div class="empty">Entity <code>${
-          this._config.entity || "?"
-        }</code> nicht gefunden und keine Ladeplan-Entity erkannt.</div>`
+        `<div class="empty">${this._tr("entity_missing", {
+          entity: `<code>${esc(this._config.entity || "?")}</code>`,
+        })}</div>`
       );
       return;
     }
     if (!state.attributes.slots || state.attributes.slots.length === 0) {
       this._html(
         title,
-        `<div class="empty">Kein gültiger Ladeplan (Fehler: ${
-          state.attributes.error || "unbekannt"
-        })</div>`
+        `<div class="empty">${this._tr("no_plan", {
+          error: esc(state.attributes.error || this._tr("unknown")),
+        })}</div>`
       );
       return;
     }
@@ -157,7 +245,7 @@ class SmartBatteryPilotCard extends HTMLElement {
       ).padStart(2, "0")}</text>`;
       if (midnight) {
         grid += `<text x="${x(ms).toFixed(1)}" y="${H - 4}" class="ax tx day">${d.toLocaleDateString(
-          [],
+          this._lang,
           { weekday: "short", day: "numeric", month: "numeric" }
         )}</text>`;
       }
@@ -224,35 +312,35 @@ class SmartBatteryPilotCard extends HTMLElement {
     }
     const current = slots.find((s) => now >= s.startMs && now < s.endMs);
     const next = slots.find((s) => s.startMs > now && current && s.action !== current.action);
-    const fmtTime = (ms) =>
-      new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     const statusBits = [];
     if (current) {
       const cc = ACTION_COLORS[current.action] || "rgba(3,169,244,0.25)";
       statusBits.push(
-        `<span class="chip" style="background:${cc}">${
-          ACTION_LABELS[current.action] || current.action
-        }</span>`
+        `<span class="chip" style="background:${cc}">${esc(
+          this._actionLabel(current.action)
+        )}</span>`
       );
     }
     if (next) {
       statusBits.push(
-        `<span class="next">→ ${ACTION_LABELS[next.action] || next.action} um ${fmtTime(next.startMs)}</span>`
+        `<span class="next">→ ${this._tr("next_at", {
+          action: esc(this._actionLabel(next.action)),
+          time: this._fmtTime(next.startMs),
+        })}</span>`
       );
     }
 
     const legend =
-      Object.entries(ACTION_LABELS)
-        .filter(([k]) => k !== "auto")
-        .map(
-          ([key, label]) =>
-            `<span class="lg"><i style="background:${ACTION_COLORS[key]}"></i>${label}</span>`
-        )
-        .join("") +
-      `<span class="lg"><i class="li price-i"></i>Preis</span>` +
-      `<span class="lg"><i class="li soc-i"></i>SOC</span>` +
-      `<span class="lg"><i class="li cons-i"></i>Verbrauch</span>` +
-      (pvMax > 0 ? `<span class="lg"><i class="pv-i"></i>PV</span>` : "");
+      ACTIONS.map(
+        (key) =>
+          `<span class="lg"><i style="background:${
+            ACTION_COLORS[key]
+          }"></i>${esc(this._actionLabel(key))}</span>`
+      ).join("") +
+      `<span class="lg"><i class="li price-i"></i>${this._tr("price")}</span>` +
+      `<span class="lg"><i class="li soc-i"></i>${this._tr("soc")}</span>` +
+      `<span class="lg"><i class="li cons-i"></i>${this._tr("consumption")}</span>` +
+      (pvMax > 0 ? `<span class="lg"><i class="pv-i"></i>${this._tr("pv")}</span>` : "");
 
     this._html(
       title,
@@ -299,19 +387,20 @@ class SmartBatteryPilotCard extends HTMLElement {
         onLeave();
         return;
       }
-      const fmt = (msv) =>
-        new Date(msv).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
       const rows = [
-        `<b>${fmt(slot.startMs)}–${fmt(slot.endMs)}</b> · ${ACTION_LABELS[slot.action] || slot.action}`,
-        `Preis: <b>${slot.price.toFixed(4)} €/kWh</b>`,
-        `SOC-Prognose: <b>${slot.soc_forecast}%</b>`,
+        `<b>${this._fmtTime(slot.startMs)}–${this._fmtTime(
+          slot.endMs
+        )}</b> · ${esc(this._actionLabel(slot.action))}`,
+        `${this._tr("price")}: <b>${slot.price.toFixed(4)} €/kWh</b>`,
+        `${this._tr("soc_forecast")}: <b>${slot.soc_forecast}%</b>`,
       ];
       const cons = Math.max(0, (slot.net_demand_kwh || 0) + (slot.pv_kwh || 0));
-      rows.push(`Verbrauch: ${cons.toFixed(2)} kWh`);
-      if (slot.pv_kwh) rows.push(`PV: ${slot.pv_kwh.toFixed(2)} kWh`);
+      rows.push(`${this._tr("consumption")}: ${cons.toFixed(2)} kWh`);
+      if (slot.pv_kwh) rows.push(`${this._tr("pv")}: ${slot.pv_kwh.toFixed(2)} kWh`);
       if (slot.net_demand_kwh !== undefined)
-        rows.push(`Netto-Bedarf: ${slot.net_demand_kwh.toFixed(2)} kWh`);
-      if (slot.charge_power_w) rows.push(`Ladeleistung: ${Math.round(slot.charge_power_w)} W`);
+        rows.push(`${this._tr("net_demand")}: ${slot.net_demand_kwh.toFixed(2)} kWh`);
+      if (slot.charge_power_w)
+        rows.push(`${this._tr("charge_power")}: ${Math.round(slot.charge_power_w)} W`);
       tip.innerHTML = rows.join("<br>");
       tip.style.display = "block";
 
