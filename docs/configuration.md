@@ -111,6 +111,14 @@ action, price, SOC forecast, PV and net demand. `entity` may be omitted —
 the card auto-discovers the plan sensor (entity IDs are localized, e.g.
 `…_ladeplan` on German installations).
 
+The card's labels, tooltip and date/time formatting follow the Home Assistant
+user's language (`hass.locale.language`, falling back to the browser language
+and finally to English). English and German ship with the card; to add another
+language, extend the `TRANSLATIONS` table at the top of
+`custom_components/smart_battery_pilot/frontend/smart-battery-pilot-card.js`
+with a new entry keyed by the language tag — any key missing from it falls back
+to the English string.
+
 Alternative with [ApexCharts Card](https://github.com/RomRider/apexcharts-card):
 
 ```yaml
