@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 160" width="512" height="160">
   <defs>
     <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#1565c0"/>
@@ -10,24 +10,23 @@
     </linearGradient>
   </defs>
 
-  <!-- battery terminal -->
-  <rect x="100" y="18" width="56" height="22" rx="8" fill="url(#body)"/>
-  <!-- battery body -->
-  <rect x="56" y="36" width="144" height="202" rx="26" fill="url(#body)"/>
-  <rect x="68" y="48" width="120" height="178" rx="18" fill="#0a2540"/>
+  <!-- battery mark: assets/icon.svg scaled to 128x128 -->
+  <g transform="translate(8 16) scale(0.5)">
+    <rect x="100" y="18" width="56" height="22" rx="8" fill="url(#body)"/>
+    <rect x="56" y="36" width="144" height="202" rx="26" fill="url(#body)"/>
+    <rect x="68" y="48" width="120" height="178" rx="18" fill="#0a2540"/>
+    <path d="M68 160 h120 v48 a18 18 0 0 1 -18 18 h-84 a18 18 0 0 1 -18 -18 z" fill="url(#fill)" opacity="0.9"/>
+    <polyline points="76,140 96,140 96,110 116,110 116,150 140,150 140,92 162,92 162,128 180,128"
+              fill="none" stroke="#ffca28" stroke-width="10"
+              stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M128 178 l-16 -18 h10 v-14 h12 v14 h10 z" fill="#ffffff"/>
+    <circle cx="140" cy="92" r="7" fill="#ffca28"/>
+    <circle cx="96" cy="140" r="7" fill="#ffca28"/>
+  </g>
 
-  <!-- charge fill (lower half) -->
-  <path d="M68 160 h120 v48 a18 18 0 0 1 -18 18 h-84 a18 18 0 0 1 -18 -18 z" fill="url(#fill)" opacity="0.9"/>
-
-  <!-- price step-curve across the battery -->
-  <polyline points="76,140 96,140 96,110 116,110 116,150 140,150 140,92 162,92 162,128 180,128"
-            fill="none" stroke="#ffca28" stroke-width="10"
-            stroke-linecap="round" stroke-linejoin="round"/>
-
-  <!-- pilot arrow: down into the cheap valley -->
-  <path d="M128 178 l-16 -18 h10 v-14 h12 v14 h10 z" fill="#ffffff"/>
-
-  <!-- spark accents -->
-  <circle cx="140" cy="92" r="7" fill="#ffca28"/>
-  <circle cx="96" cy="140" r="7" fill="#ffca28"/>
+  <!-- wordmark -->
+  <g font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-weight="700">
+    <text x="150" y="72" font-size="46" fill="#0d47a1">Smart Battery</text>
+    <text x="150" y="124" font-size="46" fill="#43a047">Pilot</text>
+  </g>
 </svg>

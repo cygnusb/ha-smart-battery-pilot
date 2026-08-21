@@ -1,6 +1,6 @@
 # Smart Battery Pilot
 
-<img src="assets/logo.svg" alt="Smart Battery Pilot" width="160" align="right"/>
+<img src="assets/icon.svg" alt="Smart Battery Pilot" width="160" align="right"/>
 
 **Charge your home battery when electricity is cheap — use it when it's expensive.**
 

@@ -242,7 +242,7 @@
           "auto": "Auto",
           "idle": "Gesperrt",
           "export": "Einspeisen",
-          "keine_aenderung": "Keine Änderung"
+          "no_change": "Keine Änderung"
         }
       },
       "current_price": {
@@ -255,10 +255,10 @@
         "name": "Plan-Status",
         "state": {
           "ok": "OK",
-          "kein_preis": "Kein Preis",
-          "kein_soc": "Kein Ladezustand",
-          "kein_preisadapter": "Preisformat unbekannt",
-          "fehler": "Fehler"
+          "no_price_data": "Kein Preis",
+          "no_soc": "Kein Ladezustand",
+          "no_price_adapter": "Preisformat unbekannt",
+          "error": "Fehler"
         }
       },
       "estimated_savings": {
