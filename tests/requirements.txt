@@ -1,0 +1,5 @@
+# Test-only dependencies. Home Assistant itself is not installed; tests/stubs
+# provides a minimal `homeassistant` package. voluptuous is not stubbed because
+# config_flow.py builds real vol.Schema objects.
+pytest
+voluptuous
