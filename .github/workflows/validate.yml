@@ -31,5 +31,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: pip install pytest voluptuous
+      - run: pip install -r tests/requirements.txt
       - run: pytest tests/ -v

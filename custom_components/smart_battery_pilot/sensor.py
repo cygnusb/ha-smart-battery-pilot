@@ -288,27 +288,29 @@ class ConfigSensor(SBPEntity, SensorEntity):
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_should_poll = False
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["active", "inactive"]
 
     def __init__(self, coordinator: SBPCoordinator) -> None:
-        super().__init__(coordinator, "konfiguration")
+        super().__init__(coordinator, "configuration")
 
     @property
     def native_value(self) -> str:
-        return "aktiv" if self.coordinator.enabled else "inaktiv"
+        return "active" if self.coordinator.enabled else "inactive"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         c = self.coordinator.conf
         return {
-            "kapazitaet_kwh": c(CONF_CAPACITY_KWH, 10.0),
-            "min_soc_prozent": c(CONF_MIN_SOC, DEFAULT_MIN_SOC),
-            "max_soc_prozent": c(CONF_MAX_SOC, DEFAULT_MAX_SOC),
-            "wirkungsgrad_prozent": c(CONF_EFFICIENCY, DEFAULT_EFFICIENCY),
-            "mindest_preisdifferenz_eur_kwh": c(CONF_SPREAD_THRESHOLD, DEFAULT_SPREAD_THRESHOLD),
-            "entlade_modus": c(CONF_DISCHARGE_MODE, DEFAULT_DISCHARGE_MODE),
-            "preisaufschlag_eur_kwh": c(CONF_PRICE_OFFSET, DEFAULT_PRICE_OFFSET),
-            "einspeiseverguetung_eur_kwh": c(CONF_FEED_IN_TARIFF, DEFAULT_FEED_IN_TARIFF),
-            "training_tage": c(CONF_TRAINING_DAYS, DEFAULT_TRAINING_DAYS),
+            "capacity_kwh": c(CONF_CAPACITY_KWH, 10.0),
+            "min_soc_percent": c(CONF_MIN_SOC, DEFAULT_MIN_SOC),
+            "max_soc_percent": c(CONF_MAX_SOC, DEFAULT_MAX_SOC),
+            "efficiency_percent": c(CONF_EFFICIENCY, DEFAULT_EFFICIENCY),
+            "min_price_spread_eur_kwh": c(CONF_SPREAD_THRESHOLD, DEFAULT_SPREAD_THRESHOLD),
+            "discharge_mode": c(CONF_DISCHARGE_MODE, DEFAULT_DISCHARGE_MODE),
+            "price_offset_eur_kwh": c(CONF_PRICE_OFFSET, DEFAULT_PRICE_OFFSET),
+            "feed_in_tariff_eur_kwh": c(CONF_FEED_IN_TARIFF, DEFAULT_FEED_IN_TARIFF),
+            "training_days": c(CONF_TRAINING_DAYS, DEFAULT_TRAINING_DAYS),
             "dry_run": self.coordinator.dry_run,
         }
 
@@ -354,7 +356,9 @@ class ActualSavingsKwhSensor(SBPEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.ENERGY
     _attr_native_unit_of_measurement = "kWh"
     _attr_suggested_display_precision = 2
-    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    # TOTAL, not TOTAL_INCREASING: the net value drops while charging, and the
+    # recorder would read every such decrease as a meter reset.
+    _attr_state_class = SensorStateClass.TOTAL
 
     def __init__(self, coordinator: SBPCoordinator) -> None:
         super().__init__(coordinator, "actual_savings_kwh")

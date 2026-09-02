@@ -434,7 +434,7 @@ class SmartBatteryPilotCard extends HTMLElement {
 
   _html(title, body) {
     this.innerHTML = `
-      <ha-card header="${title}">
+      <ha-card header="${esc(title)}">
         <style>
           ha-card { padding-bottom: 8px; }
           .chartwrap { position: relative; }

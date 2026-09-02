@@ -267,8 +267,12 @@
       "consumption_forecast": {
         "name": "Verbrauchsprognose 24h"
       },
-      "konfiguration": {
-        "name": "Konfiguration"
+      "configuration": {
+        "name": "Konfiguration",
+        "state": {
+          "active": "Aktiv",
+          "inactive": "Inaktiv"
+        }
       },
       "actual_savings_eur": {
         "name": "Tatsächliche Ersparnis"
