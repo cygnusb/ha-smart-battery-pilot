@@ -74,7 +74,8 @@ Details and the full option reference: [docs/configuration.md](docs/configuratio
 
 > **Safety first:** the integration starts **disabled** and in **dry-run**
 > mode. Watch the planned actions in the log and the plan sensor for a day or
-> two, then turn off dry-run and flip the master switch.
+> two, then turn **on** the master switch (still dry-run) and only afterwards
+> turn **off** dry-run.
 
 ## Entities
 
@@ -82,12 +83,20 @@ Details and the full option reference: [docs/configuration.md](docs/configuratio
 |------------------------------------------|----------------------------------------------|
 | `sensor.…_current_action`                | Action prescribed right now                  |
 | `sensor.…_next_action`                   | Next action change (+ time, price)           |
+| `sensor.…_current_price`                 | Price of the active plan slot                |
 | `sensor.…_charge_plan`                   | Full plan as `slots` attribute               |
+| `sensor.…_plan_status`                   | Plan validity (`ok` / `no_price_data` / …)   |
 | `sensor.…_estimated_savings`             | Estimated savings over the plan horizon      |
-| `sensor.…_consumption_forecast_24h`      | Learned consumption forecast                 |
+| `sensor.…_actual_savings_eur`            | Accumulated EUR from energy-meter deltas     |
+| `sensor.…_actual_savings_kwh`            | Accumulated kWh (discharge − grid charge)    |
+| `sensor.…_consumption_forecast`          | Learned 24h consumption forecast             |
+| `sensor.…_configuration`                 | Diagnostic dump of the active settings       |
 | `switch.…_enabled`                       | Master switch                                |
 | `switch.…_dry_run`                       | Plan only, don't call scripts                |
 | `binary_sensor.…_plan_problem`           | On when no valid plan exists                 |
+
+Actual-savings sensors stay empty until both optional battery charge and
+discharge energy entities are configured.
 
 > Entity IDs are generated from the **localized** entity names — on a German
 > installation the plan sensor is `sensor.smart_battery_pilot_ladeplan`, on
@@ -107,9 +116,9 @@ entity: sensor.smart_battery_pilot_charge_plan   # optional - auto-discovered
 ```
 
 It shows the price curve with a labeled price grid, the planned actions as
-colored bands, the PV forecast, the projected SOC, day separators and a
-hover tooltip with price/SOC/action/PV per slot. If `entity` is omitted or
-wrong, the card finds the plan sensor automatically.
+colored bands, the PV forecast, live PV power (if configured), the projected
+SOC, day separators and a hover tooltip with price/SOC/action/PV per slot.
+If `entity` is omitted or wrong, the card finds the plan sensor automatically.
 See [docs/configuration.md](docs/configuration.md#dashboard).
 
 | Winter arbitrage | Summer PV export | Dunkelflaute |

@@ -1,30 +1,41 @@
-Home Assistant Integration Smartes Batterie laden
+# Spec: Home Assistant integration for smart home-battery charging
 
-Implementiere eine Home Assistant Integration für Smartes Heimbatterie laden zur optimalen Ausnutzung von dynamischen Stromtarifen
-Dabei implementiere das möglichst so generisch, das dies für verschiedene Hersteller von Batterien, Ansteuerungen und Quellen von dynamischen Stromtarifen verwendet werden kann. 
+Implement a Home Assistant integration for smart home-battery charging that
+makes the most of dynamic electricity tariffs. Keep it generic enough to work
+with different battery vendors, control paths, and dynamic-tariff sources.
 
-Idee ist zu Zeiten von Dunkelflauten (später Herbst und Winter) bei sehr hohen Strompreisen zu bestimmten Tageszeiten die Hausbatterie ausreichend (anhand des ermittelten typischen Verbrauchs des Haushaltes) zu günstigen Strompreisen zu laden und dann die Energie aus dem Hausakku gezielt Energie abzugeben zu Zeiten mit wesentlich höheren Strompreisen (Offset einstellbar, vermutlich in Europa mindestens > 0,20 Euro/kWh). Dabei soll das ganze möglichst ideal erfolgen, um die bestmöglichste Ersparnis zu erzielen und den Hausenergiebedarf zu Spitzenlastzeiten ideal abzudecken. (neuronales Netz verwenden für die Optimierung?)
+The idea is, during dark autumn/winter weeks (Dunkelflaute) when prices spike
+at certain times of day, to charge the home battery at cheap prices by enough
+to cover typical household demand, then discharge it when prices are
+substantially higher (configurable offset; in Europe probably at least
+> 0.20 EUR/kWh). Do this as close to optimally as practical, to maximise
+savings and cover household demand at peak-price hours. (Use a neural net for
+the optimiser?)
 
-Wichtig ist die generische Integration, damit die Integration auch mit ganz anderen Setups und Komponenten verwendet werden kann. Vermutlich muss man dazu im Konfigurationsdialog der Integration die verschiedenen Quellen für Sensoren, Ansteuerungen, Strompreise usw. konfigurieren möglichst komfortabel konfigurieren koennen. Es soll aber auch nicht extrem komplex werden
+A generic integration matters so the same code works with quite different
+setups. The config flow should let you pick the sensors, control scripts,
+price sources, and so on — comfortably, without becoming extremely complex.
 
-Das Beispiel mit BYD HVM und Fronius kannst Du mit beschreibung, scripts und konfigurationen in die Dokumentation aufnehmen. Baue die Dokumentation so, das man dort auch weitere Beispiele für andere Setups aufnehmen kann.
+Include the BYD HVM + Fronius example (description, scripts, configuration)
+in the documentation. Structure the docs so further vendor examples can be
+added later.
 
-Das ganze soll ein Github Projekt mit HACS Integration werden. Ein Projektname und das Logo sollen auch noch ergänzt werden
+This should be a GitHub project published as a HACS integration. A project
+name and logo still need to be added.
 
-Informationen über das Haus / Energieverbrauch
+## Household / energy-consumption inputs
 
-Für die Ermittlung der optimalen Ladestrategie könnten folgende Informationen verwendet werden
+The following information could feed the charge strategy:
 
-- Wärmepumpe vorhanden ja/nein
-- Wetterbericht
-- Temperatursensor
-- PV Produktion Vorhersage und PV Produktion ist
-- Ladezustand des Heimakkus
-- Energieverbrauch des Hauses mit genauer Verteilung
-- Strompreis für die nächsten ca. 24-36h (europäische Strombörse)
+- Heat pump present yes/no
+- Weather forecast
+- Temperature sensor
+- PV production forecast and live PV production
+- Home-battery state of charge
+- Household energy consumption with a detailed profile
+- Electricity price for the next ~24–36 h (European power exchange)
 
-Home Assistant Informationen
+## Home Assistant notes
 
-- in HA\_Energie\_Dokumentation.md ist eine Dokumentation zu finden in der das spezifische Setup beschrieben ist
-- Home Assistant Zugriff ist (nur lesend) via Informationen in ~/claude/ha möglich
-
+- `docs/energy-system.md` documents the specific household setup
+- Home Assistant access (read-only) is described in `~/claude/ha`

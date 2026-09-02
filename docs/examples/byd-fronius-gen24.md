@@ -117,16 +117,19 @@ sbp_force_discharge:
 | Consumption sensor | `sensor.solarnet_leistung_verbrauch` (W, Fronius SolarNet) |
 | Temperature sensor | `sensor.aussen_temperatur` |
 | PV forecast today / tomorrow | `sensor.vorhersage_solarproduktion_gesamt_heute` / `…_morgen` (Open-Meteo Solar Forecast) |
+| Current PV power (optional) | e.g. `sensor.solarnet_leistung_produktion` — shown live on the card |
+| Battery charge / discharge energy (optional) | cumulative kWh meters, both needed for actual-savings EUR |
 
 ## Verification sensors
 
 Watch these while testing (dry-run first!):
 
-| Entity | Expectation during forced charge |
-|---|---|
-| `sensor.byd_storctl_mod` | `1` |
-| `sensor.solarnet_ladeleistung` | ≈ planned `power_w` |
-| `sensor.byd_battery_box_premium_hv_stromstarke_dc` | negative (charging) |
+| Entity | Forced charge | Idle |
+|---|---|---|
+| `sensor.byd_storctl_mod` | `1` | `0` |
+| `sensor.byd_…` MinRsvPct (40350) | `9900` (99 %) | `500` (5 %) |
+| `sensor.solarnet_ladeleistung` | ≈ planned `power_w` | 0 from grid |
+| `sensor.byd_battery_box_premium_hv_stromstarke_dc` | negative (charging) | ~0 discharge |
 
 ## Notes
 
