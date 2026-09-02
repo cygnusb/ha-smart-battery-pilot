@@ -57,6 +57,43 @@ def test_nordpool_without_tomorrow():
     assert all(s.start.day == 11 for s in slots)
 
 
+def test_nordpool_price_in_cents():
+    """Nordpool HACS can emit `value` in cents/öre when price_in_cents is set."""
+    start = datetime(2026, 6, 11, 12, 0, tzinfo=TZ)
+    attrs = {
+        "raw_today": [
+            {
+                "start": start.isoformat(),
+                "end": (start + timedelta(hours=1)).isoformat(),
+                "value": 17.5,
+            }
+        ],
+        "tomorrow_valid": False,
+        "price_in_cents": True,
+        "unit_of_measurement": "EUR/kWh",
+    }
+    slots = detect_adapter(attrs).parse(attrs, NOW)
+    assert slots[0].price == pytest.approx(0.175)
+
+
+def test_nordpool_cents_unit_without_flag():
+    start = datetime(2026, 6, 11, 12, 0, tzinfo=TZ)
+    attrs = {
+        "raw_today": [
+            {
+                "start": start.isoformat(),
+                "end": (start + timedelta(hours=1)).isoformat(),
+                "value": 17.5,
+            }
+        ],
+        "tomorrow_valid": False,
+        "price_in_cents": False,
+        "unit_of_measurement": "cEUR/kWh",
+    }
+    slots = detect_adapter(attrs).parse(attrs, NOW)
+    assert slots[0].price == pytest.approx(0.175)
+
+
 # --- EPEX Spot ---------------------------------------------------------------
 
 
@@ -138,6 +175,44 @@ def test_quarter_hour_arrays():
     assert slots[0].hours == pytest.approx(0.25)
     # 10:00 slot kept because it contains NOW (10:05)
     assert slots[0].start.hour == 10 and slots[0].start.minute == 0
+
+
+def test_hourly_arrays_spring_forward_unique_instants():
+    """The skipped DST hour must not produce two slots at the same instant."""
+    from zoneinfo import ZoneInfo
+
+    tz = ZoneInfo("Europe/Berlin")
+    now = datetime(2026, 3, 29, 0, 30, tzinfo=tz)
+    attrs = {
+        "today": [0.10] * 24,
+        "tomorrow": [0.20] * 24,
+        "tomorrow_valid": True,
+    }
+    slots = detect_adapter(attrs).parse(attrs, now)
+    today = [s for s in slots if s.start.date().isoformat() == "2026-03-29"]
+    instants = [s.start.timestamp() for s in today]
+    assert len(instants) == len(set(instants))
+    assert all(s.end.timestamp() > s.start.timestamp() for s in today)
+    tomorrow = [s for s in slots if s.start.date().isoformat() == "2026-03-30"]
+    assert tomorrow[0].start == datetime(2026, 3, 30, 0, 0, tzinfo=tz)
+    assert today[-1].end <= tomorrow[0].start
+
+
+def test_hourly_arrays_autumn_tomorrow_starts_at_local_midnight():
+    from zoneinfo import ZoneInfo
+
+    tz = ZoneInfo("Europe/Berlin")
+    now = datetime(2026, 10, 25, 10, 0, tzinfo=tz)
+    attrs = {
+        "today": [0.10] * 24,
+        "tomorrow": [0.20] * 24,
+        "tomorrow_valid": True,
+    }
+    slots = detect_adapter(attrs).parse(attrs, now)
+    tomorrow = [s for s in slots if s.start.date().isoformat() == "2026-10-26"]
+    assert tomorrow[0].start == datetime(2026, 10, 26, 0, 0, tzinfo=tz)
+    today = [s for s in slots if s.start.date().isoformat() == "2026-10-25"]
+    assert today[-1].end <= tomorrow[0].start
 
 
 # --- misc --------------------------------------------------------------------

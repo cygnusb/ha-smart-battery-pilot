@@ -34,6 +34,7 @@ from .const import (
     CONF_PRICE_OFFSET,
     CONF_PV_FORECAST_TODAY,
     CONF_PV_FORECAST_TOMORROW,
+    CONF_PV_POWER_ENTITY,
     CONF_SOC_ENTITY,
     CONF_SPREAD_THRESHOLD,
     CONF_TEMPERATURE_ENTITY,
@@ -81,6 +82,8 @@ class SBPData:
     actual_savings_eur: float | None = None
     actual_charge_kwh: float | None = None
     actual_discharge_kwh: float | None = None
+    pv_power_w: float | None = None
+    pv_power_entity: str | None = None
 
 
 class SBPCoordinator(DataUpdateCoordinator[SBPData]):
@@ -160,9 +163,16 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         now = dt_util.now()
         try:
             slots = self._read_price_slots(now)
-        except UpdateFailed:
+        except UpdateFailed as err:
+            # After a successful refresh, keep the integration loaded but
+            # mark the plan invalid so the executor fails safe to auto.
+            if self.data is not None:
+                error = "price_unavailable" if "unavailable" in str(err) else "price_parse_failed"
+                return self._invalid_plan(now, error)
             raise
         except Exception as err:  # noqa: BLE001 - surface as invalid plan
+            if self.data is not None:
+                return self._invalid_plan(now, "price_parse_failed")
             raise UpdateFailed(f"Price parsing failed: {err}") from err
 
         if not slots:
@@ -206,17 +216,28 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             ),
             discharge_mode=self.conf(CONF_DISCHARGE_MODE, DEFAULT_DISCHARGE_MODE),
             feed_in_tariff=float(self.conf(CONF_FEED_IN_TARIFF, DEFAULT_FEED_IN_TARIFF)),
+            price_offset=float(self.conf(CONF_PRICE_OFFSET, DEFAULT_PRICE_OFFSET)),
         )
 
         plan = await self.hass.async_add_executor_job(
             build_plan, input_slots, battery, config
         )
+        if "export_spread_unreachable" in plan.warnings:
+            _LOGGER.warning(
+                "Export mode is on but no slot's sell price beats the spread "
+                "(feed-in %.3f EUR/kWh, spread %.3f EUR/kWh). Set feed-in to 0 "
+                "for market-price export, or lower the spread.",
+                config.feed_in_tariff,
+                config.spread_threshold,
+            )
 
         self._update_actual_savings(plan, now)
 
         actual_savings = self._acc_savings_eur if self._has_energy_entities() else None
         actual_charge = self._acc_charge_kwh if self._has_energy_entities() else None
         actual_discharge = self._acc_discharge_kwh if self._has_energy_entities() else None
+        pv_entity = self.conf(CONF_PV_POWER_ENTITY)
+        pv_power = self._read_float_state(pv_entity) if pv_entity else None
 
         return SBPData(
             plan=plan,
@@ -231,9 +252,14 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             actual_savings_eur=round(actual_savings, 3) if actual_savings is not None else None,
             actual_charge_kwh=round(actual_charge, 2) if actual_charge is not None else None,
             actual_discharge_kwh=round(actual_discharge, 2) if actual_discharge is not None else None,
+            pv_power_w=pv_power,
+            pv_power_entity=pv_entity,
         )
 
     _adapter_name: str | None = None
+
+    def _invalid_plan(self, now: datetime, error: str) -> SBPData:
+        return SBPData(plan=Plan(), valid=False, error=error, updated_at=now)
 
     def _read_price_slots(self, now: datetime) -> list[PriceSlot]:
         entity_id = self.conf(CONF_PRICE_ENTITY)
@@ -301,7 +327,10 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             )
             return
 
-        await self.hass.async_add_executor_job(self.forecaster.train, samples)
+        require_temp = bool(self.conf(CONF_HAS_HEAT_PUMP, False))
+        await self.hass.async_add_executor_job(
+            self.forecaster.train, samples, require_temp
+        )
         self._last_training = now
         await self._persist_store(now)
         _LOGGER.debug(
@@ -371,50 +400,46 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         if not charge_entity and not discharge_entity:
             return
 
-        cur_charge = self._read_float_state(charge_entity) or 0.0
-        cur_discharge = self._read_float_state(discharge_entity) or 0.0
+        cur_charge = self._read_float_state(charge_entity) if charge_entity else None
+        cur_discharge = self._read_float_state(discharge_entity) if discharge_entity else None
 
-        if self._prev_charge_kwh is None or self._prev_discharge_kwh is None:
-            # First reading — just store baseline, don't accumulate yet
-            self._prev_charge_kwh = cur_charge
-            self._prev_discharge_kwh = cur_discharge
+        if charge_entity and cur_charge is None:
+            return
+        if discharge_entity and cur_discharge is None:
             return
 
-        delta_charge = max(0.0, cur_charge - self._prev_charge_kwh)
-        delta_discharge = max(0.0, cur_discharge - self._prev_discharge_kwh)
-        self._prev_charge_kwh = cur_charge
-        self._prev_discharge_kwh = cur_discharge
+        delta_charge = 0.0
+        delta_discharge = 0.0
+        if charge_entity:
+            if self._prev_charge_kwh is None:
+                self._prev_charge_kwh = cur_charge
+            else:
+                delta_charge = max(0.0, cur_charge - self._prev_charge_kwh)
+                self._prev_charge_kwh = cur_charge
+        if discharge_entity:
+            if self._prev_discharge_kwh is None:
+                self._prev_discharge_kwh = cur_discharge
+            else:
+                delta_discharge = max(0.0, cur_discharge - self._prev_discharge_kwh)
+                self._prev_discharge_kwh = cur_discharge
 
         if delta_charge == 0.0 and delta_discharge == 0.0:
             return
 
-        # Derive representative prices from past plan slots
-        avg_charge_price = self._avg_price_for_action(plan, "charge", now)
-        avg_discharge_price = self._avg_price_for_action_discharged(plan, now)
-
-        savings = delta_discharge * avg_discharge_price - delta_charge * avg_charge_price
-        self._acc_savings_eur += savings
         self._acc_charge_kwh += delta_charge
         self._acc_discharge_kwh += delta_discharge
+        if charge_entity and discharge_entity:
+            price = self._price_for_now(plan, now)
+            self._acc_savings_eur += delta_discharge * price - delta_charge * price
 
         self.hass.async_create_task(self._persist_store(now))
 
-    def _avg_price_for_action(self, plan: Plan, action: str, now: datetime) -> float:
-        """Average price of slots with the given action in the plan horizon."""
-        slots = [s for s in plan.slots if s.action == action]
-        if not slots:
-            return 0.0
-        return sum(s.price for s in slots) / len(slots)
-
-    def _avg_price_for_action_discharged(self, plan: Plan, now: datetime) -> float:
-        """Average price during auto/export slots (where battery discharges)."""
-        slots = [s for s in plan.slots if s.action in ("auto", "export")]
-        if not slots:
-            # Fallback: average of all slots
-            if plan.slots:
-                return sum(s.price for s in plan.slots) / len(plan.slots)
-            return 0.0
-        return sum(s.price for s in slots) / len(slots)
+    def _price_for_now(self, plan: Plan, now: datetime) -> float:
+        """Price of the plan slot covering `now`."""
+        for slot in plan.slots:
+            if slot.start <= now < slot.end:
+                return slot.price
+        return 0.0
 
     async def _persist_store(self, now: datetime) -> None:
         await self._store.async_save(

@@ -7,7 +7,7 @@
         "data": {
           "price_entity": "Price forecast entity",
           "price_offset": "Price offset (grid fees, taxes per kWh)",
-          "feed_in_tariff": "Feed-in tariff (0 = use market price)"
+          "feed_in_tariff": "Feed-in tariff (0 = market price; a fixed tariff below the spread never exports)"
         }
       },
       "battery": {
@@ -71,7 +71,7 @@
         "data": {
           "price_entity": "Price forecast entity",
           "price_offset": "Price offset (grid fees, taxes per kWh)",
-          "feed_in_tariff": "Feed-in tariff (0 = use market price)"
+          "feed_in_tariff": "Feed-in tariff (0 = market price; a fixed tariff below the spread never exports)"
         }
       },
       "battery": {
@@ -119,7 +119,7 @@
           "spread_threshold": "Minimum price spread (charge vs. discharge)",
           "discharge_mode": "Discharge mode",
           "price_offset": "Price offset (grid fees, taxes per kWh)",
-          "feed_in_tariff": "Feed-in tariff (0 = use market price)",
+          "feed_in_tariff": "Feed-in tariff (0 = market price; a fixed tariff below the spread never exports)",
           "training_days": "History days used for consumption training"
         }
       },

@@ -53,6 +53,9 @@ class OptimizerConfig:
     spread_threshold: float  # EUR/kWh minimum charge/discharge spread
     discharge_mode: str  # self_consumption | export
     feed_in_tariff: float = 0.0  # EUR/kWh; 0 = use market price for export
+    # Import surcharge already included in slot prices (EUR/kWh). Subtracted
+    # again when valuing grid export, which does not collect those fees.
+    price_offset: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,6 +90,7 @@ class Plan:
     estimated_savings_eur: float = 0.0
     grid_charge_kwh: float = 0.0
     battery_discharge_kwh: float = 0.0
+    warnings: list[str] = field(default_factory=list)
 
 
 def build_plan(
@@ -140,6 +144,11 @@ def build_plan(
             levels.append(e)
         return levels
 
+    def _export_sell_price(i: int) -> float:
+        if config.feed_in_tariff > 0:
+            return config.feed_in_tariff
+        return prices[i] - config.price_offset
+
     def assign_discharge(d: int, want_stored: float, store: list[float]) -> float:
         """Try to supply `want_stored` kWh at slot d; returns assigned amount."""
         assigned = 0.0
@@ -155,11 +164,15 @@ def build_plan(
         # 2. Pair with cheap earlier grid-charge slots.
         remaining = want_stored - assigned
         if remaining > 1e-9:
-            sell_price = prices[d]
-            if store is export_stored and config.feed_in_tariff > 0:
-                sell_price = config.feed_in_tariff
+            sell_price = (
+                _export_sell_price(d) if store is export_stored else prices[d]
+            )
             candidates = sorted(
-                (i for i in range(d) if charge_cap[i] - charge_stored[i] > 1e-9),
+                (
+                    i
+                    for i in range(d)
+                    if charge_cap[i] - charge_stored[i] - pv_surplus_stored[i] > 1e-9
+                ),
                 key=lambda i: prices[i],
             )
             for c in candidates:
@@ -170,7 +183,11 @@ def build_plan(
                     break  # candidates are price-sorted: none cheaper left
                 levels = timeline()
                 headroom = e_max - max(levels[c:d])
-                q = min(remaining, charge_cap[c] - charge_stored[c], max(0.0, headroom))
+                q = min(
+                    remaining,
+                    charge_cap[c] - charge_stored[c] - pv_surplus_stored[c],
+                    max(0.0, headroom),
+                )
                 if q <= 1e-9:
                     continue
                 charge_stored[c] += q
@@ -189,10 +206,14 @@ def build_plan(
             continue
         assign_discharge(d, want_stored, discharge_stored)
 
+    export_spread_unreachable = False
     # --- export mode: sell remaining/cheaply-chargeable energy at peaks ---
     if config.discharge_mode == DISCHARGE_MODE_EXPORT:
+        export_spread_unreachable = all(
+            _export_sell_price(i) <= config.spread_threshold for i in range(n)
+        )
         for d in order:
-            sell_price = config.feed_in_tariff if config.feed_in_tariff > 0 else prices[d]
+            sell_price = _export_sell_price(d)
             if sell_price <= config.spread_threshold:
                 continue
             room = discharge_cap[d] - discharge_stored[d] * eta_one_way
@@ -203,6 +224,8 @@ def build_plan(
 
     # --- build plan slots ----------------------------------------------------
     plan = Plan()
+    if export_spread_unreachable:
+        plan.warnings.append("export_spread_unreachable")
     levels = timeline()
     future_discharge_prices: list[float] = []
     max_future_price = [0.0] * n
@@ -256,8 +279,7 @@ def build_plan(
     for i in range(n):
         savings += discharge_stored[i] * eta_one_way * prices[i]
         if export_stored[i] > 1e-9:
-            sell = config.feed_in_tariff if config.feed_in_tariff > 0 else prices[i]
-            savings += export_stored[i] * eta_one_way * sell
+            savings += export_stored[i] * eta_one_way * _export_sell_price(i)
         savings -= charge_stored[i] / eta_one_way * prices[i]
     plan.estimated_savings_eur = round(savings, 2)
     return plan

@@ -66,13 +66,17 @@ sbp_force_charge:
 sbp_block_discharge:
   alias: "SBP: Entladen sperren (Idle)"
   sequence:
-    # Discharge rate 0 ⇒ battery neither charges (forced) nor discharges
+    # Auto mode + discharge blocked: PV may still charge, grid-charge from a
+    # previous `charge` slot must not continue. Always rewrite MinRsvPct so a
+    # preceding 99 % reserve cannot leak into idle hours.
+    - service: modbus.write_register
+      data: { hub: gen24, slave: 1, address: 40348, value: 0 }
     - service: modbus.write_register
       data: { hub: gen24, slave: 1, address: 40356, value: 0 }
     - service: modbus.write_register
       data: { hub: gen24, slave: 1, address: 40355, value: 10000 }
     - service: modbus.write_register
-      data: { hub: gen24, slave: 1, address: 40348, value: 1 }
+      data: { hub: gen24, slave: 1, address: 40350, value: 500 }   # 5% reserve
 
 sbp_auto_mode:
   alias: "SBP: Auto-Modus"

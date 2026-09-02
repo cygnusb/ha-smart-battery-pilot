@@ -29,6 +29,7 @@ const TRANSLATIONS = {
     soc_forecast: "SOC forecast",
     consumption: "Consumption",
     pv: "PV",
+    pv_now: "PV now",
     net_demand: "Net demand",
     charge_power: "Charge power",
     entity_missing: "Entity {entity} not found, and no charge plan entity was detected.",
@@ -46,6 +47,7 @@ const TRANSLATIONS = {
     soc_forecast: "SOC-Prognose",
     consumption: "Verbrauch",
     pv: "PV",
+    pv_now: "PV aktuell",
     net_demand: "Netto-Bedarf",
     charge_power: "Ladeleistung",
     entity_missing: "Entity {entity} nicht gefunden und keine Ladeplan-Entity erkannt.",
@@ -114,10 +116,17 @@ class SmartBatteryPilotCard extends HTMLElement {
     this._hass = hass;
     const lang = resolveLanguage(hass);
     const state = this._resolveState();
-    // plan and language unchanged - keep DOM (and tooltip)
-    if (state === this._renderedState && lang === this._lang) return;
+    const pvState = this._livePvState(state);
+    // plan, live PV and language unchanged - keep DOM (and tooltip)
+    if (
+      state === this._renderedState &&
+      pvState === this._renderedPv &&
+      lang === this._lang
+    )
+      return;
     this._lang = lang;
     this._renderedState = state;
+    this._renderedPv = pvState;
     this._render(state);
   }
 
@@ -173,6 +182,13 @@ class SmartBatteryPilotCard extends HTMLElement {
       if (found) state = this._hass.states[found];
     }
     return state || null;
+  }
+
+  _livePvState(planState) {
+    const entity =
+      planState && planState.attributes && planState.attributes.pv_power_entity;
+    if (!entity || !this._hass) return null;
+    return this._hass.states[entity] || null;
   }
 
   _render(state) {
@@ -328,6 +344,17 @@ class SmartBatteryPilotCard extends HTMLElement {
           time: this._fmtTime(next.startMs),
         })}</span>`
       );
+    }
+    const pvState = this._livePvState(state);
+    if (pvState && pvState.state !== "unavailable" && pvState.state !== "unknown") {
+      const pvNum = Number(pvState.state);
+      if (!Number.isNaN(pvNum)) {
+        const unit =
+          (pvState.attributes && pvState.attributes.unit_of_measurement) || "W";
+        statusBits.push(
+          `<span class="next">${this._tr("pv_now")}: ${pvNum.toFixed(0)} ${esc(unit)}</span>`
+        );
+      }
     }
 
     const legend =

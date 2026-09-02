@@ -7,7 +7,7 @@
 | Field | Description |
 |---|---|
 | Price forecast entity | Entity of your tariff integration holding the price forecast in its attributes. Supported formats are detected automatically: **Nordpool** (`raw_today`/`raw_tomorrow`), **EPEX Spot** (`data` with `price_eur_per_mwh`/`price_ct_per_kwh`), **ENTSO-E** (`prices` with `time`/`price`), **aWATTar** (`marketprice` entries) and plain **hourly arrays** (`today`/`tomorrow` float lists, 24 or 96 values). |
-| Price offset | Fixed surcharge added to every market price: grid fees, taxes, levies (e.g. `0.187` EUR/kWh in Germany). The optimizer always works with the *total* price you actually pay. |
+| Price offset | Fixed surcharge added to every market price: grid fees, taxes, levies (e.g. `0.187` EUR/kWh in Germany). Self-consumption decisions use the *total* import price you actually pay. Grid export is valued at the feed-in tariff, or at the raw market price when the tariff is `0` — the import surcharge is not treated as export revenue. |
 | Feed-in tariff | What you earn per exported kWh. `0` means the market price is used (dynamic feed-in). Only relevant for the export discharge mode. |
 
 If your integration is not recognized, create a template sensor with `today`/
@@ -43,7 +43,7 @@ Ready-made scripts for specific hardware: see [examples](examples/).
 |---|---|
 | Consumption sensor | Total house consumption. Either a **power** sensor in W (recommended, e.g. `sensor.solarnet_leistung_verbrauch`) or an **energy** sensor in kWh with long-term statistics. Used to train the forecast from recorder history. |
 | Outdoor temperature (optional) | Adds a heating-demand feature to the model — recommended for heat pump households. |
-| Heat pump present | Marks the household as temperature sensitive. |
+| Heat pump present | Forces the heating-demand feature in the consumption model as soon as any outdoor-temperature history exists (instead of waiting until half the samples are tagged). |
 
 The forecast model:
 
@@ -57,7 +57,8 @@ The forecast model:
 Daily production forecast sensors in kWh (e.g. Open-Meteo Solar Forecast's
 `sensor.energy_production_today` / `…_tomorrow`). The daily total is
 distributed over daylight hours and subtracted from the consumption forecast.
-Without PV, simply leave the fields empty.
+Optional current PV power is shown live on the Lovelace card. Without PV,
+simply leave the fields empty.
 
 ## Options (Settings → Integrations → Configure)
 
@@ -80,7 +81,7 @@ them). Saving reloads the integration and recomputes the plan.
 |---|---|---|
 | Minimum price spread | 0.20 EUR/kWh | Grid charging only happens if `discharge price > charge price / efficiency + spread`. Raise it to be more conservative (fewer cycles), lower it to arbitrage more aggressively. |
 | Discharge mode | Self-consumption | `Self-consumption`: the battery only ever covers the house load. `Export`: additionally force-discharge into the grid during extreme price peaks. **Check your tariff/regulatory situation before enabling export.** |
-| Price offset / feed-in tariff | – | Same as in the config flow. |
+| Price offset / feed-in tariff | – | Same as in the config flow. Feed-in `0` uses the market price for export. A fixed tariff below the spread (default 0.20 EUR/kWh) will never schedule export — the plan then carries `export_spread_unreachable`. |
 | Training days | 60 | History window for the consumption model. |
 
 ## Going live

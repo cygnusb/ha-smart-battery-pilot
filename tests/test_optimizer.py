@@ -169,6 +169,36 @@ def test_export_mode_sells_at_peak():
     assert plan.estimated_savings_eur > 0
 
 
+def test_export_unreachable_spread_sets_warning():
+    """Stock feed-in 0.08 with spread 0.20 can never export — surface it."""
+    config = OptimizerConfig(
+        spread_threshold=0.20,
+        discharge_mode=DISCHARGE_MODE_EXPORT,
+        feed_in_tariff=0.08,
+    )
+    prices = [0.05] * 6 + [0.60] * 3 + [0.20] * 15
+    plan = build_plan(make_slots(prices, demand_kwh=0.5), BATTERY, config)
+    assert all(s.action != ACTION_EXPORT for s in plan.slots)
+    assert "export_spread_unreachable" in plan.warnings
+
+
+def test_export_does_not_treat_import_offset_as_revenue():
+    """Import surcharge is what you pay, not what you earn when exporting."""
+    offset = 0.20
+    market_night = 0.05
+    market_peak = 0.35
+    # Coordinator still hands the optimizer import-total prices.
+    prices = [market_night + offset] * 6 + [market_peak + offset] * 18
+    config = OptimizerConfig(
+        spread_threshold=0.20,
+        discharge_mode=DISCHARGE_MODE_EXPORT,
+        feed_in_tariff=0.0,
+        price_offset=offset,
+    )
+    plan = build_plan(make_slots(prices, demand_kwh=0.2), BATTERY, config)
+    assert all(s.action != ACTION_EXPORT for s in plan.slots)
+
+
 def test_self_consumption_never_exports():
     prices = [0.05] * 6 + [0.60] * 4 + [0.20] * 14
     plan = build_plan(make_slots(prices, demand_kwh=0.2), BATTERY, CONFIG)
