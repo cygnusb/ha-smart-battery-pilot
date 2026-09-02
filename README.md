@@ -1,6 +1,17 @@
 # Smart Battery Pilot
 
-<img src="assets/icon.svg" alt="Smart Battery Pilot" width="160" align="right"/>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/logo.svg" width="320" alt="Smart Battery Pilot">
+</p>
+
+[![GitHub Release][release-badge]][release-url]
+[![GitHub Downloads (all assets, all releases)][downloads-badge]][release-url]
+[![HACS Custom][hacs-badge]][hacs-url]
+[![HA Version][ha-badge]][ha-url]
+[![License][license-badge]][license-url]
+[![GitHub commit activity][commits-badge]][commits-url]
+[![Validate][validate-badge]][validate-url]
+[![GitHub Stars][stars-badge]][stars-url]
 
 **Charge your home battery when electricity is cheap — use it when it's expensive.**
 
@@ -118,3 +129,19 @@ estimate and worked examples.
 ## License
 
 MIT
+
+[release-badge]: https://img.shields.io/github/v/release/cygnusb/ha-smart-battery-pilot?include_prereleases
+[release-url]: https://github.com/cygnusb/ha-smart-battery-pilot/releases
+[downloads-badge]: https://img.shields.io/github/downloads/cygnusb/ha-smart-battery-pilot/total
+[hacs-badge]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg
+[hacs-url]: https://hacs.xyz
+[ha-badge]: https://img.shields.io/badge/HA-2024.11.0+-blue.svg
+[ha-url]: https://www.home-assistant.io/
+[license-badge]: https://img.shields.io/github/license/cygnusb/ha-smart-battery-pilot
+[license-url]: https://github.com/cygnusb/ha-smart-battery-pilot/blob/main/LICENSE
+[commits-badge]: https://img.shields.io/github/commit-activity/y/cygnusb/ha-smart-battery-pilot
+[commits-url]: https://github.com/cygnusb/ha-smart-battery-pilot/commits/main
+[validate-badge]: https://img.shields.io/github/actions/workflow/status/cygnusb/ha-smart-battery-pilot/validate.yml?label=validate&logo=github
+[validate-url]: https://github.com/cygnusb/ha-smart-battery-pilot/actions/workflows/validate.yml
+[stars-badge]: https://img.shields.io/github/stars/cygnusb/ha-smart-battery-pilot?style=flat
+[stars-url]: https://github.com/cygnusb/ha-smart-battery-pilot/stargazers

@@ -199,6 +199,9 @@ class ChargePlanSensor(SBPEntity, SensorEntity):
             "price_adapter": data.adapter_name,
             "updated_at": data.updated_at.isoformat() if data.updated_at else None,
             "error": data.error,
+            "warnings": list(data.plan.warnings),
+            "pv_power_entity": data.pv_power_entity,
+            "pv_power_w": data.pv_power_w,
         }
 
 
@@ -245,7 +248,8 @@ class SavingsSensor(SBPEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement = "EUR"
     _attr_suggested_display_precision = 2
-    _attr_state_class = SensorStateClass.TOTAL
+    # Horizon re-estimate, not a meter: TOTAL would treat every drop as a reset.
+    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, coordinator: SBPCoordinator) -> None:
         super().__init__(coordinator, "estimated_savings")

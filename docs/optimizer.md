@@ -29,14 +29,16 @@ Greedy pairing with a stored-energy timeline simulation:
    power limits are respected. **Forecasted PV surplus charges the battery
    in this timeline** (clamped at max SOC, limited by charge power) — so on
    sunny days the planner knows the battery refills by evening, doesn't lock
-   it during the day and doesn't grid-charge needlessly. The SOC projection
-   rises with the sun accordingly.
+   it during the day and doesn't grid-charge needlessly. PV occupies the
+   slot's charge-power headroom first; grid charging in the same slot only
+   uses what is left. The SOC projection rises with the sun accordingly.
 4. Slots that have real demand but whose stored energy is reserved for a
    later, more expensive slot are marked **idle** (discharge blocked) so the
    battery isn't drained early. Slots with PV surplus stay in **auto** —
    the inverter charges from PV and won't discharge anyway.
 5. In **export mode**, remaining peak slots can additionally be paired for
-   grid export, valued at the feed-in tariff (or market price if 0).
+   grid export, valued at the feed-in tariff (or the raw market price if 0 —
+   the configured import offset is not counted as export revenue).
 
 The plan is recomputed every 30 minutes, whenever the price entity updates
 (e.g. tomorrow's prices arriving around 14:00), on option changes, and via

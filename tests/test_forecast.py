@@ -72,6 +72,21 @@ def test_empty_training_uses_default():
     assert forecaster.predict_kwh(datetime(2026, 6, 8, 12, 0, tzinfo=TZ), 1.0) > 0
 
 
+def test_heat_pump_flag_uses_sparse_temperature():
+    """has_heat_pump forces the heating-demand feature even with few temp samples."""
+    samples = _synthetic_samples(days=30, with_temp=False)
+    for i, s in enumerate(samples):
+        if i % 5 == 0:
+            samples[i] = TrainingSample(start=s.start, kwh=s.kwh, temperature=5.0)
+    forced = ConsumptionForecaster()
+    forced.train(samples, require_temperature=True)
+    assert forced._uses_temperature is True
+
+    auto = ConsumptionForecaster()
+    auto.train(samples)
+    assert auto._uses_temperature is False
+
+
 def test_roundtrip_serialization():
     forecaster = ConsumptionForecaster()
     forecaster.train(_synthetic_samples(days=30, with_temp=True))

@@ -98,8 +98,15 @@ class ConsumptionForecaster:
 
     # --- training -----------------------------------------------------------
 
-    def train(self, samples: list[TrainingSample]) -> None:
-        """Fit profile and (if enough data) the ridge regression model."""
+    def train(
+        self, samples: list[TrainingSample], require_temperature: bool = False
+    ) -> None:
+        """Fit profile and (if enough data) the ridge regression model.
+
+        ``require_temperature`` (heat-pump households) enables the heating-demand
+        feature as soon as any temperature samples exist, instead of waiting
+        until half the history is tagged.
+        """
         samples = [s for s in samples if s.kwh is not None and s.kwh >= 0]
         self._sample_count = len(samples)
         if not samples:
@@ -109,7 +116,11 @@ class ConsumptionForecaster:
         self._train_profile(samples)
 
         if len(samples) >= MIN_REGRESSION_SAMPLES:
-            use_temp = sum(1 for s in samples if s.temperature is not None) >= len(samples) / 2
+            n_temp = sum(1 for s in samples if s.temperature is not None)
+            if require_temperature:
+                use_temp = n_temp > 0
+            else:
+                use_temp = n_temp >= len(samples) / 2
             try:
                 self._weights = self._train_ridge(samples, use_temp)
                 self._uses_temperature = use_temp

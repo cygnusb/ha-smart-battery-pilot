@@ -12,7 +12,7 @@
         "data_description": {
           "price_entity": "Entity die stuendliche Strompreise als Attribut-Liste liefert (z.B. sensor.nordpool_kwh_de_eur_3_10_025).",
           "price_offset": "Wird zu jedem Marktpreis addiert. Enthaelt typischerweise Netzentgelt + Steuern + Aufschlaege des Anbieters (z.B. 0.12 EUR/kWh). Positiv = teurer.",
-          "feed_in_tariff": "Verguetung pro ins Netz eingespeister kWh. Bei 0 wird der aktuelle Marktpreis verwendet. Typisch DE: 0.08-0.10 EUR/kWh."
+          "feed_in_tariff": "Verguetung pro ins Netz eingespeister kWh. 0 = dynamischer Marktpreis. Ein fester EEG-Satz unter dem Spread (Standard 0.20) fuehrt nie zu Export."
         }
       },
       "battery": {
@@ -68,7 +68,7 @@
         "data_description": {
           "consumption_entity": "Gesamtverbrauch des Hauses in W oder kWh. Wird fuer das Verbrauchsprofil-Training genutzt.",
           "temperature_entity": "Optional: Verbessert die Verbrauchsprognose bei Waermepumpen durch Korrelation mit der Aussentemperatur.",
-          "has_heat_pump": "Aktiviert temperaturkorrelierte Verbrauchsvorhersage fuer Waermepumpen-Haushalte."
+          "has_heat_pump": "Aktiviert das Heizbedarf-Merkmal in der Verbrauchsprognose, sobald Temperaturwerte vorliegen (auch bei lueckenhafter Historie)."
         }
       },
       "pv": {
@@ -82,7 +82,7 @@
         "data_description": {
           "pv_forecast_today": "PV-Prognose fuer heute in kWh (z.B. Open-Meteo Solar Forecast oder Solcast).",
           "pv_forecast_tomorrow": "PV-Prognose fuer morgen in kWh - verbessert die Nacht-Planung erheblich.",
-          "pv_power_entity": "Aktuelle PV-Leistung in Watt (optional, derzeit nur fuer Anzeige)."
+          "pv_power_entity": "Aktuelle PV-Leistung. Wird auf der Lovelace-Karte als Live-Wert angezeigt."
         }
       }
     },
@@ -108,7 +108,7 @@
         "data_description": {
           "price_entity": "Entity die stuendliche Strompreise als Attribut-Liste liefert (z.B. sensor.nordpool_kwh_de_eur_3_10_025).",
           "price_offset": "Wird zu jedem Marktpreis addiert. Enthaelt typischerweise Netzentgelt + Steuern + Aufschlaege des Anbieters (z.B. 0.12 EUR/kWh). Positiv = teurer.",
-          "feed_in_tariff": "Verguetung pro ins Netz eingespeister kWh. Bei 0 wird der aktuelle Marktpreis verwendet. Typisch DE: 0.08-0.10 EUR/kWh."
+          "feed_in_tariff": "Verguetung pro ins Netz eingespeister kWh. 0 = dynamischer Marktpreis. Ein fester EEG-Satz unter dem Spread (Standard 0.20) fuehrt nie zu Export."
         }
       },
       "battery": {
@@ -161,7 +161,7 @@
         "data_description": {
           "consumption_entity": "Gesamtverbrauch des Hauses in W oder kWh. Wird fuer das Verbrauchsprofil-Training genutzt.",
           "temperature_entity": "Optional: Verbessert die Verbrauchsprognose bei Waermepumpen durch Korrelation mit der Aussentemperatur.",
-          "has_heat_pump": "Aktiviert temperaturkorrelierte Verbrauchsvorhersage fuer Waermepumpen-Haushalte."
+          "has_heat_pump": "Aktiviert das Heizbedarf-Merkmal in der Verbrauchsprognose, sobald Temperaturwerte vorliegen (auch bei lueckenhafter Historie)."
         }
       },
       "pv": {
@@ -174,7 +174,7 @@
         "data_description": {
           "pv_forecast_today": "PV-Prognose fuer heute in kWh (z.B. Open-Meteo Solar Forecast oder Solcast).",
           "pv_forecast_tomorrow": "PV-Prognose fuer morgen in kWh - verbessert die Nacht-Planung erheblich.",
-          "pv_power_entity": "Aktuelle PV-Leistung in Watt (optional, derzeit nur fuer Anzeige)."
+          "pv_power_entity": "Aktuelle PV-Leistung. Wird auf der Lovelace-Karte als Live-Wert angezeigt."
         }
       },
       "tuning": {
@@ -190,7 +190,7 @@
           "spread_threshold": "Mindestpreisunterschied zwischen Lade- und Entladepreis in EUR/kWh. Unter diesem Wert lohnt Arbitrage nicht nach Wirkungsgradverlust. Empfehlung: 0.10-0.25 EUR/kWh.",
           "discharge_mode": "Nur Eigenverbrauch: Entladung deckt nur eigenen Bedarf. Eigenverbrauch + Einspeisung: Bei sehr hohen Preisen auch Netzeinspeisung (erfordert Export-Script).",
           "price_offset": "Preisaufschlag auf den Marktpreis in EUR/kWh (Netzentgelte + Steuern).",
-          "feed_in_tariff": "Einspeiseverguetung in EUR/kWh. Beeinflusst Bewertung der Einspeisung bei hohen Preisen.",
+          "feed_in_tariff": "Einspeiseverguetung in EUR/kWh. 0 = Marktpreis. Ein fester Satz unter dem Spread exportiert nie.",
           "training_days": "Historien-Tage fuer das Verbrauchsprofil-Training. Mehr = robuster, langsamer bei Lebensstilaenderungen. Empfehlung: 30-60 Tage."
         }
       },

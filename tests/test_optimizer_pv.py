@@ -79,6 +79,55 @@ def test_pv_kwh_passed_through():
     assert plan.slots[3].pv_kwh == 0.0
 
 
+def test_pv_surplus_and_grid_share_charge_power():
+    """Grid charge plus modelled PV charge must not exceed inverter charge power."""
+    import math
+
+    battery = BatteryState(
+        capacity_kwh=12.8,
+        soc=10.0,
+        min_soc=10.0,
+        max_soc=95.0,
+        max_charge_power_w=6000,
+        max_discharge_power_w=6000,
+        efficiency=90,
+    )
+    slots = []
+    for h in range(24):
+        start = T0 + timedelta(hours=h)
+        if 11 <= h <= 13:
+            # Small surplus so leftover inverter headroom remains for grid charging.
+            price, consumption, pv = -0.05, 0.5, 1.5
+        elif 20 <= h <= 22:
+            price, consumption, pv = 0.80, 3.0, 0.0
+        else:
+            price, consumption, pv = 0.30, 0.8, 0.0
+        slots.append(
+            InputSlot(
+                price_slot=PriceSlot(start=start, end=start + timedelta(hours=1), price=price),
+                net_demand_kwh=consumption - pv,
+                pv_kwh=pv,
+            )
+        )
+    plan = build_plan(slots, battery, CONFIG)
+    eta_one_way = math.sqrt(battery.efficiency / 100.0)
+    max_stored = battery.max_charge_power_w / 1000.0 * eta_one_way
+    prev_soc = battery.soc
+    saw_midday_charge = False
+    for i, slot in enumerate(plan.slots):
+        stored_added = (slot.soc_forecast - prev_soc) / 100.0 * battery.capacity_kwh
+        assert stored_added <= max_stored + 0.05, (
+            f"{slot.start}: stored +{stored_added:.2f} kWh exceeds "
+            f"charge power cap {max_stored:.2f} kWh"
+        )
+        if 11 <= i <= 13 and slot.action == ACTION_CHARGE:
+            saw_midday_charge = True
+            pv_charge_w = max(0.0, -slot.net_demand_kwh) * 1000.0
+            assert slot.charge_power_w + pv_charge_w <= battery.max_charge_power_w + 1
+        prev_soc = slot.soc_forecast
+    assert saw_midday_charge, "negative-price surplus slots should still grid-charge leftover headroom"
+
+
 def test_winter_unchanged_idle_still_works():
     """No PV: scarce energy must still be reserved (idle) for the peak."""
     slots = []

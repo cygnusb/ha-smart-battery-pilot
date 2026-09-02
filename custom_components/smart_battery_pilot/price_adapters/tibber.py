@@ -23,16 +23,34 @@ def _matches(attrs: dict[str, Any]) -> bool:
     )
 
 
+def _civil_datetime(midnight: datetime, minutes: int) -> datetime:
+    """Wall-clock offset from local midnight, so DST does not shift the grid."""
+    day = midnight.date() + timedelta(days=minutes // (24 * 60))
+    rem = minutes % (24 * 60)
+    hour, minute = divmod(rem, 60)
+    return datetime(day.year, day.month, day.day, hour, minute, tzinfo=midnight.tzinfo)
+
+
 def _day_slots(values: list[Any], midnight: datetime) -> list[PriceSlot]:
     if not values:
         return []
-    step = timedelta(hours=24 / len(values))
+    slot_minutes = int(round(24 * 60 / len(values)))
     slots = []
+    seen: set[float] = set()
     for i, value in enumerate(values):
         if value is None:
             continue
-        start = midnight + i * step
-        slots.append(PriceSlot(start=start, end=start + step, price=float(value)))
+        start = _civil_datetime(midnight, i * slot_minutes)
+        end = _civil_datetime(midnight, (i + 1) * slot_minutes)
+        try:
+            start_ts = start.timestamp()
+            end_ts = end.timestamp()
+        except (OverflowError, OSError, ValueError):
+            continue
+        if start_ts in seen or end_ts <= start_ts:
+            continue
+        seen.add(start_ts)
+        slots.append(PriceSlot(start=start, end=end, price=float(value)))
     return slots
 
 
@@ -42,7 +60,8 @@ def _parse(attrs: dict[str, Any], now: datetime) -> list[PriceSlot]:
     tomorrow = attrs.get("tomorrow")
     tomorrow_valid = attrs.get("tomorrow_valid", bool(tomorrow))
     if tomorrow_valid and isinstance(tomorrow, list):
-        slots += _day_slots(tomorrow, midnight + timedelta(days=1))
+        next_midnight = _civil_datetime(midnight, 24 * 60)
+        slots += _day_slots(tomorrow, next_midnight)
     return merge_future_slots(slots, now)
 
 
