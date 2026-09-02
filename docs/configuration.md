@@ -6,7 +6,7 @@
 
 | Field | Description |
 |---|---|
-| Price forecast entity | Entity of your tariff integration holding the price forecast in its attributes. Supported formats are detected automatically: **Nordpool** (`raw_today`/`raw_tomorrow`), **EPEX Spot** (`data` with `price_eur_per_mwh`/`price_ct_per_kwh`), **ENTSO-E** (`prices` with `time`/`price`), **aWATTar** (`marketprice` entries) and plain **hourly arrays** (`today`/`tomorrow` float lists, 24 or 96 values). |
+| Price forecast entity | Entity of your tariff integration holding the price forecast in its attributes. Supported formats are detected automatically: **Nordpool** (`raw_today`/`raw_tomorrow`; `price_in_cents` or ct/öre/cEUR units are scaled to EUR/kWh), **EPEX Spot** (`data` with `price_eur_per_mwh`/`price_ct_per_kwh`), **ENTSO-E** (`prices` with `time`/`price`), **aWATTar** (`marketprice` entries) and plain **hourly arrays** (`today`/`tomorrow` float lists, 24 or 96 values). |
 | Price offset | Fixed surcharge added to every market price: grid fees, taxes, levies (e.g. `0.187` EUR/kWh in Germany). Self-consumption decisions use the *total* import price you actually pay. Grid export is valued at the feed-in tariff, or at the raw market price when the tariff is `0` — the import surcharge is not treated as export revenue. |
 | Feed-in tariff | What you earn per exported kWh. `0` means the market price is used (dynamic feed-in). Only relevant for the export discharge mode. |
 
@@ -22,6 +22,7 @@ If your integration is not recognized, create a template sensor with `today`/
 | Max charge / discharge power | Inverter limits in W. |
 | Min / Max SOC | The plan never leaves this window (e.g. 10–95 %). |
 | Roundtrip efficiency | Grid → battery → load efficiency, typically 88–92 %. Losses are priced into every charge decision. |
+| Battery charge / discharge energy (optional) | Cumulative kWh meters. Both are required before `sensor.…_actual_savings` accumulates EUR; a single meter still counts kWh. Unavailable readings are skipped so a glitch cannot inflate the total. |
 
 ### 3. Control scripts
 
@@ -32,7 +33,7 @@ Assistant scripts that you provide. This is what makes it vendor neutral.
 |---|---|---|
 | Force charge | a `charge` slot starts | variable `power_w` (planned grid charge power) |
 | Block discharge (idle) | an `idle` slot starts | – |
-| Auto mode | an `auto` slot starts, the integration is disabled, unloaded, or the plan becomes invalid | – |
+| Auto mode | an `auto` slot starts; also when the integration is disabled, unloaded, the plan becomes invalid, or dry-run is turned on after a live script was applied | – |
 | Force discharge to grid (optional) | an `export` slot starts (export mode only) | – |
 
 Ready-made scripts for specific hardware: see [examples](examples/).
@@ -71,7 +72,7 @@ configured entities/values pre-filled:
 * **Battery parameters** — SOC entity, capacity, power limits, SOC window, efficiency
 * **Control scripts** — the four action scripts
 * **Consumption & temperature** — consumption sensor, temperature, heat pump
-* **PV forecast** — forecast entities
+* **PV forecast** — daily forecast entities and optional live PV power
 
 Sections return to the menu after submitting; changes are collected and only
 persisted via **“💾 Save & close”** (closing the dialog otherwise discards
@@ -91,8 +92,9 @@ them). Saving reloads the integration and recomputes the plan.
 3. Turn on `switch.…_enabled` — still dry-run, nothing is called yet.
 4. When the plan looks sensible, turn off `switch.…_dry_run`.
 
-If anything goes wrong (sensors unavailable, no prices), the integration
-calls your *auto mode* script once and stops interfering.
+If anything goes wrong (price entity unavailable, no prices, SOC missing),
+the integration calls your *auto mode* script once and stops interfering.
+Turning dry-run **on** after a live script was applied also restores auto.
 
 ## Dashboard
 
@@ -106,7 +108,8 @@ title: Smart Battery Pilot                      # optional
 ```
 
 Features: price step curve with labeled grid, action bands
-(charge/idle/export), PV forecast area, projected SOC, local-midnight day
+(charge/idle/export), PV forecast area, live PV power (if a current-PV
+entity is configured), projected SOC, local-midnight day
 separators with date, "now" marker and a hover tooltip showing time slot,
 action, price, SOC forecast, PV and net demand. `entity` may be omitted —
 the card auto-discovers the plan sensor (entity IDs are localized, e.g.

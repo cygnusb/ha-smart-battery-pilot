@@ -70,6 +70,9 @@ savings = Σ discharged kWh × slot price  (+ export kWh × feed-in)
 ```
 
 It is an estimate over the current plan horizon, not a billing-grade number.
+The sensor is a point-in-time `MEASUREMENT` (it jumps at every replan), not
+an accumulating meter. `sensor.…_actual_savings_eur` is the running total
+from energy-meter deltas, priced at the slot that covered each interval.
 
 ## Worked example (Dunkelflaute)
 
