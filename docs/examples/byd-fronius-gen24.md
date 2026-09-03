@@ -24,6 +24,34 @@ modbus:
     port: 502
 ```
 
+## Home Assistant 2026.9 (Fronius Modbus in core)
+
+From 2026.9 the built-in **Fronius** integration (Solar API) also talks
+Modbus TCP (SunSpec) when the inverter has it enabled. Existing config
+entries are migrated to port 502 automatically — no extra setup.
+
+Keep the YAML hub and the scripts below. Do **not** drive the new core
+number/switch entities (`AC power limit`, `Battery charge/discharge power
+limit`, `Battery minimum reserve`, `Battery grid charging`) in parallel:
+they write the same SunSpec registers (40232/40236, 40348–40356, 40360)
+and will fight the SBP plan. Reading them is fine; they catch up on the
+next Fronius poll (~1 min).
+
+The core entities are **limits and permissions**, not force-charge /
+force-export. StorCtl_Mod `1`/`2` and the two's-complement InWRte encoding
+are not exposed, so export in particular cannot be replaced 1:1.
+
+The Gen24 accepts only a handful of simultaneous Modbus TCP sessions
+(YAML hub, core Fronius, often EVCC). After upgrading, check that
+`modbus.write_register` still succeeds. Core claims it shares the
+connection when host+port match; YAML hubs historically opened their own
+socket — treat a second session as possible until proven otherwise.
+
+`Battery charging energy total` / `Battery discharging energy total` from
+core Fronius are DC counters on the device (no Riemann, survive restarts)
+and are a better pair for SBP's optional actual-savings inputs than
+integrating power.
+
 ## Relevant Modbus registers (Fronius Gen24, slave 1)
 
 | Register | Name        | Description |
@@ -125,7 +153,7 @@ sbp_force_discharge:
 | Temperature sensor | `sensor.aussen_temperatur` |
 | PV forecast today / tomorrow | `sensor.vorhersage_solarproduktion_gesamt_heute` / `…_morgen` (Open-Meteo Solar Forecast) |
 | Current PV power (optional) | e.g. `sensor.solarnet_leistung_produktion` — shown live on the card |
-| Battery charge / discharge energy (optional) | cumulative kWh or Wh meters, both needed for actual-savings EUR |
+| Battery charge / discharge energy (optional) | cumulative kWh or Wh meters, both needed for actual-savings EUR. Prefer the core Fronius DC counters `Battery charging/discharging energy total` (HA 2026.9+) over a Riemann sum |
 
 ## Verification sensors
 
@@ -144,3 +172,7 @@ Watch these while testing (dry-run first!):
   wrap the writes in a retry (`repeat` with a `stop` on success).
 * Negative price handling (stopping PV production below −0.10 EUR/kWh via
   registers 40232/40236) is independent of this integration and can coexist.
+  From HA 2026.9 the same registers are also `number.*_ac_power_limit` +
+  `switch.*_ac_power_limiting`; do not bind both. Core's AC power limit is
+  inverter output, not a grid export cap, and a value below 10 % may put
+  the Gen24 into standby.
