@@ -211,6 +211,9 @@ def build_plan(
     # --- self-consumption: cover demand in the most expensive slots first ---
     order = sorted(range(n), key=lambda i: prices[i], reverse=True)
     for d in order:
+        if prices[d] <= 0:
+            # Import is paid (or free). Hold the energy for a later positive hour.
+            continue
         # Energy delivered to the load is limited by demand and power.
         deliverable = min(demand[d], discharge_cap[d])
         want_stored = deliverable / eta_one_way
@@ -258,6 +261,11 @@ def build_plan(
             plan.grid_charge_kwh += grid_kwh
         elif export_stored[i] > 1e-9:
             action = ACTION_EXPORT
+            if hours[i] > 0:
+                charge_power = min(
+                    delivered / hours[i] * 1000.0,
+                    battery.max_discharge_power_w,
+                )
         elif discharge_stored[i] > 1e-9:
             action = ACTION_AUTO
         elif demand[i] > 1e-9 and max_future_price[i] > prices[i] and levels[i] > 1e-9:

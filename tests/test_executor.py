@@ -83,7 +83,7 @@ def _slot(action: str, *, hours: float = 1.0, power: float = 4000.0) -> PlanSlot
         action=action,
         price=0.10,
         net_demand_kwh=1.0,
-        charge_power_w=power if action == ACTION_CHARGE else 0.0,
+        charge_power_w=power if action in (ACTION_CHARGE, ACTION_EXPORT) else 0.0,
     )
 
 
@@ -176,6 +176,30 @@ def test_failed_script_is_retried_next_apply():
     _run(executor.async_apply_current())
     assert hass.services.calls[-1][1] == "sbp_idle"
     assert executor._last_applied == ACTION_IDLE
+
+
+def test_export_passes_power_w():
+    hass = _FakeHass()
+    coord = _FakeCoordinator(
+        [_slot(ACTION_EXPORT, power=2500.0)], dry_run=False, enabled=True
+    )
+    executor = PlanExecutor(hass, coord)
+    _run(executor.async_apply_current())
+    domain, service, data, blocking = hass.services.calls[0]
+    assert (domain, service, blocking) == ("script", "sbp_export", True)
+    assert data == {"power_w": 2500}
+
+
+def test_consecutive_export_slots_reapply_new_power():
+    hass = _FakeHass()
+    coord = _FakeCoordinator(
+        [_slot(ACTION_EXPORT, power=2500.0)], dry_run=False, enabled=True
+    )
+    executor = PlanExecutor(hass, coord)
+    _run(executor.async_apply_current())
+    coord.data = SBPData(plan=Plan(slots=[_slot(ACTION_EXPORT, power=1200.0)]), valid=True)
+    _run(executor.async_apply_current())
+    assert hass.services.calls[-1][2] == {"power_w": 1200}
 
 
 def test_failed_refresh_with_stale_valid_plan_restores_auto():

@@ -2,6 +2,8 @@
 
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from smart_battery_pilot.const import (
     ACTION_AUTO,
     ACTION_CHARGE,
@@ -140,6 +142,38 @@ def test_negative_prices_charge():
     ), "should charge at negative prices"
 
 
+def test_negative_slots_hold_stored_energy_for_later_positive_hours():
+    """Self-consumption must not dump the battery into a paid (negative) import."""
+    battery = BatteryState(
+        capacity_kwh=12.8,
+        soc=80.0,
+        min_soc=10.0,
+        max_soc=95.0,
+        max_charge_power_w=6000,
+        max_discharge_power_w=6000,
+        efficiency=90,
+    )
+    prices = [-0.10] * 12 + [0.30] * 12
+    plan = build_plan(make_slots(prices, demand_kwh=1.0), battery, CONFIG)
+    assert all(s.discharge_kwh == 0 for s in plan.slots[:12])
+    assert any(s.discharge_kwh > 0 for s in plan.slots[12:])
+
+
+def test_all_negative_day_does_not_discharge_stored_energy():
+    battery = BatteryState(
+        capacity_kwh=12.8,
+        soc=80.0,
+        min_soc=10.0,
+        max_soc=95.0,
+        max_charge_power_w=6000,
+        max_discharge_power_w=6000,
+        efficiency=90,
+    )
+    plan = build_plan(make_slots([-0.05] * 24, demand_kwh=1.0), battery, CONFIG)
+    assert all(s.discharge_kwh == 0 for s in plan.slots)
+    assert ACTION_IDLE in {s.action for s in plan.slots}
+
+
 def test_pv_surplus_reduces_demand():
     """Slots with PV surplus (net demand <= 0) never trigger discharge pairing."""
     slots = make_slots([0.10] * 6 + [0.40] * 18, demand_kwh=1.0)
@@ -165,6 +199,24 @@ def test_export_mode_sells_at_peak():
     actions = [s.action for s in plan.slots]
     assert ACTION_EXPORT in actions[18:21]
     assert plan.estimated_savings_eur > 0
+
+
+def test_export_slot_sets_discharge_power():
+    config = OptimizerConfig(
+        spread_threshold=0.10,
+        discharge_mode=DISCHARGE_MODE_EXPORT,
+        feed_in_tariff=0.0,
+    )
+    prices = [0.05] * 6 + [0.20] * 12 + [0.60] * 3 + [0.20] * 3
+    plan = build_plan(make_slots(prices, demand_kwh=0.5), BATTERY, config)
+    export_slots = [s for s in plan.slots if s.action == ACTION_EXPORT]
+    assert export_slots
+    for slot in export_slots:
+        hours = (slot.end - slot.start).total_seconds() / 3600.0
+        assert slot.charge_power_w == pytest.approx(
+            slot.discharge_kwh / hours * 1000.0, abs=1
+        )
+        assert 0 < slot.charge_power_w <= BATTERY.max_discharge_power_w + 1
 
 
 def test_export_unreachable_spread_sets_warning():

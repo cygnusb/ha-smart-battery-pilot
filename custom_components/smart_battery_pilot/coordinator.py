@@ -17,6 +17,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    ACTION_CHARGE,
     CONF_BATTERY_CHARGE_ENERGY_ENTITY,
     CONF_BATTERY_DISCHARGE_ENERGY_ENTITY,
     CONF_CAPACITY_KWH,
@@ -131,6 +132,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         # Actual savings tracking
         self._prev_charge_kwh: float | None = None
         self._prev_discharge_kwh: float | None = None
+        self._prev_savings_at: datetime | None = None
         self._acc_savings_eur: float = 0.0
         self._acc_charge_kwh: float = 0.0
         self._acc_discharge_kwh: float = 0.0
@@ -354,6 +356,25 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         except ValueError:
             return None
 
+    def _read_energy_kwh(self, entity_id: str | None) -> float | None:
+        """Read a cumulative energy meter, converting Wh → kWh when needed."""
+        raw = self._read_float_state(entity_id)
+        if raw is None:
+            return None
+        state = self.hass.states.get(entity_id)
+        unit = ""
+        if state is not None:
+            unit = str(state.attributes.get("unit_of_measurement") or "")
+        if unit == "Wh":
+            return raw / 1000.0
+        if unit and unit not in ("kWh", "kwh"):
+            _LOGGER.warning(
+                "Energy entity %s uses unit %s; expected kWh or Wh",
+                entity_id,
+                unit,
+            )
+        return raw
+
     # --- training -----------------------------------------------------------------
 
     async def _maybe_retrain(self, now: datetime) -> None:
@@ -468,8 +489,8 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         if not charge_entity and not discharge_entity:
             return
 
-        cur_charge = self._read_float_state(charge_entity) if charge_entity else None
-        cur_discharge = self._read_float_state(discharge_entity) if discharge_entity else None
+        cur_charge = self._read_energy_kwh(charge_entity) if charge_entity else None
+        cur_discharge = self._read_energy_kwh(discharge_entity) if discharge_entity else None
 
         if charge_entity and cur_charge is None:
             return
@@ -492,19 +513,51 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 self._prev_discharge_kwh = cur_discharge
 
         if delta_charge == 0.0 and delta_discharge == 0.0:
+            self._prev_savings_at = now
             return
 
         self._acc_charge_kwh += delta_charge
         self._acc_discharge_kwh += delta_discharge
         if charge_entity and discharge_entity:
-            price = self._price_for_now(plan, now)
-            self._acc_savings_eur += delta_discharge * price - delta_charge * price
+            interval_start = self._prev_savings_at or now
+            price = self._price_for_interval(plan, interval_start, now)
+            charge_price = self._charge_unit_price(price)
+            self._acc_savings_eur += delta_discharge * price - delta_charge * charge_price
+        self._prev_savings_at = now
 
         self.schedule_persist()
 
     def _price_for_now(self, plan: Plan, now: datetime) -> float:
         """Price of the plan slot covering `now`."""
         return next((slot.price for slot in plan.slots if slot.covers(now)), 0.0)
+
+    def _price_for_interval(self, plan: Plan, start: datetime, end: datetime) -> float:
+        """Time-weighted mean of slot prices overlapping `[start, end]`."""
+        start_ts = start.timestamp()
+        end_ts = end.timestamp()
+        weighted = 0.0
+        total = 0.0
+        for slot in plan.slots:
+            overlap = min(slot.end.timestamp(), end_ts) - max(
+                slot.start.timestamp(), start_ts
+            )
+            if overlap <= 0:
+                continue
+            weighted += slot.price * overlap
+            total += overlap
+        if total <= 0:
+            return self._price_for_now(plan, end)
+        return weighted / total
+
+    def _charge_unit_price(self, import_price: float) -> float:
+        """Grid charge costs the import price; PV charge costs the feed-in."""
+        if self.last_applied == ACTION_CHARGE:
+            return import_price
+        feed_in = float(self.conf(CONF_FEED_IN_TARIFF, DEFAULT_FEED_IN_TARIFF))
+        if feed_in > 0:
+            return feed_in
+        offset = float(self.conf(CONF_PRICE_OFFSET, DEFAULT_PRICE_OFFSET))
+        return import_price - offset
 
     def _store_payload(self) -> dict[str, Any]:
         return {

@@ -87,7 +87,7 @@ Details and the full option reference: [docs/configuration.md](docs/configuratio
 | `sensor.…_charge_plan`                   | Full plan as `slots` attribute               |
 | `sensor.…_plan_status`                   | Plan validity (`ok` / `no_price_data` / …)   |
 | `sensor.…_estimated_savings`             | Plan vs. doing nothing, over the horizon     |
-| `sensor.…_actual_savings_eur`            | Accumulated EUR from energy-meter deltas     |
+| `sensor.…_actual_savings_eur`            | Accumulated EUR from energy-meter deltas (grid charge at import, PV charge at feed-in) |
 | `sensor.…_actual_savings_kwh`            | Accumulated kWh (discharge − grid charge)    |
 | `sensor.…_consumption_forecast`          | Learned 24h consumption forecast             |
 | `sensor.…_configuration`                 | Diagnostic dump of the active settings       |

@@ -51,6 +51,8 @@ class _Coordinator:
         self.last_update_success = True
         self.last_applied = last_applied
         self.persist_calls = 0
+        self.delayed_persist = 0
+        self.immediate_persist = 0
         self._conf = {
             CONF_SCRIPT_CHARGE: "script.sbp_charge",
             CONF_SCRIPT_IDLE: "script.sbp_idle",
@@ -68,9 +70,11 @@ class _Coordinator:
 
     def schedule_persist(self):
         self.persist_calls += 1
+        self.delayed_persist += 1
 
     async def async_persist(self):
         self.persist_calls += 1
+        self.immediate_persist += 1
 
 
 def _slot(action, *, hours=1.0):
@@ -117,6 +121,19 @@ def test_applied_action_is_written_through_for_persistence():
 
     assert coord.last_applied == ACTION_IDLE
     assert coord.persist_calls >= 1
+
+
+def test_applied_action_is_persisted_immediately():
+    """A crash within the 60 s delay must not forget that the inverter is forced."""
+    hass = _Hass()
+    coord = _Coordinator([_slot(ACTION_IDLE)])
+    executor = PlanExecutor(hass, coord)
+
+    asyncio.run(executor.async_apply_current())
+
+    assert coord.last_applied == ACTION_IDLE
+    assert coord.immediate_persist >= 1
+    assert coord.delayed_persist == 0
 
 
 def test_setup_failure_still_releases_a_forced_mode():
