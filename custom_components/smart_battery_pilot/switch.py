@@ -32,7 +32,6 @@ class _ExecutorSwitch(SBPEntity, SwitchEntity, RestoreEntity):
     """Switch that controls a coordinator flag and re-applies the plan."""
 
     _flag: str
-    _default: bool
 
     def __init__(self, coordinator: SBPCoordinator, executor, key: str) -> None:
         super().__init__(coordinator, key)
@@ -64,7 +63,6 @@ class EnabledSwitch(_ExecutorSwitch):
     """Master switch: when off, no scripts are called."""
 
     _flag = "enabled"
-    _default = False
 
     def __init__(self, coordinator: SBPCoordinator, executor) -> None:
         super().__init__(coordinator, executor, "enabled")
@@ -80,7 +78,6 @@ class DryRunSwitch(_ExecutorSwitch):
     """When on, the plan is computed and logged but no scripts are called."""
 
     _flag = "dry_run"
-    _default = True
 
     def __init__(self, coordinator: SBPCoordinator, executor) -> None:
         super().__init__(coordinator, executor, "dry_run")

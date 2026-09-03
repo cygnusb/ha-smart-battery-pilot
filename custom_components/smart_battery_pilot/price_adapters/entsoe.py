@@ -33,7 +33,9 @@ def _matches(attrs: dict[str, Any]) -> bool:
 
 
 def _parse(attrs: dict[str, Any], now: datetime) -> list[PriceSlot]:
-    slots = slots_from_entries(_entries(attrs), "time", None, "price")
+    slots = slots_from_entries(
+        _entries(attrs), "time", None, "price", default_tz=now.tzinfo
+    )
     return merge_future_slots(slots, now)
 
 

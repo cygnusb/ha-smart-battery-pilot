@@ -19,9 +19,9 @@ All assignments are validated against SOC and power limits over time.
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass, field
 from datetime import datetime
+import math
 
 from .const import (
     ACTION_AUTO,
@@ -80,6 +80,18 @@ class PlanSlot:
     charge_power_w: float = 0.0
     discharge_kwh: float = 0.0  # energy delivered (to load or grid)
     soc_forecast: float = 0.0  # SOC at end of slot, percent
+
+    # Both comparisons go through timestamps on purpose. Comparing two aware
+    # datetimes that share one tzinfo object is documented to ignore the
+    # timezone, which picks the wrong one of the two 02:00 slots on the
+    # autumn clock-change day - and those two have different prices.
+    def covers(self, moment: datetime) -> bool:
+        """True when `moment` falls inside this slot."""
+        return self.start.timestamp() <= moment.timestamp() < self.end.timestamp()
+
+    def starts_after(self, moment: datetime) -> bool:
+        """True when this slot has not begun at `moment`."""
+        return self.start.timestamp() > moment.timestamp()
 
 
 @dataclass(slots=True)
@@ -227,7 +239,6 @@ def build_plan(
     if export_spread_unreachable:
         plan.warnings.append("export_spread_unreachable")
     levels = timeline()
-    future_discharge_prices: list[float] = []
     max_future_price = [0.0] * n
     running_max = 0.0
     for i in range(n - 1, -1, -1):
@@ -274,12 +285,46 @@ def build_plan(
             )
         )
 
-    # --- savings: value of delivered energy minus grid charging cost --------
-    savings = 0.0
+    # --- savings: planned grid cost vs. doing nothing ------------------------
+    # The baseline is what the inverter does on its own - plain self
+    # consumption from whatever the battery happens to hold - not "buy
+    # everything from the grid". Otherwise an all-auto plan that changes
+    # nothing would still report a fat saving.
+    baseline_delivered = _simulate_self_consumption(
+        n, demand, discharge_cap, pv_surplus_stored, e_init, e_max, eta_one_way
+    )
+    cost_plan = 0.0
+    cost_baseline = 0.0
     for i in range(n):
-        savings += discharge_stored[i] * eta_one_way * prices[i]
+        delivered_to_load = discharge_stored[i] * eta_one_way
+        cost_plan += (demand[i] - delivered_to_load) * prices[i]
+        cost_plan += charge_stored[i] / eta_one_way * prices[i]
         if export_stored[i] > 1e-9:
-            savings += export_stored[i] * eta_one_way * _export_sell_price(i)
-        savings -= charge_stored[i] / eta_one_way * prices[i]
-    plan.estimated_savings_eur = round(savings, 2)
+            cost_plan -= export_stored[i] * eta_one_way * _export_sell_price(i)
+        cost_baseline += (demand[i] - baseline_delivered[i]) * prices[i]
+    plan.estimated_savings_eur = round(cost_baseline - cost_plan, 2)
     return plan
+
+
+def _simulate_self_consumption(
+    n: int,
+    demand: list[float],
+    discharge_cap: list[float],
+    pv_surplus_stored: list[float],
+    e_init: float,
+    e_max: float,
+    eta_one_way: float,
+) -> list[float]:
+    """Energy the battery would deliver to the load without any planning.
+
+    The do-nothing reference: discharge whatever is stored as soon as there
+    is demand, recharge from PV surplus, never touch the grid.
+    """
+    delivered = [0.0] * n
+    energy = e_init
+    for i in range(n):
+        want_stored = min(demand[i], discharge_cap[i]) / eta_one_way
+        used = min(want_stored, energy)
+        delivered[i] = used * eta_one_way
+        energy = min(energy - used + pv_surplus_stored[i], e_max)
+    return delivered

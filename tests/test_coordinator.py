@@ -6,9 +6,9 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
-import pytest
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.update_coordinator import UpdateFailed
+import pytest
 
 from smart_battery_pilot.const import (
     CONF_BATTERY_CHARGE_ENERGY_ENTITY,
@@ -18,7 +18,6 @@ from smart_battery_pilot.const import (
 )
 from smart_battery_pilot.coordinator import SBPCoordinator, SBPData
 from smart_battery_pilot.optimizer import Plan, PlanSlot
-
 
 TZ = timezone(timedelta(hours=2))
 NOW = datetime(2026, 1, 15, 3, 10, tzinfo=TZ)
@@ -80,7 +79,7 @@ class _FakeHass:
     def async_create_task(self, coro):
         if asyncio.iscoroutine(coro):
             coro.close()
-        return None
+        return
 
 
 def _run(coro):

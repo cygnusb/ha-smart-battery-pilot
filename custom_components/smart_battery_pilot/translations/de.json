@@ -182,15 +182,11 @@
         "data": {
           "spread_threshold": "Mindest-Preisdifferenz (Laden vs. Entladen)",
           "discharge_mode": "Entlade-Modus",
-          "price_offset": "Preisaufschlag (Netzentgelte, Steuern pro kWh)",
-          "feed_in_tariff": "Einspeisevergütung (0 = Marktpreis verwenden)",
           "training_days": "Historien-Tage für das Verbrauchs-Training"
         },
         "data_description": {
           "spread_threshold": "Mindestpreisunterschied zwischen Lade- und Entladepreis in EUR/kWh. Unter diesem Wert lohnt Arbitrage nicht nach Wirkungsgradverlust. Empfehlung: 0.10-0.25 EUR/kWh.",
           "discharge_mode": "Nur Eigenverbrauch: Entladung deckt nur eigenen Bedarf. Eigenverbrauch + Einspeisung: Bei sehr hohen Preisen auch Netzeinspeisung (erfordert Export-Script).",
-          "price_offset": "Preisaufschlag auf den Marktpreis in EUR/kWh (Netzentgelte + Steuern).",
-          "feed_in_tariff": "Einspeiseverguetung in EUR/kWh. 0 = Marktpreis. Ein fester Satz unter dem Spread exportiert nie.",
           "training_days": "Historien-Tage fuer das Verbrauchsprofil-Training. Mehr = robuster, langsamer bei Lebensstilaenderungen. Empfehlung: 30-60 Tage."
         }
       },

@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import voluptuous as vol
-
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
@@ -15,8 +13,11 @@ from homeassistant.config_entries import (
 from homeassistant.core import callback
 from homeassistant.helpers import selector
 from homeassistant.util import dt as dt_util
+import voluptuous as vol
 
 from .const import (
+    CONF_BATTERY_CHARGE_ENERGY_ENTITY,
+    CONF_BATTERY_DISCHARGE_ENERGY_ENTITY,
     CONF_CAPACITY_KWH,
     CONF_CONSUMPTION_ENTITY,
     CONF_DISCHARGE_MODE,
@@ -37,8 +38,6 @@ from .const import (
     CONF_SCRIPT_CHARGE,
     CONF_SCRIPT_EXPORT,
     CONF_SCRIPT_IDLE,
-    CONF_BATTERY_CHARGE_ENERGY_ENTITY,
-    CONF_BATTERY_DISCHARGE_ENERGY_ENTITY,
     CONF_SOC_ENTITY,
     CONF_SPREAD_THRESHOLD,
     CONF_TEMPERATURE_ENTITY,
@@ -272,6 +271,10 @@ class SBPConfigFlow(ConfigFlow, domain=DOMAIN):
             if user_input[CONF_MIN_SOC] >= user_input[CONF_MAX_SOC]:
                 errors["base"] = "soc_range_invalid"
             else:
+                # One battery, one plan: two entries steering the same
+                # inverter would fight each other slot by slot.
+                await self.async_set_unique_id(user_input[CONF_SOC_ENTITY])
+                self._abort_if_unique_id_configured()
                 self._data.update(user_input)
                 return await self.async_step_control()
         return self.async_show_form(
@@ -315,7 +318,7 @@ class SBPConfigFlow(ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry: ConfigEntry) -> "SBPOptionsFlow":
+    def async_get_options_flow(config_entry: ConfigEntry) -> SBPOptionsFlow:
         return SBPOptionsFlow()
 
 

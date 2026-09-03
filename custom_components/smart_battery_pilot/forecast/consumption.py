@@ -14,9 +14,9 @@ by the coordinator; this module itself has no HA dependencies.
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 from datetime import datetime
+import math
 from typing import Any
 
 # Minimum hourly samples before the regression model is trusted.
@@ -58,7 +58,7 @@ def _features(when: datetime, temperature: float | None, use_temp: bool) -> list
 def _solve(matrix: list[list[float]], rhs: list[float]) -> list[float]:
     """Solve matrix @ x = rhs via Gaussian elimination with partial pivoting."""
     n = len(matrix)
-    a = [row[:] + [rhs[i]] for i, row in enumerate(matrix)]
+    a = [[*row, rhs[i]] for i, row in enumerate(matrix)]
     for col in range(n):
         pivot = max(range(col, n), key=lambda r: abs(a[r][col]))
         if abs(a[pivot][col]) < 1e-12:
@@ -117,10 +117,9 @@ class ConsumptionForecaster:
 
         if len(samples) >= MIN_REGRESSION_SAMPLES:
             n_temp = sum(1 for s in samples if s.temperature is not None)
-            if require_temperature:
-                use_temp = n_temp > 0
-            else:
-                use_temp = n_temp >= len(samples) / 2
+            use_temp = (
+                n_temp > 0 if require_temperature else n_temp >= len(samples) / 2
+            )
             try:
                 self._weights = self._train_ridge(samples, use_temp)
                 self._uses_temperature = use_temp
@@ -146,7 +145,7 @@ class ConsumptionForecaster:
         n_feat = len(rows[0])
         xtx = [[0.0] * n_feat for _ in range(n_feat)]
         xty = [0.0] * n_feat
-        for row, y in zip(rows, targets):
+        for row, y in zip(rows, targets, strict=True):
             for i in range(n_feat):
                 xty[i] += row[i] * y
                 for j in range(n_feat):
@@ -163,7 +162,7 @@ class ConsumptionForecaster:
         """Predict consumption in kWh for a slot of `hours` starting at `start`."""
         if self._weights is not None:
             feats = _features(start, temperature, self._uses_temperature)
-            per_hour = sum(w * f for w, f in zip(self._weights, feats))
+            per_hour = sum(w * f for w, f in zip(self._weights, feats, strict=True))
         else:
             key = (1 if start.weekday() >= 5 else 0, start.hour)
             per_hour = self._profile.get(key, self._mean_kwh)
@@ -181,10 +180,17 @@ class ConsumptionForecaster:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ConsumptionForecaster":
+    def from_dict(cls, data: dict[str, Any]) -> ConsumptionForecaster:
         forecaster = cls()
-        forecaster._weights = data.get("weights")
         forecaster._uses_temperature = data.get("uses_temperature", False)
+        weights = data.get("weights")
+        # A model stored under an older feature layout would silently be
+        # truncated at prediction time; drop it and fall back to the profile
+        # until the next nightly training run replaces it.
+        expected = len(_features(datetime(2024, 1, 1), None, forecaster._uses_temperature))
+        forecaster._weights = (
+            list(weights) if isinstance(weights, list) and len(weights) == expected else None
+        )
         forecaster._profile = {
             (int(k.split("_")[0]), int(k.split("_")[1])): v
             for k, v in (data.get("profile") or {}).items()

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta
+import logging
 from typing import Any
 
 from homeassistant.components.recorder import get_instance
@@ -51,6 +51,7 @@ from .const import (
     DOMAIN,
     STORAGE_KEY,
     STORAGE_VERSION,
+    STORE_SAVE_DELAY_SECONDS,
     UPDATE_INTERVAL_MINUTES,
 )
 from .forecast.consumption import ConsumptionForecaster, TrainingSample
@@ -62,6 +63,21 @@ from .price_adapters.base import PriceSlot
 _LOGGER = logging.getLogger(__name__)
 
 RETRAIN_INTERVAL = timedelta(hours=24)
+# Fallback daylight window when sun.sun is unavailable.
+DEFAULT_SUNRISE_HOUR = 6.0
+DEFAULT_SUNSET_HOUR = 21.0
+
+
+class PriceEntityUnavailable(UpdateFailed):
+    """The configured price entity has no usable state."""
+
+
+class PriceAdapterMissing(UpdateFailed):
+    """No adapter recognises the price entity's attribute format."""
+
+
+class PriceParseError(UpdateFailed):
+    """The price attributes could not be turned into slots."""
 
 
 @dataclass
@@ -101,6 +117,12 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         self._store: Store = Store(hass, STORAGE_VERSION, f"{STORAGE_KEY}.{entry.entry_id}")
         self._last_training: datetime | None = None
         self._unsub_price = None
+        self._adapter_name: str | None = None
+
+        # Last action really applied to the inverter. Persisted, because
+        # after a restart it is the only way to know that the battery is
+        # still sitting in a forced mode we have to release.
+        self.last_applied: str | None = None
 
         # Runtime flags controlled by the switch entities.
         self.enabled: bool = False
@@ -134,6 +156,9 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             except (KeyError, TypeError, ValueError) as err:
                 _LOGGER.warning("Could not restore consumption model: %s", err)
 
+        if stored:
+            self.last_applied = stored.get("last_applied")
+
         if stored and stored.get("savings"):
             sv = stored["savings"]
             self._acc_savings_eur = float(sv.get("savings_eur", 0.0))
@@ -161,19 +186,22 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
 
     async def _async_update_data(self) -> SBPData:
         now = dt_util.now()
+        # After a successful refresh, keep the integration loaded but mark
+        # the plan invalid so the executor fails safe to auto.
         try:
             slots = self._read_price_slots(now)
-        except UpdateFailed as err:
-            # After a successful refresh, keep the integration loaded but
-            # mark the plan invalid so the executor fails safe to auto.
+        except PriceEntityUnavailable:
             if self.data is not None:
-                error = "price_unavailable" if "unavailable" in str(err) else "price_parse_failed"
-                return self._invalid_plan(now, error)
+                return self._invalid_plan(now, "price_unavailable")
             raise
-        except Exception as err:  # noqa: BLE001 - surface as invalid plan
+        except PriceAdapterMissing:
+            if self.data is not None:
+                return self._invalid_plan(now, "no_price_adapter")
+            raise
+        except Exception as err:
             if self.data is not None:
                 return self._invalid_plan(now, "price_parse_failed")
-            raise UpdateFailed(f"Price parsing failed: {err}") from err
+            raise PriceParseError(f"Price parsing failed: {err}") from err
 
         if not slots:
             return SBPData(plan=Plan(), valid=False, error="no_price_data", updated_at=now)
@@ -188,12 +216,22 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         pv_today = self._read_float_state(self.conf(CONF_PV_FORECAST_TODAY))
         pv_tomorrow = self._read_float_state(self.conf(CONF_PV_FORECAST_TOMORROW))
 
+        sunrise_hour, sunset_hour = self._daylight_window()
+
         input_slots: list[InputSlot] = []
         consumption_24h = 0.0
         pv_24h = 0.0
         for slot in slots:
             consumption = self.forecaster.predict_kwh(slot.start, slot.hours, temperature)
-            pv = pv_kwh_for_slot(slot.start, slot.hours, pv_today, pv_tomorrow, now)
+            pv = pv_kwh_for_slot(
+                slot.start,
+                slot.hours,
+                pv_today,
+                pv_tomorrow,
+                now,
+                sunrise_hour=sunrise_hour,
+                sunset_hour=sunset_hour,
+            )
             if slot.start < now + timedelta(hours=24):
                 consumption_24h += consumption
                 pv_24h += pv
@@ -251,12 +289,12 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             pv_forecast_24h_kwh=round(pv_24h, 2),
             actual_savings_eur=round(actual_savings, 3) if actual_savings is not None else None,
             actual_charge_kwh=round(actual_charge, 2) if actual_charge is not None else None,
-            actual_discharge_kwh=round(actual_discharge, 2) if actual_discharge is not None else None,
+            actual_discharge_kwh=(
+                round(actual_discharge, 2) if actual_discharge is not None else None
+            ),
             pv_power_w=pv_power,
             pv_power_entity=pv_entity,
         )
-
-    _adapter_name: str | None = None
 
     def _invalid_plan(self, now: datetime, error: str) -> SBPData:
         return SBPData(plan=Plan(), valid=False, error=error, updated_at=now)
@@ -265,11 +303,11 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         entity_id = self.conf(CONF_PRICE_ENTITY)
         state = self.hass.states.get(entity_id) if entity_id else None
         if state is None or state.state in ("unavailable", "unknown"):
-            raise UpdateFailed(f"Price entity {entity_id} unavailable")
+            raise PriceEntityUnavailable(f"Price entity {entity_id} unavailable")
         attrs = dict(state.attributes)
         adapter = detect_adapter(attrs)
         if adapter is None:
-            raise UpdateFailed(f"No price adapter matches {entity_id}")
+            raise PriceAdapterMissing(f"No price adapter matches {entity_id}")
         self._adapter_name = adapter.name
         offset = float(self.conf(CONF_PRICE_OFFSET, DEFAULT_PRICE_OFFSET))
         slots = adapter.parse(attrs, now)
@@ -279,6 +317,31 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 for s in slots
             ]
         return slots
+
+    def _daylight_window(self) -> tuple[float, float]:
+        """Local sunrise/sunset hour from `sun.sun`, else a fixed 06-21 window.
+
+        A December day is roughly 8 hours long, not 15 - spreading the daily
+        PV total over a fixed summer window puts production in hours that are
+        pitch dark, which is exactly the season this integration targets.
+        """
+        state = self.hass.states.get("sun.sun")
+        if state is None:
+            return DEFAULT_SUNRISE_HOUR, DEFAULT_SUNSET_HOUR
+        rising = self._local_hour(state.attributes.get("next_rising"))
+        setting = self._local_hour(state.attributes.get("next_setting"))
+        if rising is None or setting is None or not 0.0 <= rising < setting <= 24.0:
+            return DEFAULT_SUNRISE_HOUR, DEFAULT_SUNSET_HOUR
+        return rising, setting
+
+    @staticmethod
+    def _local_hour(value: Any) -> float | None:
+        """Clock hour (local, fractional) of an ISO timestamp attribute."""
+        parsed = dt_util.parse_datetime(value) if isinstance(value, str) else value
+        if not isinstance(parsed, datetime):
+            return None
+        local = dt_util.as_local(parsed)
+        return local.hour + local.minute / 60.0
 
     def _read_float_state(self, entity_id: str | None) -> float | None:
         if not entity_id:
@@ -332,7 +395,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             self.forecaster.train, samples, require_temp
         )
         self._last_training = now
-        await self._persist_store(now)
+        await self.async_persist()
         _LOGGER.debug(
             "Trained consumption model (%s) with %d samples",
             self.forecaster.model_type,
@@ -388,9 +451,14 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
     # --- actual savings tracking --------------------------------------------------
 
     def _has_energy_entities(self) -> bool:
+        """Both meters are needed: every published figure is a net value.
+
+        With only one of them, discharge minus charge is just the one meter's
+        total, which is not a benefit and reads as one.
+        """
         return bool(
             self.conf(CONF_BATTERY_CHARGE_ENERGY_ENTITY)
-            or self.conf(CONF_BATTERY_DISCHARGE_ENERGY_ENTITY)
+            and self.conf(CONF_BATTERY_DISCHARGE_ENERGY_ENTITY)
         )
 
     def _update_actual_savings(self, plan: Plan, now: datetime) -> None:
@@ -432,24 +500,29 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             price = self._price_for_now(plan, now)
             self._acc_savings_eur += delta_discharge * price - delta_charge * price
 
-        self.hass.async_create_task(self._persist_store(now))
+        self.schedule_persist()
 
     def _price_for_now(self, plan: Plan, now: datetime) -> float:
         """Price of the plan slot covering `now`."""
-        for slot in plan.slots:
-            if slot.start <= now < slot.end:
-                return slot.price
-        return 0.0
+        return next((slot.price for slot in plan.slots if slot.covers(now)), 0.0)
 
-    async def _persist_store(self, now: datetime) -> None:
-        await self._store.async_save(
-            {
-                "model": self.forecaster.to_dict(),
-                "trained_at": self._last_training.isoformat() if self._last_training else None,
-                "savings": {
-                    "savings_eur": self._acc_savings_eur,
-                    "charge_kwh": self._acc_charge_kwh,
-                    "discharge_kwh": self._acc_discharge_kwh,
-                },
-            }
-        )
+    def _store_payload(self) -> dict[str, Any]:
+        return {
+            "model": self.forecaster.to_dict(),
+            "trained_at": self._last_training.isoformat() if self._last_training else None,
+            "last_applied": self.last_applied,
+            "savings": {
+                "savings_eur": self._acc_savings_eur,
+                "charge_kwh": self._acc_charge_kwh,
+                "discharge_kwh": self._acc_discharge_kwh,
+            },
+        }
+
+    @callback
+    def schedule_persist(self) -> None:
+        """Queue a store write; batches the twice-hourly savings updates."""
+        self._store.async_delay_save(self._store_payload, STORE_SAVE_DELAY_SECONDS)
+
+    async def async_persist(self) -> None:
+        """Write the store right away (model retraining, executor changes)."""
+        await self._store.async_save(self._store_payload())

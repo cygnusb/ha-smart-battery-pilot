@@ -1,0 +1,41 @@
+# Lint settings for the integration. Mirrors the subset of Home Assistant
+# core's ruleset that makes sense for a custom component.
+target-version = "py312"
+line-length = 100
+
+[lint]
+select = [
+  "F",    # pyflakes
+  "E",    # pycodestyle errors
+  "W",    # pycodestyle warnings
+  "I",    # import sorting
+  "UP",   # pyupgrade
+  "B",    # bugbear
+  "SIM",  # simplifications
+  "C4",   # comprehensions
+  "RET",  # return statements
+  "BLE",  # blind excepts
+  "TRY",  # exception antipatterns
+  "PTH",  # pathlib over os.path
+  "RUF",
+]
+ignore = [
+  "TRY003",  # long messages in raise: these go to the HA log, verbatim
+  "TRY300",  # return-in-try reads fine in the small helpers here
+  "RUF012",  # HA entity classes use plain mutable class attributes
+  "RUF002",  # en dashes and umlauts in prose docstrings are deliberate
+]
+
+[lint.per-file-ignores]
+# Screenshot generator: run by hand, never shipped, not worth a rewrite.
+"tools/**" = ["PTH", "E501", "B905"]
+# Stubs mimic Home Assistant's API surface; shape beats style there.
+"tests/stubs/**" = ["ALL"]
+# Tests reach into private helpers on purpose.
+"tests/**" = ["SLF001", "E501"]
+# Adapters are imported at the bottom to break an import cycle.
+"custom_components/smart_battery_pilot/price_adapters/base.py" = ["E402"]
+
+[lint.isort]
+force-sort-within-sections = true
+known-first-party = ["smart_battery_pilot"]

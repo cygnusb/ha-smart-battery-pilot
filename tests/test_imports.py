@@ -8,6 +8,7 @@ MODULES = [
     "smart_battery_pilot",
     "smart_battery_pilot.config_flow",
     "smart_battery_pilot.coordinator",
+    "smart_battery_pilot.diagnostics",
     "smart_battery_pilot.executor",
     "smart_battery_pilot.sensor",
     "smart_battery_pilot.switch",
@@ -16,6 +17,8 @@ MODULES = [
     "smart_battery_pilot.optimizer",
     "smart_battery_pilot.price_adapters",
     "smart_battery_pilot.forecast",
+    "smart_battery_pilot.forecast.consumption",
+    "smart_battery_pilot.forecast.pv",
 ]
 
 

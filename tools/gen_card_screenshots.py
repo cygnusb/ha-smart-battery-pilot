@@ -5,12 +5,12 @@ Usage: python3 tools/gen_card_screenshots.py
 Output: assets/screenshots/card_*.png
 """
 
+from datetime import datetime, timedelta
 import json
 import os
 import subprocess
 import sys
 import textwrap
-from datetime import datetime, timedelta, timezone
 
 # ---------------------------------------------------------------------------
 # Scenario definitions
@@ -283,12 +283,6 @@ import("/card.js").then(() => {{
 
 
 def make_html(title: str, slots: list, now: datetime, output_path: str) -> str:
-    active_slots = sum(1 for s in slots if s["action"] != "auto")
-    grid_charge = sum(
-        s["charge_power_w"] / 1000 for s in slots if s["action"] == "charge"
-    )
-    discharge = sum(s["discharge_kwh"] for s in slots)
-
     active = sum(1 for s in slots if s["action"] != "auto")
     grid_charge = round(sum(s["charge_power_w"] / 1000 for s in slots if s["action"] == "charge"), 2)
     discharge_kwh = round(sum(s["discharge_kwh"] for s in slots), 2)
@@ -436,7 +430,7 @@ def main():
         if screenshot(html_path, png_path, hass_json):
             print(f"OK → {png_path}")
         else:
-            print(f"FAILED")
+            print("FAILED")
 
     print("\nDone. PNGs in assets/screenshots/")
 

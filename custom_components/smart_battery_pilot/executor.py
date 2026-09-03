@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import logging
+import asyncio
 from datetime import datetime
+import logging
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_point_in_time
@@ -33,7 +34,42 @@ class PlanExecutor:
         self.coordinator = coordinator
         self._unsub_timer = None
         self._unsub_coordinator = None
-        self._last_applied: str | None = None
+        # Serialises the three triggers (coordinator update, slot boundary,
+        # switches). Script calls are awaited, so without it two runs can
+        # interleave and leave `last_applied` describing a mode the inverter
+        # is not in.
+        self._lock = asyncio.Lock()
+
+    @property
+    def _last_applied(self) -> str | None:
+        """Last action really sent to the inverter, restored across restarts."""
+        return self.coordinator.last_applied
+
+    def _remember(self, action: str | None) -> None:
+        if self.coordinator.last_applied == action:
+            return
+        self.coordinator.last_applied = action
+        self.coordinator.schedule_persist()
+
+    async def async_release_stale_mode(self) -> None:
+        """Hand the battery back to auto after a restart that cannot plan.
+
+        Setup aborts before the executor ever runs when the price entity is
+        not up yet - very common right after a restart. If the previous run
+        left the inverter force-charging, nobody else is going to release it
+        while Home Assistant keeps retrying the setup.
+        """
+        async with self._lock:
+            if self._last_applied in (None, ACTION_AUTO):
+                return
+            _LOGGER.warning(
+                "Setup incomplete while the battery is in '%s' mode - "
+                "restoring auto mode",
+                self._last_applied,
+            )
+            if await self._call_script(ACTION_AUTO, 0.0):
+                self._remember(ACTION_AUTO)
+        await self.coordinator.async_persist()
 
     async def async_start(self) -> None:
         self._unsub_coordinator = self.coordinator.async_add_listener(
@@ -49,11 +85,16 @@ class PlanExecutor:
         if self._unsub_coordinator:
             self._unsub_coordinator()
             self._unsub_coordinator = None
-        # `_last_applied` is only set after a real script call, so dry-run
-        # never triggers a restore on unload.
-        if restore_auto and self._last_applied not in (None, ACTION_AUTO):
-            if await self._call_script(ACTION_AUTO, 0.0):
-                self._last_applied = ACTION_AUTO
+        async with self._lock:
+            # `last_applied` is only set after a real script call, so dry-run
+            # never triggers a restore on unload.
+            if (
+                restore_auto
+                and self._last_applied not in (None, ACTION_AUTO)
+                and await self._call_script(ACTION_AUTO, 0.0)
+            ):
+                self._remember(ACTION_AUTO)
+        await self.coordinator.async_persist()
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -63,40 +104,46 @@ class PlanExecutor:
         data = self.coordinator.data
         if not data or not data.valid:
             return False
-        if getattr(self.coordinator, "last_update_success", True) is False:
-            return False
-        return True
+        return getattr(self.coordinator, "last_update_success", True) is not False
 
     def current_slot(self) -> PlanSlot | None:
         if not self._plan_is_live():
             return None
         now = dt_util.now()
-        for slot in self.coordinator.data.plan.slots:
-            if slot.start <= now < slot.end:
-                return slot
-        return None
+        return next(
+            (slot for slot in self.coordinator.data.plan.slots if slot.covers(now)), None
+        )
 
     def next_slot(self) -> PlanSlot | None:
         if not self._plan_is_live():
             return None
         now = dt_util.now()
-        for slot in self.coordinator.data.plan.slots:
-            if slot.start > now:
-                return slot
-        return None
+        return next(
+            (slot for slot in self.coordinator.data.plan.slots if slot.starts_after(now)),
+            None,
+        )
 
     async def async_apply_current(self) -> None:
         """Apply the action of the current slot and arm the next boundary timer."""
-        self._schedule_boundary()
+        async with self._lock:
+            self._schedule_boundary()
+            await self._apply_locked()
 
+    async def _apply_locked(self) -> None:
         coordinator = self.coordinator
         slot = self.current_slot()
         if slot is None or not self._plan_is_live():
-            # Invalid plan: fail safe to auto mode once.
-            if coordinator.enabled and not coordinator.dry_run and self._last_applied not in (None, ACTION_AUTO):
+            # Invalid plan: fail safe to auto mode once. `last_applied`
+            # survives restarts, so a battery left in a forced mode by the
+            # previous run is released here too.
+            if (
+                coordinator.enabled
+                and not coordinator.dry_run
+                and self._last_applied not in (None, ACTION_AUTO)
+            ):
                 _LOGGER.warning("Plan invalid - restoring battery auto mode")
                 if await self._call_script(ACTION_AUTO, 0.0):
-                    self._last_applied = ACTION_AUTO
+                    self._remember(ACTION_AUTO)
             return
 
         if not coordinator.enabled:
@@ -107,7 +154,7 @@ class PlanExecutor:
             if self._last_applied not in (None, ACTION_AUTO):
                 _LOGGER.info("Dry-run enabled - restoring battery auto mode")
                 if await self._call_script(ACTION_AUTO, 0.0):
-                    self._last_applied = ACTION_AUTO
+                    self._remember(ACTION_AUTO)
             _LOGGER.info(
                 "DRY RUN: would apply action '%s' (%.0f W) for slot %s - %s",
                 action,
@@ -121,10 +168,10 @@ class PlanExecutor:
             return
 
         if await self._call_script(action, slot.charge_power_w):
-            self._last_applied = action
+            self._remember(action)
             return
         if action != ACTION_AUTO and await self._call_script(ACTION_AUTO, 0.0):
-            self._last_applied = ACTION_AUTO
+            self._remember(ACTION_AUTO)
 
     def _schedule_boundary(self) -> None:
         if self._unsub_timer:
@@ -140,6 +187,10 @@ class PlanExecutor:
 
         @callback
         def _fire(_now: datetime) -> None:
+            # The entities are coordinator-driven and would otherwise keep
+            # showing the previous slot until the next 30-minute refresh -
+            # long enough to miss a whole 15-minute slot.
+            self.coordinator.async_update_listeners()
             self.hass.async_create_task(self.async_apply_current())
 
         self._unsub_timer = async_track_point_in_time(self.hass, _fire, boundary)
@@ -160,7 +211,9 @@ class PlanExecutor:
             return False
 
         object_id = entity_id.split(".", 1)[-1]
-        _LOGGER.info("Applying action '%s' via script.%s (power_w=%.0f)", action, object_id, power_w)
+        _LOGGER.info(
+            "Applying action '%s' via script.%s (power_w=%.0f)", action, object_id, power_w
+        )
         try:
             await self.hass.services.async_call(
                 "script",
@@ -168,7 +221,7 @@ class PlanExecutor:
                 {"power_w": round(power_w)} if action == ACTION_CHARGE else {},
                 blocking=True,
             )
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.error("Calling script.%s failed: %s", object_id, err)
+        except Exception:
+            _LOGGER.exception("Calling script.%s failed", object_id)
             return False
         return True
