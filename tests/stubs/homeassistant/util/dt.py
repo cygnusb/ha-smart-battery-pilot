@@ -2,6 +2,8 @@
 
 from datetime import datetime, timezone
 
+UTC = timezone.utc
+
 
 def now():
     return datetime.now().astimezone()
@@ -20,3 +22,7 @@ def as_local(value):
 
 def utc_from_timestamp(ts):
     return datetime.fromtimestamp(ts, tz=timezone.utc)
+
+
+def utcnow():
+    return datetime.now(timezone.utc)

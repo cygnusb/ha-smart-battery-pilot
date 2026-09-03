@@ -5,8 +5,8 @@ importing `smart_battery_pilot` (whose __init__ pulls in HA modules)
 works in a plain pytest environment.
 """
 
-import sys
 from pathlib import Path
+import sys
 
 _BASE = Path(__file__).parent
 sys.path.insert(0, str(_BASE / "stubs"))

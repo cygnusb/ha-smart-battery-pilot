@@ -9,9 +9,17 @@ from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN, FRONTEND_SCRIPT_URL, SERVICE_REPLAN
+from .const import (
+    DOMAIN,
+    FRONTEND_SCRIPT_URL,
+    SERVICE_REPLAN,
+    STORAGE_KEY,
+    STORAGE_VERSION,
+)
 from .coordinator import SBPCoordinator
 from .executor import PlanExecutor
 
@@ -28,6 +36,9 @@ class SBPRuntimeData:
     def __init__(self, coordinator: SBPCoordinator, executor: PlanExecutor) -> None:
         self.coordinator = coordinator
         self.executor = executor
+        # Set just before a reload so unloading does not bounce the inverter
+        # through auto mode on its way back to the very same action.
+        self.reloading = False
 
 
 async def _async_handle_replan(hass: HomeAssistant, _call: ServiceCall) -> None:
@@ -58,9 +69,16 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: SBPConfigEntry) -> bool:
     coordinator = SBPCoordinator(hass, entry)
     await coordinator.async_setup()
-    await coordinator.async_config_entry_first_refresh()
-
     executor = PlanExecutor(hass, coordinator)
+
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except ConfigEntryNotReady:
+        # Retrying is fine, but not while the battery is still parked in a
+        # forced mode from before the restart.
+        await executor.async_release_stale_mode()
+        raise
+
     entry.runtime_data = SBPRuntimeData(coordinator, executor)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -72,12 +90,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: SBPConfigEntry) -> bool:
 
 async def _async_update_listener(hass: HomeAssistant, entry: SBPConfigEntry) -> None:
     """Reload the entry when options change."""
+    runtime = getattr(entry, "runtime_data", None)
+    if runtime is not None:
+        runtime.reloading = True
     await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: SBPConfigEntry) -> bool:
     runtime: SBPRuntimeData = entry.runtime_data
-    await runtime.executor.async_stop(restore_auto=True)
+    # A reload puts the same plan back in place moments later; only a real
+    # unload hands the battery back to the inverter.
+    await runtime.executor.async_stop(restore_auto=not runtime.reloading)
     await runtime.coordinator.async_shutdown()
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     remaining = [
@@ -88,3 +111,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: SBPConfigEntry) -> bool
     if not remaining and hass.services.has_service(DOMAIN, SERVICE_REPLAN):
         hass.services.async_remove(DOMAIN, SERVICE_REPLAN)
     return unloaded
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Drop the entry's stored model and savings totals."""
+    await Store(hass, STORAGE_VERSION, f"{STORAGE_KEY}.{entry.entry_id}").async_remove()

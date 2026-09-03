@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import timedelta
+
 from homeassistant.util import dt as dt_util
 
 from smart_battery_pilot.const import (
@@ -39,7 +40,7 @@ class _FakeHass:
     def async_create_task(self, coro):
         if asyncio.iscoroutine(coro):
             coro.close()
-        return None
+        return
 
 
 class _FakeCoordinator:
@@ -48,6 +49,9 @@ class _FakeCoordinator:
         self.enabled = enabled
         self.dry_run = dry_run
         self.last_update_success = True
+        self.last_applied = None
+        self.persisted = 0
+        self.listener_updates = 0
         self._conf = {
             CONF_SCRIPT_CHARGE: "script.sbp_charge",
             CONF_SCRIPT_IDLE: "script.sbp_idle",
@@ -60,6 +64,15 @@ class _FakeCoordinator:
 
     def async_add_listener(self, _listener):
         return lambda: None
+
+    def async_update_listeners(self):
+        self.listener_updates += 1
+
+    def schedule_persist(self):
+        self.persisted += 1
+
+    async def async_persist(self):
+        self.persisted += 1
 
 
 def _slot(action: str, *, hours: float = 1.0, power: float = 4000.0) -> PlanSlot:

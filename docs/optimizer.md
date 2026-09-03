@@ -61,18 +61,31 @@ charged from the grid.
 
 ## Savings estimate
 
-`sensor.…_estimated_savings` values the plan against buying everything from
-the grid at the slot price:
+`sensor.…_estimated_savings` compares the plan's grid bill against the bill
+you would get from **doing nothing** — plain self-consumption, the inverter's
+own behaviour:
 
 ```
-savings = Σ discharged kWh × slot price  (+ export kWh × feed-in)
-        − Σ grid-charged kWh × slot price
+grid cost = Σ (demand − battery kWh delivered) × slot price
+          + Σ grid-charged kWh × slot price
+          − Σ exported kWh × sell price
+
+savings   = grid cost (do nothing) − grid cost (plan)
 ```
+
+The baseline matters. Valuing every discharged kWh against "buy everything
+from the grid" would report a fat saving even for an all-`auto` plan that
+changes nothing, because a battery covering the house is what the inverter
+does anyway. With the do-nothing baseline, a plan that changes nothing
+reports `0.00`, and what is left is the part the planner actually earned:
+charging cheap, and holding energy back for a pricier hour.
 
 It is an estimate over the current plan horizon, not a billing-grade number.
 The sensor is a point-in-time `MEASUREMENT` (it jumps at every replan), not
-an accumulating meter. `sensor.…_actual_savings_eur` is the running total
-from energy-meter deltas, priced at the slot that covered each interval.
+an accumulating meter — and deliberately carries no `monetary` device class,
+which Home Assistant only accepts together with `TOTAL`.
+`sensor.…_actual_savings_eur` is the running total from energy-meter deltas,
+priced at the slot that covered each interval.
 
 ## Worked example (Dunkelflaute)
 

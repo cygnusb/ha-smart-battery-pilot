@@ -5,6 +5,6 @@ normalized list of PriceSlot objects. Adapters are pure functions over
 plain dicts so they can be unit-tested without Home Assistant.
 """
 
-from .base import PriceSlot, PriceAdapter, detect_adapter, ADAPTERS
+from .base import ADAPTERS, PriceAdapter, PriceSlot, detect_adapter
 
-__all__ = ["PriceSlot", "PriceAdapter", "detect_adapter", "ADAPTERS"]
+__all__ = ["ADAPTERS", "PriceAdapter", "PriceSlot", "detect_adapter"]

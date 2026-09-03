@@ -44,7 +44,12 @@ def _parse(attrs: dict[str, Any], now: datetime) -> list[PriceSlot]:
     if attrs.get("tomorrow_valid"):
         entries += list(attrs.get("raw_tomorrow") or [])
     slots = slots_from_entries(
-        entries, "start", "end", "value", price_factor=_price_factor(attrs)
+        entries,
+        "start",
+        "end",
+        "value",
+        price_factor=_price_factor(attrs),
+        default_tz=now.tzinfo,
     )
     return merge_future_slots(slots, now)
 

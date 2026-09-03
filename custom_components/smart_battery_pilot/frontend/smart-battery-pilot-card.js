@@ -59,6 +59,23 @@ const TRANSLATIONS = {
 
 const DEFAULT_LANGUAGE = "en";
 
+// Rescan interval when no plan entity has been found yet. `set hass` runs on
+// every state change in the whole system, so scanning every call is wasteful.
+const ENTITY_RESCAN_MS = 5000;
+
+// Home Assistant's timezone, not the browser's: a phone roaming abroad would
+// otherwise label the day separators and slot times an hour or more off.
+function resolveTimeZone(hass) {
+  const tz = hass && hass.config && hass.config.time_zone;
+  if (!tz) return undefined;
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: tz });
+    return tz;
+  } catch (err) {
+    return undefined;
+  }
+}
+
 // HA's own language wins; fall back to the browser and finally to English.
 // "de-CH" and friends resolve via their base tag.
 function resolveLanguage(hass) {
@@ -115,19 +132,45 @@ class SmartBatteryPilotCard extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
     const lang = resolveLanguage(hass);
+    const tz = resolveTimeZone(hass);
     const state = this._resolveState();
     const pvState = this._livePvState(state);
-    // plan, live PV and language unchanged - keep DOM (and tooltip)
+    // plan, live PV, language and timezone unchanged - keep DOM (and tooltip)
     if (
       state === this._renderedState &&
       pvState === this._renderedPv &&
-      lang === this._lang
+      lang === this._lang &&
+      tz === this._tz
     )
       return;
     this._lang = lang;
+    this._tz = tz;
     this._renderedState = state;
     this._renderedPv = pvState;
     this._render(state);
+  }
+
+  // Calendar fields of `ms` as Home Assistant sees them.
+  _zoned(ms) {
+    if (!this._zonedFmt || this._zonedFmtTz !== this._tz) {
+      this._zonedFmtTz = this._tz;
+      this._zonedFmt = new Intl.DateTimeFormat("en-GB", {
+        timeZone: this._tz,
+        hour12: false,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+    const out = {};
+    for (const part of this._zonedFmt.formatToParts(new Date(ms))) {
+      if (part.type !== "literal") out[part.type] = Number(part.value);
+    }
+    // "24:00" is how en-GB spells midnight in this configuration.
+    if (out.hour === 24) out.hour = 0;
+    return out;
   }
 
   _tr(key, vars) {
@@ -148,8 +191,18 @@ class SmartBatteryPilotCard extends HTMLElement {
 
   _fmtTime(ms) {
     return new Date(ms).toLocaleTimeString(this._lang, {
+      timeZone: this._tz,
       hour: "2-digit",
       minute: "2-digit",
+    });
+  }
+
+  _fmtDate(ms) {
+    return new Date(ms).toLocaleDateString(this._lang, {
+      timeZone: this._tz,
+      weekday: "short",
+      day: "numeric",
+      month: "numeric",
     });
   }
 
@@ -176,10 +229,15 @@ class SmartBatteryPilotCard extends HTMLElement {
 
   _resolveState() {
     if (!this._hass || !this._config) return null;
-    let state = this._config.entity ? this._hass.states[this._config.entity] : null;
+    const configured = this._config.entity || this._foundEntity;
+    let state = configured ? this._hass.states[configured] : null;
     if (!state) {
-      const found = SmartBatteryPilotCard._findPlanEntity(this._hass);
-      if (found) state = this._hass.states[found];
+      const now = Date.now();
+      if (!this._lastScan || now - this._lastScan >= ENTITY_RESCAN_MS) {
+        this._lastScan = now;
+        this._foundEntity = SmartBatteryPilotCard._findPlanEntity(this._hass) || null;
+      }
+      if (this._foundEntity) state = this._hass.states[this._foundEntity];
     }
     return state || null;
   }
@@ -245,26 +303,31 @@ class SmartBatteryPilotCard extends HTMLElement {
       }"/>`;
       grid += `<text x="${PAD_L - 5}" y="${+y + 3}" class="ax pr">${p.toFixed(2)}</text>`;
     }
-    // vertical: every 3h anchored to LOCAL midnight, stronger + date label at midnight
-    const anchor = new Date(t0);
-    anchor.setHours(0, 0, 0, 0);
-    let firstTick = anchor.getTime();
-    while (firstTick < t0) firstTick += 10800000;
-    for (let ms = firstTick; ms <= t1; ms += 10800000) {
-      const d = new Date(ms);
-      const midnight = d.getHours() === 0;
-      grid += `<line x1="${x(ms).toFixed(1)}" y1="${PAD_T}" x2="${x(ms).toFixed(1)}" y2="${
+    // vertical: every 3h anchored to midnight in HA's timezone. Each tick is
+    // re-snapped to the full hour so a DST change does not shear the grid.
+    const HOUR = 3600000;
+    const startParts = this._zoned(t0);
+    let tick = t0 - ((startParts.hour % 3) * 60 + startParts.minute) * 60000;
+    while (tick < t0) tick += 3 * HOUR;
+    for (let k = 0; tick <= t1 && k < 64; k++) {
+      const parts = this._zoned(tick);
+      if (parts.minute !== 0) tick -= parts.minute * 60000;
+      const p = this._zoned(tick);
+      const midnight = p.hour === 0;
+      const px = x(tick).toFixed(1);
+      grid += `<line x1="${px}" y1="${PAD_T}" x2="${px}" y2="${
         PAD_T + PLOT_H
       }" class="grid${midnight ? " day" : ""}"/>`;
-      grid += `<text x="${x(ms).toFixed(1)}" y="${H - 16}" class="ax tx">${String(
-        d.getHours()
-      ).padStart(2, "0")}</text>`;
+      grid += `<text x="${px}" y="${H - 16}" class="ax tx">${String(p.hour).padStart(
+        2,
+        "0"
+      )}</text>`;
       if (midnight) {
-        grid += `<text x="${x(ms).toFixed(1)}" y="${H - 4}" class="ax tx day">${d.toLocaleDateString(
-          this._lang,
-          { weekday: "short", day: "numeric", month: "numeric" }
+        grid += `<text x="${px}" y="${H - 4}" class="ax tx day">${esc(
+          this._fmtDate(tick)
         )}</text>`;
       }
+      tick += 3 * HOUR;
     }
     grid += `<text x="${W - 4}" y="${ySoc(100) + 4}" class="ax soc" text-anchor="end">100%</text>`;
     grid += `<text x="${W - 4}" y="${ySoc(50) + 4}" class="ax soc" text-anchor="end">50%</text>`;

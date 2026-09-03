@@ -86,7 +86,7 @@ Details and the full option reference: [docs/configuration.md](docs/configuratio
 | `sensor.…_current_price`                 | Price of the active plan slot                |
 | `sensor.…_charge_plan`                   | Full plan as `slots` attribute               |
 | `sensor.…_plan_status`                   | Plan validity (`ok` / `no_price_data` / …)   |
-| `sensor.…_estimated_savings`             | Estimated savings over the plan horizon      |
+| `sensor.…_estimated_savings`             | Plan vs. doing nothing, over the horizon     |
 | `sensor.…_actual_savings_eur`            | Accumulated EUR from energy-meter deltas     |
 | `sensor.…_actual_savings_kwh`            | Accumulated kWh (discharge − grid charge)    |
 | `sensor.…_consumption_forecast`          | Learned 24h consumption forecast             |
@@ -95,8 +95,13 @@ Details and the full option reference: [docs/configuration.md](docs/configuratio
 | `switch.…_dry_run`                       | Plan only, don't call scripts                |
 | `binary_sensor.…_plan_problem`           | On when no valid plan exists                 |
 
-Actual-savings sensors stay empty until both optional battery charge and
-discharge energy entities are configured.
+Actual-savings sensors stay empty until **both** optional battery charge and
+discharge energy entities are configured — each reports a net figure, which a
+single meter cannot produce.
+
+`estimated_savings` is measured against doing nothing (plain self-consumption),
+not against buying everything from the grid: a plan that changes nothing
+reports `0.00`. See [docs/optimizer.md](docs/optimizer.md#savings-estimate).
 
 > Entity IDs are generated from the **localized** entity names — on a German
 > installation the plan sensor is `sensor.smart_battery_pilot_ladeplan`, on
@@ -104,6 +109,10 @@ discharge energy entities are configured.
 > shipped are English and German.
 
 Service: `smart_battery_pilot.replan` — recompute the plan immediately.
+
+Diagnostics (⋮ → *Download diagnostics* on the device page) dump the active
+configuration, the matched price adapter, the forecast model and the first day
+of the plan — attach that to any issue report.
 
 ## Dashboard card
 

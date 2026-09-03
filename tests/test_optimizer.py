@@ -2,8 +2,6 @@
 
 from datetime import datetime, timedelta, timezone
 
-import pytest
-
 from smart_battery_pilot.const import (
     ACTION_AUTO,
     ACTION_CHARGE,

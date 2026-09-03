@@ -16,9 +16,13 @@ from .base import PriceAdapter, PriceSlot, merge_future_slots, slots_from_entrie
 def _entries(attrs: dict[str, Any]) -> list[dict[str, Any]]:
     for key in ("prices", "forecast", "data"):
         value = attrs.get(key)
-        if isinstance(value, list) and value and isinstance(value[0], dict):
-            if "marketprice" in value[0]:
-                return list(value)
+        if (
+            isinstance(value, list)
+            and value
+            and isinstance(value[0], dict)
+            and "marketprice" in value[0]
+        ):
+            return list(value)
     return []
 
 
@@ -30,7 +34,9 @@ def _parse(attrs: dict[str, Any], now: datetime) -> list[PriceSlot]:
     entries = _entries(attrs)
     start_key = "start_time" if "start_time" in entries[0] else "start"
     end_key = "end_time" if "end_time" in entries[0] else "end"
-    slots = slots_from_entries(entries, start_key, end_key, "marketprice", 1 / 1000.0)
+    slots = slots_from_entries(
+        entries, start_key, end_key, "marketprice", 1 / 1000.0, default_tz=now.tzinfo
+    )
     return merge_future_slots(slots, now)
 
 

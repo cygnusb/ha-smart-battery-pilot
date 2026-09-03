@@ -1,6 +1,7 @@
 {
   "domain": "smart_battery_pilot",
   "name": "Smart Battery Pilot",
+  "after_dependencies": ["sun"],
   "codeowners": ["@cygnusb"],
   "config_flow": true,
   "dependencies": ["recorder", "http", "frontend"],
@@ -9,5 +10,5 @@
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/cygnusb/ha-smart-battery-pilot/issues",
   "requirements": [],
-  "version": "0.5.1"
+  "version": "0.6.0"
 }

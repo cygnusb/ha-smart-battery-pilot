@@ -8,17 +8,21 @@ midnight of the current day; the slot length is 24h / len(today)
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from .base import PriceAdapter, PriceSlot, merge_future_slots
+
+# A local day has 23, 24 or 25 hours. Sources that ship one entry per real
+# hour therefore emit 23 or 25 values on the DST transition days.
+MIN_ENTRIES_PER_DAY = 23
 
 
 def _matches(attrs: dict[str, Any]) -> bool:
     today = attrs.get("today")
     return (
         isinstance(today, list)
-        and len(today) >= 24
+        and len(today) >= MIN_ENTRIES_PER_DAY
         and all(isinstance(v, (int, float)) or v is None for v in today)
     )
 
@@ -31,17 +35,44 @@ def _civil_datetime(midnight: datetime, minutes: int) -> datetime:
     return datetime(day.year, day.month, day.day, hour, minute, tzinfo=midnight.tzinfo)
 
 
+def _boundaries(count: int, midnight: datetime) -> list[datetime]:
+    """The `count + 1` slot boundaries of the local day starting at `midnight`.
+
+    Two grids, picked from how many values the source actually sent:
+
+    * **Elapsed time** when the values divide the *real* length of the local
+      day evenly (23/24/25 hourly values, 92/96/100 quarter-hourly ones).
+      That is what Tibber, Nordpool and friends emit, and it puts the skipped
+      or repeated DST hour exactly where the clock puts it.
+    * **Wall clock** otherwise, i.e. a source with a fixed 24-slot grid. Then
+      entry `i` stays at `i` o'clock even on a transition day, and the grid
+      does not shift.
+    """
+    next_midnight = _civil_datetime(midnight, 24 * 60)
+    # Both datetimes share one tzinfo object, and subtracting those is
+    # documented to ignore the timezone - which would report 24 h on every
+    # day of the year. Convert to UTC first to get the real 23/24/25.
+    base = midnight.astimezone(UTC)
+    next_base = next_midnight.astimezone(UTC)
+    day_hours = (next_base - base).total_seconds() / 3600.0
+    per_hour = count / day_hours if day_hours else 0.0
+    if per_hour >= 1 and abs(per_hour - round(per_hour)) < 1e-9:
+        step = (next_base - base) / count
+        return [(base + step * i).astimezone(midnight.tzinfo) for i in range(count + 1)]
+    slot_minutes = 24 * 60 / count
+    return [_civil_datetime(midnight, round(i * slot_minutes)) for i in range(count + 1)]
+
+
 def _day_slots(values: list[Any], midnight: datetime) -> list[PriceSlot]:
     if not values:
         return []
-    slot_minutes = int(round(24 * 60 / len(values)))
+    bounds = _boundaries(len(values), midnight)
     slots = []
     seen: set[float] = set()
     for i, value in enumerate(values):
         if value is None:
             continue
-        start = _civil_datetime(midnight, i * slot_minutes)
-        end = _civil_datetime(midnight, (i + 1) * slot_minutes)
+        start, end = bounds[i], bounds[i + 1]
         try:
             start_ts = start.timestamp()
             end_ts = end.timestamp()

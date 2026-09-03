@@ -38,7 +38,9 @@ def _parse(attrs: dict[str, Any], now: datetime) -> list[PriceSlot]:
         key, factor = "price_ct_per_kwh", 1 / 100.0
     else:
         key, factor = "price_per_kwh", 1.0
-    slots = slots_from_entries(data, "start_time", "end_time", key, factor)
+    slots = slots_from_entries(
+        data, "start_time", "end_time", key, factor, default_tz=now.tzinfo
+    )
     return merge_future_slots(slots, now)
 
 

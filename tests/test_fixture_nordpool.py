@@ -1,7 +1,8 @@
 """Regression test against a real Nordpool entity snapshot (2026-06-11)."""
 
-import json
 from datetime import datetime, timedelta, timezone
+import itertools
+import json
 from pathlib import Path
 
 from smart_battery_pilot.price_adapters import detect_adapter
@@ -21,5 +22,5 @@ def test_live_nordpool_snapshot():
     assert all(s.end > NOW for s in slots)
     assert all(-0.5 < s.price < 2.0 for s in slots)
     # chronological and gapless
-    for a, b in zip(slots, slots[1:]):
+    for a, b in itertools.pairwise(slots):
         assert a.end == b.start

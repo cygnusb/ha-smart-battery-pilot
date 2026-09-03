@@ -8,6 +8,11 @@
           "price_entity": "Price forecast entity",
           "price_offset": "Price offset (grid fees, taxes per kWh)",
           "feed_in_tariff": "Feed-in tariff (0 = market price; a fixed tariff below the spread never exports)"
+        },
+        "data_description": {
+          "price_entity": "Entity that exposes hourly electricity prices as an attribute list (e.g. sensor.nordpool_kwh_de_eur_3_10_025).",
+          "price_offset": "Added to every market price. Typically covers grid fees, taxes and your supplier's margin (e.g. 0.12 EUR/kWh). Positive = more expensive.",
+          "feed_in_tariff": "What you earn per kWh exported to the grid. 0 = dynamic market price. A fixed rate below the spread (default 0.20) will never trigger an export."
         }
       },
       "battery": {
@@ -23,6 +28,17 @@
           "efficiency": "Roundtrip efficiency",
           "battery_charge_energy_entity": "Battery charge energy entity (kWh, optional)",
           "battery_discharge_energy_entity": "Battery discharge energy entity (kWh, optional)"
+        },
+        "data_description": {
+          "soc_entity": "Sensor reporting the current state of charge in percent (0-100). Example: sensor.byd_battery_box_premium_hv_state_of_charge.",
+          "capacity_kwh": "Usable battery capacity in kWh, excluding the reserve SOC. Example for a BYD HVS 10: 10.2 kWh.",
+          "max_charge_power_w": "Maximum charge power drawn from the grid, in watts. Typically 3000-5000 W.",
+          "max_discharge_power_w": "Maximum discharge power, in watts. Typically 3000-5000 W.",
+          "min_soc": "Lower state-of-charge bound in percent. The battery is never discharged below this. Recommended: 10 %.",
+          "max_soc": "Upper state-of-charge bound in percent. The battery is never charged above this. Recommended: 95 %.",
+          "efficiency": "Roundtrip efficiency in percent: kWh you get back divided by kWh you put in, times 100. Typically 85-95 %.",
+          "battery_charge_energy_entity": "Optional meter for total charged kWh (total_increasing). Both meters together enable the actual-savings sensors. Example: sensor.battery_energy_charged.",
+          "battery_discharge_energy_entity": "Optional meter for total discharged kWh (total_increasing). Both meters together enable the actual-savings sensors. Example: sensor.battery_energy_discharged."
         }
       },
       "control": {
@@ -33,6 +49,12 @@
           "script_idle": "Script: block discharging (idle)",
           "script_auto": "Script: normal auto mode",
           "script_export": "Script: force discharge to grid (optional)"
+        },
+        "data_description": {
+          "script_charge": "Called when the battery should charge from the grid. Receives the variable power_w (charge power in watts).",
+          "script_idle": "Called when discharging should be blocked, so the battery keeps its energy for a more expensive hour.",
+          "script_auto": "Returns the inverter to its normal self-consumption mode.",
+          "script_export": "Optional: called when energy should be sold to the grid during very high prices."
         }
       },
       "consumption": {
@@ -42,6 +64,11 @@
           "consumption_entity": "Consumption sensor",
           "temperature_entity": "Outdoor temperature sensor (optional)",
           "has_heat_pump": "Heat pump present"
+        },
+        "data_description": {
+          "consumption_entity": "Total household consumption in W or kWh. Used to train the consumption profile.",
+          "temperature_entity": "Optional: improves the consumption forecast for heat pump households by correlating with outdoor temperature.",
+          "has_heat_pump": "Enables the heating-demand feature in the consumption forecast as soon as any temperature history exists, even a patchy one."
         }
       },
       "pv": {
@@ -51,6 +78,11 @@
           "pv_forecast_today": "PV forecast today (kWh)",
           "pv_forecast_tomorrow": "PV forecast tomorrow (kWh)",
           "pv_power_entity": "Current PV power (optional)"
+        },
+        "data_description": {
+          "pv_forecast_today": "PV production forecast for today in kWh (e.g. Open-Meteo Solar Forecast or Solcast).",
+          "pv_forecast_tomorrow": "PV production forecast for tomorrow in kWh - improves overnight planning considerably.",
+          "pv_power_entity": "Current PV power. Shown as a live value on the Lovelace card."
         }
       }
     },
@@ -72,6 +104,11 @@
           "price_entity": "Price forecast entity",
           "price_offset": "Price offset (grid fees, taxes per kWh)",
           "feed_in_tariff": "Feed-in tariff (0 = market price; a fixed tariff below the spread never exports)"
+        },
+        "data_description": {
+          "price_entity": "Entity that exposes hourly electricity prices as an attribute list (e.g. sensor.nordpool_kwh_de_eur_3_10_025).",
+          "price_offset": "Added to every market price. Typically covers grid fees, taxes and your supplier's margin (e.g. 0.12 EUR/kWh). Positive = more expensive.",
+          "feed_in_tariff": "What you earn per kWh exported to the grid. 0 = dynamic market price. A fixed rate below the spread (default 0.20) will never trigger an export."
         }
       },
       "battery": {
@@ -86,6 +123,17 @@
           "efficiency": "Roundtrip efficiency",
           "battery_charge_energy_entity": "Battery charge energy entity (kWh, optional)",
           "battery_discharge_energy_entity": "Battery discharge energy entity (kWh, optional)"
+        },
+        "data_description": {
+          "soc_entity": "Sensor reporting the current state of charge in percent (0-100). Example: sensor.byd_battery_box_premium_hv_state_of_charge.",
+          "capacity_kwh": "Usable battery capacity in kWh, excluding the reserve SOC. Example for a BYD HVS 10: 10.2 kWh.",
+          "max_charge_power_w": "Maximum charge power drawn from the grid, in watts. Typically 3000-5000 W.",
+          "max_discharge_power_w": "Maximum discharge power, in watts. Typically 3000-5000 W.",
+          "min_soc": "Lower state-of-charge bound in percent. The battery is never discharged below this. Recommended: 10 %.",
+          "max_soc": "Upper state-of-charge bound in percent. The battery is never charged above this. Recommended: 95 %.",
+          "efficiency": "Roundtrip efficiency in percent: kWh you get back divided by kWh you put in, times 100. Typically 85-95 %.",
+          "battery_charge_energy_entity": "Optional meter for total charged kWh (total_increasing). Both meters together enable the actual-savings sensors. Example: sensor.battery_energy_charged.",
+          "battery_discharge_energy_entity": "Optional meter for total discharged kWh (total_increasing). Both meters together enable the actual-savings sensors. Example: sensor.battery_energy_discharged."
         }
       },
       "control": {
@@ -95,6 +143,12 @@
           "script_idle": "Script: block discharging (idle)",
           "script_auto": "Script: normal auto mode",
           "script_export": "Script: force discharge to grid (optional)"
+        },
+        "data_description": {
+          "script_charge": "Called when the battery should charge from the grid. Receives the variable power_w (charge power in watts).",
+          "script_idle": "Called when discharging should be blocked, so the battery keeps its energy for a more expensive hour.",
+          "script_auto": "Returns the inverter to its normal self-consumption mode.",
+          "script_export": "Optional: called when energy should be sold to the grid during very high prices."
         }
       },
       "consumption": {
@@ -103,6 +157,11 @@
           "consumption_entity": "Consumption sensor",
           "temperature_entity": "Outdoor temperature sensor (optional)",
           "has_heat_pump": "Heat pump present"
+        },
+        "data_description": {
+          "consumption_entity": "Total household consumption in W or kWh. Used to train the consumption profile.",
+          "temperature_entity": "Optional: improves the consumption forecast for heat pump households by correlating with outdoor temperature.",
+          "has_heat_pump": "Enables the heating-demand feature in the consumption forecast as soon as any temperature history exists, even a patchy one."
         }
       },
       "pv": {
@@ -111,6 +170,11 @@
           "pv_forecast_today": "PV forecast today (kWh)",
           "pv_forecast_tomorrow": "PV forecast tomorrow (kWh)",
           "pv_power_entity": "Current PV power (optional)"
+        },
+        "data_description": {
+          "pv_forecast_today": "PV production forecast for today in kWh (e.g. Open-Meteo Solar Forecast or Solcast).",
+          "pv_forecast_tomorrow": "PV production forecast for tomorrow in kWh - improves overnight planning considerably.",
+          "pv_power_entity": "Current PV power. Shown as a live value on the Lovelace card."
         }
       },
       "tuning": {
@@ -118,9 +182,12 @@
         "data": {
           "spread_threshold": "Minimum price spread (charge vs. discharge)",
           "discharge_mode": "Discharge mode",
-          "price_offset": "Price offset (grid fees, taxes per kWh)",
-          "feed_in_tariff": "Feed-in tariff (0 = market price; a fixed tariff below the spread never exports)",
           "training_days": "History days used for consumption training"
+        },
+        "data_description": {
+          "spread_threshold": "Minimum price difference between charging and discharging, in EUR/kWh. Below this, arbitrage does not pay for the conversion losses. Recommended: 0.10-0.25 EUR/kWh.",
+          "discharge_mode": "Self-consumption only: the battery covers your own demand. Self-consumption + export: also sells to the grid at very high prices (needs an export script).",
+          "training_days": "Days of history used to train the consumption profile. More = steadier, but slower to follow a change in habits. Recommended: 30-60 days."
         }
       },
       "init": {

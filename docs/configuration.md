@@ -6,7 +6,7 @@
 
 | Field | Description |
 |---|---|
-| Price forecast entity | Entity of your tariff integration holding the price forecast in its attributes. Supported formats are detected automatically: **Nordpool** (`raw_today`/`raw_tomorrow`; `price_in_cents` or ct/öre/cEUR units are scaled to EUR/kWh), **EPEX Spot** (`data` with `price_eur_per_mwh`/`price_ct_per_kwh`), **ENTSO-E** (`prices` with `time`/`price`), **aWATTar** (`marketprice` entries) and plain **hourly arrays** (`today`/`tomorrow` float lists, 24 or 96 values). |
+| Price forecast entity | Entity of your tariff integration holding the price forecast in its attributes. Supported formats are detected automatically: **Nordpool** (`raw_today`/`raw_tomorrow`; `price_in_cents` or ct/öre/cEUR units are scaled to EUR/kWh), **EPEX Spot** (`data` with `price_eur_per_mwh`/`price_ct_per_kwh`), **ENTSO-E** (`prices` with `time`/`price`), **aWATTar** (`marketprice` entries) and plain **hourly arrays** (`today`/`tomorrow` float lists). Arrays may hold 23, 24 or 25 values (96 / 92 / 100 at quarter-hour resolution) — on the two clock-change days a local day is not 24 hours long, and the grid follows the real day. |
 | Price offset | Fixed surcharge added to every market price: grid fees, taxes, levies (e.g. `0.187` EUR/kWh in Germany). Self-consumption decisions use the *total* import price you actually pay. Grid export is valued at the feed-in tariff, or at the raw market price when the tariff is `0` — the import surcharge is not treated as export revenue. |
 | Feed-in tariff | What you earn per exported kWh. `0` means the market price is used (dynamic feed-in). Only relevant for the export discharge mode. |
 
@@ -22,7 +22,7 @@ If your integration is not recognized, create a template sensor with `today`/
 | Max charge / discharge power | Inverter limits in W. |
 | Min / Max SOC | The plan never leaves this window (e.g. 10–95 %). |
 | Roundtrip efficiency | Grid → battery → load efficiency, typically 88–92 %. Losses are priced into every charge decision. |
-| Battery charge / discharge energy (optional) | Cumulative kWh meters. Both are required before `sensor.…_actual_savings` accumulates EUR; a single meter still counts kWh. Unavailable readings are skipped so a glitch cannot inflate the total. |
+| Battery charge / discharge energy (optional) | Cumulative kWh meters. **Both** are required before either `sensor.…_actual_savings` entity reports a value — each one is a net figure (discharge minus charge), which a single meter cannot produce. Unavailable readings are skipped so a glitch cannot inflate the total. |
 
 ### 3. Control scripts
 
@@ -57,7 +57,9 @@ The forecast model:
 
 Daily production forecast sensors in kWh (e.g. Open-Meteo Solar Forecast's
 `sensor.energy_production_today` / `…_tomorrow`). The daily total is
-distributed over daylight hours and subtracted from the consumption forecast.
+distributed over the daylight hours — read from `sun.sun`, so a December day
+is modelled as the ~8 hours it really is — and subtracted from the
+consumption forecast.
 Optional current PV power is shown live on the Lovelace card. Without PV,
 simply leave the fields empty.
 

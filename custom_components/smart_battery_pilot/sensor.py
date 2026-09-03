@@ -18,8 +18,6 @@ from .const import (
     CONF_DISCHARGE_MODE,
     CONF_EFFICIENCY,
     CONF_FEED_IN_TARIFF,
-    CONF_MAX_CHARGE_POWER_W,
-    CONF_MAX_DISCHARGE_POWER_W,
     CONF_MAX_SOC,
     CONF_MIN_SOC,
     CONF_PRICE_OFFSET,
@@ -65,10 +63,7 @@ def _find_current_slot(coordinator: SBPCoordinator):
     if not data or not data.valid:
         return None
     now = dt_util.now()
-    for slot in data.plan.slots:
-        if slot.start <= now < slot.end:
-            return slot
-    return None
+    return next((slot for slot in data.plan.slots if slot.covers(now)), None)
 
 
 class CurrentActionSensor(SBPEntity, SensorEntity):
@@ -116,10 +111,14 @@ class NextActionSensor(SBPEntity, SensorEntity):
         current = _find_current_slot(self.coordinator)
         current_action = current.action if current else ACTION_AUTO
         now = dt_util.now()
-        for slot in data.plan.slots:
-            if slot.start > now and slot.action != current_action:
-                return slot
-        return None
+        return next(
+            (
+                slot
+                for slot in data.plan.slots
+                if slot.starts_after(now) and slot.action != current_action
+            ),
+            None,
+        )
 
     @property
     def native_value(self) -> str:
@@ -131,8 +130,9 @@ class NextActionSensor(SBPEntity, SensorEntity):
         slot = self._next_change()
         if not slot:
             return {}
-        now = dt_util.now()
-        delta = slot.start - now
+        # Same tzinfo on both sides makes plain subtraction ignore the
+        # timezone, which is an hour off across a DST change.
+        delta = slot.start.astimezone(dt_util.UTC) - dt_util.utcnow()
         minutes = int(delta.total_seconds() / 60)
         return {
             "start": slot.start.isoformat(),
@@ -162,6 +162,9 @@ class ChargePlanSensor(SBPEntity, SensorEntity):
     """Full plan as attributes; state is the number of actively planned (non-auto) slots."""
 
     _attr_state_class = SensorStateClass.MEASUREMENT
+    # Up to ~190 slot dicts, rewritten twice an hour. Useful live, pure
+    # ballast in the recorder database.
+    _unrecorded_attributes = frozenset({ATTR_SLOTS})
 
     def __init__(self, coordinator: SBPCoordinator) -> None:
         super().__init__(coordinator, "charge_plan")
@@ -223,7 +226,9 @@ class PlanStatusSensor(SBPEntity, SensorEntity):
         if not data.valid:
             error_map = {
                 "no_price_data": "no_price_data",
+                "price_unavailable": "no_price_data",
                 "soc_unavailable": "no_soc",
+                "no_price_adapter": "no_price_adapter",
             }
             return error_map.get(data.error or "", "error")
         return "ok"
@@ -243,12 +248,13 @@ class PlanStatusSensor(SBPEntity, SensorEntity):
 
 
 class SavingsSensor(SBPEntity, SensorEntity):
-    """Estimated savings of the current plan horizon."""
+    """Estimated savings of the current plan horizon, against doing nothing."""
 
-    _attr_device_class = SensorDeviceClass.MONETARY
+    # No MONETARY device class on purpose: HA only accepts it together with
+    # state class TOTAL, and this is a horizon re-estimate that jumps at every
+    # replan, not a running total. Unit plus MEASUREMENT says exactly that.
     _attr_native_unit_of_measurement = "EUR"
     _attr_suggested_display_precision = 2
-    # Horizon re-estimate, not a meter: TOTAL would treat every drop as a reset.
     _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, coordinator: SBPCoordinator) -> None:
@@ -291,7 +297,6 @@ class ConfigSensor(SBPEntity, SensorEntity):
     """Active integration configuration — diagnostic, not intended for automations."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_should_poll = False
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = ["active", "inactive"]
 
