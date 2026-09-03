@@ -35,8 +35,8 @@ modbus:
 
 ## Scripts (scripts.yaml)
 
-The charge script receives `power_w` from Smart Battery Pilot and converts it
-to the Gen24's per-mille encoding. `max_power` is the value WChaMax
+The charge and export scripts receive `power_w` from Smart Battery Pilot and
+convert it to the Gen24's per-mille encoding. `max_power` is the value WChaMax
 (e.g. `12800` from register 40346 / `sensor.reading_battery_settings`).
 
 ```yaml
@@ -92,9 +92,16 @@ sbp_auto_mode:
 
 sbp_force_discharge:
   alias: "SBP: Entladen ins Netz erzwingen (Export-Modus)"
+  fields:
+    power_w:
+      description: Discharge power in W (provided by Smart Battery Pilot)
+      default: 6000
+  variables:
+    max_power: 12800
+    rate: "{{ [((power_w | default(6000)) / max_power * 10000) | int, 10000] | min }}"
   sequence:
     - service: modbus.write_register
-      data: { hub: gen24, slave: 1, address: 40356, value: 10000 }
+      data: { hub: gen24, slave: 1, address: 40356, value: "{{ rate }}" }
     - service: modbus.write_register
       data: { hub: gen24, slave: 1, address: 40348, value: 2 }
 ```
@@ -118,7 +125,7 @@ sbp_force_discharge:
 | Temperature sensor | `sensor.aussen_temperatur` |
 | PV forecast today / tomorrow | `sensor.vorhersage_solarproduktion_gesamt_heute` / `…_morgen` (Open-Meteo Solar Forecast) |
 | Current PV power (optional) | e.g. `sensor.solarnet_leistung_produktion` — shown live on the card |
-| Battery charge / discharge energy (optional) | cumulative kWh meters, both needed for actual-savings EUR |
+| Battery charge / discharge energy (optional) | cumulative kWh or Wh meters, both needed for actual-savings EUR |
 
 ## Verification sensors
 

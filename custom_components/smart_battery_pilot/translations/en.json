@@ -43,7 +43,7 @@
       },
       "control": {
         "title": "Battery control scripts",
-        "description": "Smart Battery Pilot controls your battery through Home Assistant scripts. Create one script per action for your inverter (see the documentation for vendor examples). The charge script receives the variable `power_w`.",
+        "description": "Smart Battery Pilot controls your battery through Home Assistant scripts. Create one script per action for your inverter (see the documentation for vendor examples). The charge and export scripts receive the variable `power_w`.",
         "data": {
           "script_charge": "Script: force charge from grid",
           "script_idle": "Script: block discharging (idle)",
@@ -54,7 +54,7 @@
           "script_charge": "Called when the battery should charge from the grid. Receives the variable power_w (charge power in watts).",
           "script_idle": "Called when discharging should be blocked, so the battery keeps its energy for a more expensive hour.",
           "script_auto": "Returns the inverter to its normal self-consumption mode.",
-          "script_export": "Optional: called when energy should be sold to the grid during very high prices."
+          "script_export": "Optional: called when energy should be sold to the grid during very high prices. Receives the variable power_w (discharge power in watts)."
         }
       },
       "consumption": {
@@ -148,7 +148,7 @@
           "script_charge": "Called when the battery should charge from the grid. Receives the variable power_w (charge power in watts).",
           "script_idle": "Called when discharging should be blocked, so the battery keeps its energy for a more expensive hour.",
           "script_auto": "Returns the inverter to its normal self-consumption mode.",
-          "script_export": "Optional: called when energy should be sold to the grid during very high prices."
+          "script_export": "Optional: called when energy should be sold to the grid during very high prices. Receives the variable power_w (discharge power in watts)."
         }
       },
       "consumption": {

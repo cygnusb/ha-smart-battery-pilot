@@ -50,6 +50,17 @@ async def _async_handle_replan(hass: HomeAssistant, _call: ServiceCall) -> None:
         await runtime.coordinator.async_request_refresh()
 
 
+def _ensure_replan_service(hass: HomeAssistant) -> None:
+    """Register replan; safe to call from setup and from each entry setup."""
+    if hass.services.has_service(DOMAIN, SERVICE_REPLAN):
+        return
+
+    async def _handle(call: ServiceCall) -> None:
+        await _async_handle_replan(hass, call)
+
+    hass.services.async_register(DOMAIN, SERVICE_REPLAN, _handle)
+
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register the bundled Lovelace card resource and the replan service."""
     card_path = Path(__file__).parent / "frontend" / "smart-battery-pilot-card.js"
@@ -58,15 +69,14 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             [StaticPathConfig(FRONTEND_SCRIPT_URL, str(card_path), cache_headers=False)]
         )
         add_extra_js_url(hass, FRONTEND_SCRIPT_URL)
-    if not hass.services.has_service(DOMAIN, SERVICE_REPLAN):
-        async def _handle(call: ServiceCall) -> None:
-            await _async_handle_replan(hass, call)
-
-        hass.services.async_register(DOMAIN, SERVICE_REPLAN, _handle)
+    _ensure_replan_service(hass)
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: SBPConfigEntry) -> bool:
+    # Options reload never re-runs async_setup, so the service has to be
+    # (re)registered here as well.
+    _ensure_replan_service(hass)
     coordinator = SBPCoordinator(hass, entry)
     await coordinator.async_setup()
     executor = PlanExecutor(hass, coordinator)
@@ -103,13 +113,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: SBPConfigEntry) -> bool
     await runtime.executor.async_stop(restore_auto=not runtime.reloading)
     await runtime.coordinator.async_shutdown()
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    remaining = [
-        loaded
-        for loaded in hass.config_entries.async_entries(DOMAIN)
-        if loaded.entry_id != entry.entry_id and getattr(loaded, "runtime_data", None) is not None
-    ]
-    if not remaining and hass.services.has_service(DOMAIN, SERVICE_REPLAN):
-        hass.services.async_remove(DOMAIN, SERVICE_REPLAN)
+    if not runtime.reloading:
+        remaining = [
+            loaded
+            for loaded in hass.config_entries.async_entries(DOMAIN)
+            if loaded.entry_id != entry.entry_id
+            and getattr(loaded, "runtime_data", None) is not None
+        ]
+        if not remaining and hass.services.has_service(DOMAIN, SERVICE_REPLAN):
+            hass.services.async_remove(DOMAIN, SERVICE_REPLAN)
     return unloaded
 
 

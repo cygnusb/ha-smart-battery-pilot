@@ -45,11 +45,11 @@ class PlanExecutor:
         """Last action really sent to the inverter, restored across restarts."""
         return self.coordinator.last_applied
 
-    def _remember(self, action: str | None) -> None:
+    async def _remember(self, action: str | None) -> None:
         if self.coordinator.last_applied == action:
             return
         self.coordinator.last_applied = action
-        self.coordinator.schedule_persist()
+        await self.coordinator.async_persist()
 
     async def async_release_stale_mode(self) -> None:
         """Hand the battery back to auto after a restart that cannot plan.
@@ -68,7 +68,7 @@ class PlanExecutor:
                 self._last_applied,
             )
             if await self._call_script(ACTION_AUTO, 0.0):
-                self._remember(ACTION_AUTO)
+                await self._remember(ACTION_AUTO)
         await self.coordinator.async_persist()
 
     async def async_start(self) -> None:
@@ -93,7 +93,7 @@ class PlanExecutor:
                 and self._last_applied not in (None, ACTION_AUTO)
                 and await self._call_script(ACTION_AUTO, 0.0)
             ):
-                self._remember(ACTION_AUTO)
+                await self._remember(ACTION_AUTO)
         await self.coordinator.async_persist()
 
     @callback
@@ -143,7 +143,7 @@ class PlanExecutor:
             ):
                 _LOGGER.warning("Plan invalid - restoring battery auto mode")
                 if await self._call_script(ACTION_AUTO, 0.0):
-                    self._remember(ACTION_AUTO)
+                    await self._remember(ACTION_AUTO)
             return
 
         if not coordinator.enabled:
@@ -154,7 +154,7 @@ class PlanExecutor:
             if self._last_applied not in (None, ACTION_AUTO):
                 _LOGGER.info("Dry-run enabled - restoring battery auto mode")
                 if await self._call_script(ACTION_AUTO, 0.0):
-                    self._remember(ACTION_AUTO)
+                    await self._remember(ACTION_AUTO)
             _LOGGER.info(
                 "DRY RUN: would apply action '%s' (%.0f W) for slot %s - %s",
                 action,
@@ -164,14 +164,17 @@ class PlanExecutor:
             )
             return
 
-        if action == self._last_applied and action != ACTION_CHARGE:
+        if action == self._last_applied and action not in (
+            ACTION_CHARGE,
+            ACTION_EXPORT,
+        ):
             return
 
         if await self._call_script(action, slot.charge_power_w):
-            self._remember(action)
+            await self._remember(action)
             return
         if action != ACTION_AUTO and await self._call_script(ACTION_AUTO, 0.0):
-            self._remember(ACTION_AUTO)
+            await self._remember(ACTION_AUTO)
 
     def _schedule_boundary(self) -> None:
         if self._unsub_timer:
@@ -214,11 +217,16 @@ class PlanExecutor:
         _LOGGER.info(
             "Applying action '%s' via script.%s (power_w=%.0f)", action, object_id, power_w
         )
+        payload = (
+            {"power_w": round(power_w)}
+            if action in (ACTION_CHARGE, ACTION_EXPORT)
+            else {}
+        )
         try:
             await self.hass.services.async_call(
                 "script",
                 object_id,
-                {"power_w": round(power_w)} if action == ACTION_CHARGE else {},
+                payload,
                 blocking=True,
             )
         except Exception:

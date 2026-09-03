@@ -85,7 +85,9 @@ The sensor is a point-in-time `MEASUREMENT` (it jumps at every replan), not
 an accumulating meter — and deliberately carries no `monetary` device class,
 which Home Assistant only accepts together with `TOTAL`.
 `sensor.…_actual_savings_eur` is the running total from energy-meter deltas,
-priced at the slot that covered each interval.
+priced at the time-weighted slot prices of each interval. Grid charge uses
+the import price; charge that happens in auto/idle (typically PV) uses the
+feed-in tariff. Wh meters are converted to kWh.
 
 ## Worked example (Dunkelflaute)
 

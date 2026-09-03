@@ -14,8 +14,8 @@ Integrations/hardware needed (e.g. Modbus hub config, MQTT broker, …).
 
 ## Scripts
 
-The four scripts Smart Battery Pilot calls. The charge script receives the
-variable `power_w`.
+The four scripts Smart Battery Pilot calls. The charge and export scripts
+receive the variable `power_w`.
 
 ```yaml
 sbp_force_charge:
@@ -39,6 +39,9 @@ sbp_auto_mode:
 # optional, only for export mode:
 sbp_force_discharge:
   alias: "SBP: Force discharge to grid"
+  fields:
+    power_w:
+      description: Discharge power in W
   sequence:
     # vendor-specific actions
 ```

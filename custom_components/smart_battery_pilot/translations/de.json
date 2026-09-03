@@ -43,7 +43,7 @@
       },
       "control": {
         "title": "Steuerungs-Scripts",
-        "description": "Smart Battery Pilot steuert die Batterie über Home-Assistant-Scripts. Lege je Aktion ein Script für deinen Wechselrichter an (Hersteller-Beispiele in der Doku). Das Lade-Script erhält die Variable `power_w`.",
+        "description": "Smart Battery Pilot steuert die Batterie über Home-Assistant-Scripts. Lege je Aktion ein Script für deinen Wechselrichter an (Hersteller-Beispiele in der Doku). Das Lade- und das Export-Script erhalten die Variable `power_w`.",
         "data": {
           "script_charge": "Script: Laden aus dem Netz erzwingen",
           "script_idle": "Script: Entladen sperren (Idle)",
@@ -54,7 +54,7 @@
           "script_charge": "Wird aufgerufen wenn die Batterie aus dem Netz laden soll. Erhaelt die Variable power_w (Ladeleistung in Watt).",
           "script_idle": "Wird aufgerufen wenn Entladung gesperrt sein soll (Batterie haelt Energie fuer spaeter).",
           "script_auto": "Setzt den Wechselrichter in den normalen Eigenverbrauchsmodus zurueck.",
-          "script_export": "Optional: Wird aufgerufen wenn bei sehr hohen Preisen ins Netz eingespeist werden soll."
+          "script_export": "Optional: Wird aufgerufen wenn bei sehr hohen Preisen ins Netz eingespeist werden soll. Erhaelt die Variable power_w (Entladeleistung in Watt)."
         }
       },
       "consumption": {
@@ -148,7 +148,7 @@
           "script_charge": "Wird aufgerufen wenn die Batterie aus dem Netz laden soll. Erhaelt die Variable power_w (Ladeleistung in Watt).",
           "script_idle": "Wird aufgerufen wenn Entladung gesperrt sein soll (Batterie haelt Energie fuer spaeter).",
           "script_auto": "Setzt den Wechselrichter in den normalen Eigenverbrauchsmodus zurueck.",
-          "script_export": "Optional: Wird aufgerufen wenn bei sehr hohen Preisen ins Netz eingespeist werden soll."
+          "script_export": "Optional: Wird aufgerufen wenn bei sehr hohen Preisen ins Netz eingespeist werden soll. Erhaelt die Variable power_w (Entladeleistung in Watt)."
         }
       },
       "consumption": {
