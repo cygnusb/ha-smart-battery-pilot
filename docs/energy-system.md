@@ -15,6 +15,16 @@ The BYD HVM (High Voltage Module) battery is **not controlled directly** —
 all control goes through the **Fronius Gen24 inverter** via **Modbus TCP**
 (HA hub name: `gen24`, slave: 1).
 
+HA 2026.9: the core Fronius integration starts polling the same inverter
+over Modbus TCP (port 502) on its own. Keep these YAML scripts as the only
+writer. Do not also set the new core number/switch entities (AC power
+limit, battery charge/discharge limits, min reserve, grid charging) —
+same registers, they would override the SBP plan. Core entities are
+limits, not force-charge/force-export (StorCtl_Mod `1`/`2` is not
+exposed). Watch Modbus session count on the Gen24 (YAML hub + core +
+often EVCC). Prefer core's `Battery charging/discharging energy total`
+DC counters for SBP actual-savings inputs.
+
 ```
 Home Assistant
     └─ modbus.write_register (hub: gen24, slave: 1)
