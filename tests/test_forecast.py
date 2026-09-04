@@ -119,3 +119,55 @@ def test_pv_distribution():
 def test_pv_none_forecast():
     now = datetime(2026, 6, 11, 8, 0, tzinfo=TZ)
     assert pv_kwh_for_slot(now, 1.0, None, None, now) == 0.0
+
+
+def _with_frozen_hours(
+    samples: list[TrainingSample], hours: range, days: int
+) -> list[TrainingSample]:
+    """Pin `hours` to exactly 0.0 on the first `days` days, as a stuck meter does."""
+    out = []
+    first = min(s.start for s in samples).date()
+    for s in samples:
+        stuck = (s.start.date() - first).days < days and s.start.hour in hours
+        out.append(TrainingSample(s.start, 0.0, s.temperature) if stuck else s)
+    return out
+
+
+def test_frozen_meter_samples_are_dropped():
+    """A meter stuck at 0 W must not drag the afternoon forecast down.
+
+    Fronius `P_Load` reports a constant 0 W for whole hours while the rest of
+    the inverter data keeps flowing; those hours reach training as genuine
+    zeroes and the model learns an afternoon hole that is not there.
+    """
+    clean = _synthetic_samples(days=30)
+    poisoned = _with_frozen_hours(clean, range(13, 18), days=20)
+
+    good = ConsumptionForecaster()
+    good.train(clean)
+    bad = ConsumptionForecaster()
+    bad.train(poisoned)
+
+    # Under-forecasting is the harmful direction: the planner then spends the
+    # battery before the evening peak. Filtering cannot recover the discarded
+    # hours, so it lands high - that is the safe side.
+    for hour in (14, 15, 16):
+        when = datetime(2026, 6, 8, hour, 0, tzinfo=TZ)
+        reference = good.predict_kwh(when, 1.0)
+        assert reference > bad.predict_kwh(when, 1.0) * 0.6
+        assert bad.predict_kwh(when, 1.0) >= reference
+
+
+def test_exact_zero_samples_never_train():
+    forecaster = ConsumptionForecaster()
+    samples = _synthetic_samples(days=30)
+    forecaster.train(samples + [TrainingSample(s.start, 0.0, None) for s in samples])
+    assert forecaster.sample_count == len(samples)
+
+
+def test_all_zero_history_falls_back_to_default():
+    """Dropping implausible samples must not leave the model untrained."""
+    forecaster = ConsumptionForecaster()
+    forecaster.train([TrainingSample(s.start, 0.0, None) for s in _synthetic_samples(5)])
+    assert forecaster.model_type == "default"
+    assert forecaster.predict_kwh(datetime(2026, 6, 8, 12, 0, tzinfo=TZ), 1.0) > 0

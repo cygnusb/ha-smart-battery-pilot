@@ -39,6 +39,14 @@ class PlanExecutor:
         # interleave and leave `last_applied` describing a mode the inverter
         # is not in.
         self._lock = asyncio.Lock()
+        # An apply already queued but not yet started. The boundary timer and
+        # the coordinator listener fire together, and the lock serialises them
+        # without deduplicating - two runs would call the charge script twice.
+        self._apply_queued = False
+        # Set by async_stop. Tasks queued just before the unload are already
+        # scheduled and would otherwise re-arm the timer and re-apply a forced
+        # mode behind an entry that is gone.
+        self._stopped = False
 
     @property
     def _last_applied(self) -> str | None:
@@ -86,6 +94,7 @@ class PlanExecutor:
             self._unsub_coordinator()
             self._unsub_coordinator = None
         async with self._lock:
+            self._stopped = True
             # `last_applied` is only set after a real script call, so dry-run
             # never triggers a restore on unload.
             if (
@@ -97,8 +106,21 @@ class PlanExecutor:
         await self.coordinator.async_persist()
 
     @callback
+    def _queue_apply(self) -> None:
+        """Schedule one apply run; collapses simultaneous triggers into one."""
+        if self._apply_queued or self._stopped:
+            return
+        self._apply_queued = True
+
+        async def _run() -> None:
+            self._apply_queued = False
+            await self.async_apply_current()
+
+        self.hass.async_create_task(_run())
+
+    @callback
     def _handle_coordinator_update(self) -> None:
-        self.hass.async_create_task(self.async_apply_current())
+        self._queue_apply()
 
     def _plan_is_live(self) -> bool:
         data = self.coordinator.data
@@ -126,6 +148,8 @@ class PlanExecutor:
     async def async_apply_current(self) -> None:
         """Apply the action of the current slot and arm the next boundary timer."""
         async with self._lock:
+            if self._stopped:
+                return
             self._schedule_boundary()
             await self._apply_locked()
 
@@ -193,8 +217,12 @@ class PlanExecutor:
             # The entities are coordinator-driven and would otherwise keep
             # showing the previous slot until the next 30-minute refresh -
             # long enough to miss a whole 15-minute slot.
+            # async_update_listeners re-enters _handle_coordinator_update
+            # synchronously, so the queue below already holds this boundary's
+            # run; _queue_apply collapses the two into one.
             self.coordinator.async_update_listeners()
-            self.hass.async_create_task(self.async_apply_current())
+            self.coordinator.note_conditions()
+            self._queue_apply()
 
         self._unsub_timer = async_track_point_in_time(self.hass, _fire, boundary)
 

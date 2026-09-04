@@ -64,6 +64,9 @@ from .price_adapters.base import PriceSlot
 _LOGGER = logging.getLogger(__name__)
 
 RETRAIN_INTERVAL = timedelta(hours=24)
+# Price/mode samples kept for savings accounting; see _note_conditions.
+MAX_CONDITION_SAMPLES = 200
+
 # Fallback daylight window when sun.sun is unavailable.
 DEFAULT_SUNRISE_HOUR = 6.0
 DEFAULT_SUNSET_HOUR = 21.0
@@ -123,7 +126,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         # Last action really applied to the inverter. Persisted, because
         # after a restart it is the only way to know that the battery is
         # still sitting in a forced mode we have to release.
-        self.last_applied: str | None = None
+        self._last_applied: str | None = None
 
         # Runtime flags controlled by the switch entities.
         self.enabled: bool = False
@@ -133,6 +136,12 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         self._prev_charge_kwh: float | None = None
         self._prev_discharge_kwh: float | None = None
         self._prev_savings_at: datetime | None = None
+        # (timestamp, import price, applied action) samples covering the span
+        # since the last accumulation. The plan only ever holds future slots,
+        # so the price and mode that were in force while the energy actually
+        # moved cannot be recovered from it afterwards - they have to be
+        # recorded as they happen.
+        self._conditions: list[tuple[float, float, str | None]] = []
         self._acc_savings_eur: float = 0.0
         self._acc_charge_kwh: float = 0.0
         self._acc_discharge_kwh: float = 0.0
@@ -482,11 +491,104 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             and self.conf(CONF_BATTERY_DISCHARGE_ENERGY_ENTITY)
         )
 
+    @property
+    def last_applied(self) -> str | None:
+        """Mode last really sent to the inverter, restored across restarts."""
+        return self._last_applied
+
+    @last_applied.setter
+    def last_applied(self, action: str | None) -> None:
+        """Record a sample on every mode change, whoever makes it.
+
+        A switch inside a coordinator interval has to split that interval;
+        otherwise the new mode is back-dated over energy that moved under the
+        old one. Sampling here rather than in the executor means no caller can
+        forget to do it.
+        """
+        changed = action != self._last_applied
+        self._last_applied = action
+        if changed and self.data is not None:
+            self._note_conditions(self.data.plan, dt_util.now())
+
+    @callback
+    def note_conditions(self) -> None:
+        """Sample at a slot boundary.
+
+        Slots can be 15 minutes while the coordinator refreshes every 30, so
+        without this a price change inside an interval would be missed and the
+        whole interval billed at the price that happened to start it.
+        """
+        if self.data is not None:
+            self._note_conditions(self.data.plan, dt_util.now())
+
+    def _note_conditions(self, plan: Plan, now: datetime) -> None:
+        """Append (time, price, action) unless nothing changed since the last one.
+
+        Only the savings accounting reads these, and only it trims them - so
+        without meters configured nothing would ever clear the list.
+        """
+        if not self._has_energy_entities():
+            return
+        sample = (now.timestamp(), self._price_for_now(plan, now), self.last_applied)
+        if self._conditions and self._conditions[-1][1:] == sample[1:]:
+            return
+        self._conditions.append(sample)
+        # Safety net: a meter stuck at unavailable stops the trimming below.
+        # Keeping a day of quarter-hourly samples is ample for one interval.
+        if len(self._conditions) > MAX_CONDITION_SAMPLES:
+            del self._conditions[:-MAX_CONDITION_SAMPLES]
+
+    def _trim_conditions(self, before: float) -> None:
+        """Drop samples fully superseded by the one covering `before`."""
+        keep = 0
+        for i, (ts, _, _) in enumerate(self._conditions):
+            if ts <= before:
+                keep = i
+            else:
+                break
+        del self._conditions[:keep]
+
+    def _interval_prices(self, start: datetime, end: datetime) -> tuple[float, float]:
+        """Time-weighted mean import price and charge unit price over the span.
+
+        Each sample holds until the next one, so a span crossing a slot
+        boundary or a mode switch is split at the right instant.
+        """
+        if not self._conditions:
+            return 0.0, 0.0
+
+        start_ts, end_ts = start.timestamp(), end.timestamp()
+        import_w = charge_w = total = 0.0
+        for i, (ts, price, action) in enumerate(self._conditions):
+            nxt = (
+                self._conditions[i + 1][0]
+                if i + 1 < len(self._conditions)
+                else float("inf")
+            )
+            span = min(nxt, end_ts) - max(ts, start_ts)
+            if span <= 0:
+                continue
+            import_w += price * span
+            charge_w += self._charge_unit_price(price, action) * span
+            total += span
+        if total <= 0:
+            # Degenerate span (two reads at the same instant): the freshest
+            # sample is the best available answer.
+            _, price, action = self._conditions[-1]
+            return price, self._charge_unit_price(price, action)
+        return import_w / total, charge_w / total
+
     def _update_actual_savings(self, plan: Plan, now: datetime) -> None:
         """Read energy meter deltas and accumulate actual savings."""
+        # Sample first: this closes the interval that is about to be settled
+        # and opens the next one at the current price and mode.
+        self._note_conditions(plan, now)
         charge_entity = self.conf(CONF_BATTERY_CHARGE_ENERGY_ENTITY)
         discharge_entity = self.conf(CONF_BATTERY_DISCHARGE_ENERGY_ENTITY)
-        if not charge_entity and not discharge_entity:
+        # Mirror _has_energy_entities(): with one meter the accumulators would
+        # fill with a one-sided total that poisons the figures for good once
+        # the second meter is added later.
+        if not (charge_entity and discharge_entity):
             return
 
         cur_charge = self._read_energy_kwh(charge_entity) if charge_entity else None
@@ -514,16 +616,16 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
 
         if delta_charge == 0.0 and delta_discharge == 0.0:
             self._prev_savings_at = now
+            self._trim_conditions(now.timestamp())
             return
 
         self._acc_charge_kwh += delta_charge
         self._acc_discharge_kwh += delta_discharge
-        if charge_entity and discharge_entity:
-            interval_start = self._prev_savings_at or now
-            price = self._price_for_interval(plan, interval_start, now)
-            charge_price = self._charge_unit_price(price)
-            self._acc_savings_eur += delta_discharge * price - delta_charge * charge_price
+        interval_start = self._prev_savings_at or now
+        price, charge_price = self._interval_prices(interval_start, now)
+        self._acc_savings_eur += delta_discharge * price - delta_charge * charge_price
         self._prev_savings_at = now
+        self._trim_conditions(now.timestamp())
 
         self.schedule_persist()
 
@@ -531,27 +633,14 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         """Price of the plan slot covering `now`."""
         return next((slot.price for slot in plan.slots if slot.covers(now)), 0.0)
 
-    def _price_for_interval(self, plan: Plan, start: datetime, end: datetime) -> float:
-        """Time-weighted mean of slot prices overlapping `[start, end]`."""
-        start_ts = start.timestamp()
-        end_ts = end.timestamp()
-        weighted = 0.0
-        total = 0.0
-        for slot in plan.slots:
-            overlap = min(slot.end.timestamp(), end_ts) - max(
-                slot.start.timestamp(), start_ts
-            )
-            if overlap <= 0:
-                continue
-            weighted += slot.price * overlap
-            total += overlap
-        if total <= 0:
-            return self._price_for_now(plan, end)
-        return weighted / total
+    def _charge_unit_price(self, import_price: float, action: str | None) -> float:
+        """Grid charge costs the import price; PV charge costs the feed-in.
 
-    def _charge_unit_price(self, import_price: float) -> float:
-        """Grid charge costs the import price; PV charge costs the feed-in."""
-        if self.last_applied == ACTION_CHARGE:
+        `action` is the mode that was in force while the energy moved, not the
+        one in force when the meter happened to be read - the executor has
+        usually moved on to the next slot by then.
+        """
+        if action == ACTION_CHARGE:
             return import_price
         feed_in = float(self.conf(CONF_FEED_IN_TARIFF, DEFAULT_FEED_IN_TARIFF))
         if feed_in > 0:

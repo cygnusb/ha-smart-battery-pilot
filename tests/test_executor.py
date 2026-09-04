@@ -71,6 +71,9 @@ class _FakeCoordinator:
     def schedule_persist(self):
         self.persisted += 1
 
+    def note_conditions(self):
+        pass
+
     async def async_persist(self):
         self.persisted += 1
 
