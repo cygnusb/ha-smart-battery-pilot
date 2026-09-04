@@ -16,13 +16,24 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+import logging
 import math
+import statistics
 from typing import Any
+
+_LOGGER = logging.getLogger(__name__)
 
 # Minimum hourly samples before the regression model is trusted.
 MIN_REGRESSION_SAMPLES = 14 * 24
 RIDGE_LAMBDA = 1.0
 HEATING_BASE_TEMP = 15.0  # °C, below this heating demand kicks in
+
+# A household's floor is its base load, never zero. Meters that lose their
+# source often report a constant 0 instead of going unavailable (Fronius
+# `P_Load` does this for whole hours while the rest of the inverter data keeps
+# flowing), and those hours arrive here as ordinary samples. Anything below
+# this fraction of the household's own median is treated as a dropout.
+IMPLAUSIBLE_FRACTION = 0.05
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,6 +85,30 @@ def _solve(matrix: list[list[float]], rhs: list[float]) -> list[float]:
     return x
 
 
+def _drop_implausible(samples: list[TrainingSample]) -> list[TrainingSample]:
+    """Keep only samples that could plausibly be a real household hour.
+
+    The threshold is relative to the household's own median rather than a
+    fixed wattage, so a one-room flat and a heat-pump house are judged on
+    their own scale. Exact zeroes go regardless of the median.
+    """
+    usable = [s for s in samples if s.kwh is not None and s.kwh > 0]
+    if not usable:
+        return []
+    floor = IMPLAUSIBLE_FRACTION * statistics.median(s.kwh for s in usable)
+    kept = [s for s in usable if s.kwh > floor]
+    dropped = len(samples) - len(kept)
+    if dropped:
+        _LOGGER.debug(
+            "Dropped %d of %d consumption samples below %.3f kWh/h "
+            "(stuck or missing meter readings)",
+            dropped,
+            len(samples),
+            floor,
+        )
+    return kept
+
+
 class ConsumptionForecaster:
     """Predicts household consumption in kWh for arbitrary time slots."""
 
@@ -107,7 +142,7 @@ class ConsumptionForecaster:
         feature as soon as any temperature samples exist, instead of waiting
         until half the history is tagged.
         """
-        samples = [s for s in samples if s.kwh is not None and s.kwh >= 0]
+        samples = _drop_implausible(samples)
         self._sample_count = len(samples)
         if not samples:
             return
