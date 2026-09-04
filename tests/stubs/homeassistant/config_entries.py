@@ -5,7 +5,8 @@ class ConfigEntry:
     def __class_getitem__(cls, item):
         return cls
 
-    def __init__(self, data=None, options=None, entry_id="test"):
+    def __init__(self, data=None, options=None, entry_id="test", unique_id=None):
+        self.unique_id = unique_id
         self.data = data or {}
         self.options = options or {}
         self.entry_id = entry_id

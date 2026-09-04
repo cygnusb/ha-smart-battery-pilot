@@ -72,6 +72,9 @@ class _Coordinator:
         self.persist_calls += 1
         self.delayed_persist += 1
 
+    def note_conditions(self):
+        pass
+
     async def async_persist(self):
         self.persist_calls += 1
         self.immediate_persist += 1
@@ -177,3 +180,95 @@ def test_concurrent_applies_do_not_interleave():
     # The second run is the later truth, so it must also be the final one.
     assert hass.services.calls == ["sbp_charge", "sbp_idle"]
     assert coord.last_applied == ACTION_IDLE
+
+
+class _RunningHass(_Hass):
+    """Runs the tasks the executor creates instead of discarding them."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.tasks: list[asyncio.Task] = []
+
+    def async_create_task(self, coro):
+        task = asyncio.get_running_loop().create_task(coro)
+        self.tasks.append(task)
+        return task
+
+    async def drain(self) -> None:
+        while self.tasks:
+            pending, self.tasks = self.tasks, []
+            await asyncio.gather(*pending)
+
+
+class _ListeningCoordinator(_Coordinator):
+    """Calls its listeners, the way DataUpdateCoordinator really does."""
+
+    def __init__(self, slots, **kw) -> None:
+        super().__init__(slots, **kw)
+        self._listeners: list = []
+
+    def async_add_listener(self, listener):
+        self._listeners.append(listener)
+        return lambda: self._listeners.remove(listener)
+
+    def async_update_listeners(self):
+        for listener in list(self._listeners):
+            listener()
+
+
+def test_slot_boundary_applies_once_not_twice():
+    """The boundary refresh re-enters the coordinator listener synchronously.
+
+    Without deduplication that queues one apply, and `_fire` queues a second;
+    the lock serialises them but charge and export are exempt from the
+    "same action, skip" short-circuit, so the script runs twice per boundary.
+    """
+    from homeassistant.helpers import event as event_stub
+
+    event_stub.SCHEDULED_POINTS.clear()
+    hass = _RunningHass()
+    coord = _ListeningCoordinator([_slot(ACTION_CHARGE)])
+    executor = PlanExecutor(hass, coord)
+
+    async def scenario():
+        await executor.async_start()
+        await hass.drain()
+        assert hass.services.calls == ["sbp_charge"]
+
+        hass.services.calls.clear()
+        event_stub.fire_scheduled_point()  # the slot boundary
+        await hass.drain()
+
+    asyncio.run(scenario())
+
+    assert hass.services.calls == ["sbp_charge"]
+
+
+def test_apply_queued_before_unload_does_not_revive_a_forced_mode():
+    """A task created just before the unload is already scheduled.
+
+    Dropping the listener does not cancel it; it waits on the lock that
+    async_stop holds and would otherwise re-arm the timer and re-apply the
+    forced mode behind an entry that no longer exists.
+    """
+    from homeassistant.helpers import event as event_stub
+
+    event_stub.SCHEDULED_POINTS.clear()
+    hass = _RunningHass()
+    coord = _ListeningCoordinator([_slot(ACTION_CHARGE)])
+    executor = PlanExecutor(hass, coord)
+
+    async def scenario():
+        await executor.async_start()
+        await hass.drain()
+        hass.services.calls.clear()
+
+        executor._queue_apply()          # in flight when the unload starts
+        await executor.async_stop(restore_auto=True)
+        await hass.drain()
+
+    asyncio.run(scenario())
+
+    # Only the restore, and no timer left behind.
+    assert hass.services.calls == ["sbp_auto"]
+    assert event_stub.SCHEDULED_POINTS == []

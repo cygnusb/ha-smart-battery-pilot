@@ -14,6 +14,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
+    CONF_SOC_ENTITY,
     DOMAIN,
     FRONTEND_SCRIPT_URL,
     SERVICE_REPLAN,
@@ -73,10 +74,25 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
+def _ensure_unique_id(hass: HomeAssistant, entry: SBPConfigEntry) -> None:
+    """Back-fill the unique id on entries created before it existed.
+
+    The config flow's "one battery, one plan" guard matches on the unique id,
+    and entries from 0.5.x carry None - a second entry for the same inverter
+    would walk straight through it and both executors would fight over the
+    same battery.
+    """
+    soc_entity = entry.data.get(CONF_SOC_ENTITY)
+    if entry.unique_id is not None or not soc_entity:
+        return
+    hass.config_entries.async_update_entry(entry, unique_id=soc_entity)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: SBPConfigEntry) -> bool:
     # Options reload never re-runs async_setup, so the service has to be
     # (re)registered here as well.
     _ensure_replan_service(hass)
+    _ensure_unique_id(hass, entry)
     coordinator = SBPCoordinator(hass, entry)
     await coordinator.async_setup()
     executor = PlanExecutor(hass, coordinator)
