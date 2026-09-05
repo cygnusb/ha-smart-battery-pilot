@@ -184,9 +184,7 @@ def test_failed_script_is_retried_next_apply():
 
 def test_export_passes_power_w():
     hass = _FakeHass()
-    coord = _FakeCoordinator(
-        [_slot(ACTION_EXPORT, power=2500.0)], dry_run=False, enabled=True
-    )
+    coord = _FakeCoordinator([_slot(ACTION_EXPORT, power=2500.0)], dry_run=False, enabled=True)
     executor = PlanExecutor(hass, coord)
     _run(executor.async_apply_current())
     domain, service, data, blocking = hass.services.calls[0]
@@ -196,9 +194,7 @@ def test_export_passes_power_w():
 
 def test_consecutive_export_slots_reapply_new_power():
     hass = _FakeHass()
-    coord = _FakeCoordinator(
-        [_slot(ACTION_EXPORT, power=2500.0)], dry_run=False, enabled=True
-    )
+    coord = _FakeCoordinator([_slot(ACTION_EXPORT, power=2500.0)], dry_run=False, enabled=True)
     executor = PlanExecutor(hass, coord)
     _run(executor.async_apply_current())
     coord.data = SBPData(plan=Plan(slots=[_slot(ACTION_EXPORT, power=1200.0)]), valid=True)

@@ -27,7 +27,9 @@ def _nordpool_attrs(tomorrow_valid: bool = True) -> dict:
         return [
             {
                 "start": _iso(day_no, h, m),
-                "end": _iso(day_no, h, m + 15) if m < 45 else _iso(day_no, h + 1 if h < 23 else h, 0 if h < 23 else 59),
+                "end": _iso(day_no, h, m + 15)
+                if m < 45
+                else _iso(day_no, h + 1 if h < 23 else h, 0 if h < 23 else 59),
                 "value": 0.10 + h * 0.001,
             }
             for h in range(24)
@@ -104,7 +106,11 @@ def test_nordpool_cents_unit_without_flag():
 def test_epex_eur_per_mwh():
     attrs = {
         "data": [
-            {"start_time": _iso(11, h), "end_time": _iso(11, h + 1) if h < 23 else _iso(12, 0), "price_eur_per_mwh": 100.0 + h}
+            {
+                "start_time": _iso(11, h),
+                "end_time": _iso(11, h + 1) if h < 23 else _iso(12, 0),
+                "price_eur_per_mwh": 100.0 + h,
+            }
             for h in range(24)
         ]
     }
@@ -117,9 +123,7 @@ def test_epex_eur_per_mwh():
 
 def test_epex_ct_per_kwh():
     attrs = {
-        "data": [
-            {"start_time": _iso(11, 12), "end_time": _iso(11, 13), "price_ct_per_kwh": 25.0}
-        ]
+        "data": [{"start_time": _iso(11, 12), "end_time": _iso(11, 13), "price_ct_per_kwh": 25.0}]
     }
     slots = detect_adapter(attrs).parse(attrs, NOW)
     assert slots[0].price == pytest.approx(0.25)
@@ -129,9 +133,7 @@ def test_epex_ct_per_kwh():
 
 
 def test_entsoe():
-    attrs = {
-        "prices": [{"time": _iso(11, h), "price": 0.05 + h * 0.01} for h in range(24)]
-    }
+    attrs = {"prices": [{"time": _iso(11, h), "price": 0.05 + h * 0.01} for h in range(24)]}
     adapter = detect_adapter(attrs)
     assert adapter.name == "entsoe"
     slots = adapter.parse(attrs, NOW)
@@ -146,7 +148,11 @@ def test_entsoe():
 def test_awattar():
     attrs = {
         "prices": [
-            {"start_time": _iso(11, h), "end_time": _iso(11, h + 1) if h < 23 else _iso(12, 0), "marketprice": 90.0}
+            {
+                "start_time": _iso(11, h),
+                "end_time": _iso(11, h + 1) if h < 23 else _iso(12, 0),
+                "marketprice": 90.0,
+            }
             for h in range(24)
         ]
     }
@@ -364,8 +370,7 @@ def test_entsoe_in_euros_is_left_alone():
         "prices": [{"time": _iso(11, h), "price": 0.28} for h in range(24)],
     }
     assert all(
-        slot.price == pytest.approx(0.28)
-        for slot in detect_adapter(attrs).parse(attrs, NOW)
+        slot.price == pytest.approx(0.28) for slot in detect_adapter(attrs).parse(attrs, NOW)
     )
 
 
@@ -373,6 +378,5 @@ def test_entsoe_without_a_unit_is_left_alone():
     """The integration's own default is EUR/kWh and carries no unit hint."""
     attrs = {"prices": [{"time": _iso(11, h), "price": 0.28} for h in range(24)]}
     assert all(
-        slot.price == pytest.approx(0.28)
-        for slot in detect_adapter(attrs).parse(attrs, NOW)
+        slot.price == pytest.approx(0.28) for slot in detect_adapter(attrs).parse(attrs, NOW)
     )

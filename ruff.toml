@@ -36,6 +36,13 @@ ignore = [
 # Adapters are imported at the bottom to break an import cycle.
 "custom_components/smart_battery_pilot/price_adapters/base.py" = ["E402"]
 
+[format]
+# Ruff formats Python blocks inside Markdown too, and the docs are full of
+# illustrative pseudo-Python: a REST path in a ```python fence becomes
+# `GET / api / states / ...` because the formatter parses the slashes as
+# division, and `true/false` goes the same way. Prose is hand-formatted here.
+exclude = ["*.md"]
+
 [lint.isort]
 force-sort-within-sections = true
 known-first-party = ["smart_battery_pilot"]

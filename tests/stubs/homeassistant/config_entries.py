@@ -62,9 +62,7 @@ class ConfigFlow(_FlowBase):
 
     async def async_set_unique_id(self, unique_id, *, raise_on_progress=True):
         self.unique_id = unique_id
-        return next(
-            (e for e in self._configured_entries() if e.unique_id == unique_id), None
-        )
+        return next((e for e in self._configured_entries() if e.unique_id == unique_id), None)
 
     def _abort_if_unique_id_configured(self):
         if any(e.unique_id == self.unique_id for e in self._configured_entries()):

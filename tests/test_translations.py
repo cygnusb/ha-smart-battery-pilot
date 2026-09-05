@@ -119,9 +119,9 @@ def test_every_schema_field_is_labelled_and_described(language, section, steps):
     for step, builder in steps.items():
         expected = _fields(builder)
         assert set(doc[step]["data"]) == expected, f"{language} {section}.{step} labels"
-        assert (
-            set(doc[step]["data_description"]) == expected
-        ), f"{language} {section}.{step} descriptions"
+        assert set(doc[step]["data_description"]) == expected, (
+            f"{language} {section}.{step} descriptions"
+        )
 
 
 @pytest.mark.parametrize("language", LANGUAGES)

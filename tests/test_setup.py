@@ -38,9 +38,7 @@ def test_unique_id_is_backfilled_for_pre_0_6_entries():
 
 
 def test_matching_unique_id_is_not_rewritten():
-    entry = ConfigEntry(
-        data={CONF_SOC_ENTITY: "sensor.byd_soc"}, unique_id="sensor.byd_soc"
-    )
+    entry = ConfigEntry(data={CONF_SOC_ENTITY: "sensor.byd_soc"}, unique_id="sensor.byd_soc")
     hass = _Hass([entry])
 
     _ensure_unique_id(hass, entry)
@@ -73,9 +71,7 @@ def test_unique_id_claimed_by_another_entry_is_left_alone():
         entry_id="other",
         unique_id="sensor.byd_soc",
     )
-    entry = ConfigEntry(
-        data={CONF_SOC_ENTITY: "sensor.byd_soc"}, unique_id="sensor.stale"
-    )
+    entry = ConfigEntry(data={CONF_SOC_ENTITY: "sensor.byd_soc"}, unique_id="sensor.stale")
     hass = _Hass([other, entry])
 
     _ensure_unique_id(hass, entry)

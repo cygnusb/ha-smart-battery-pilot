@@ -295,17 +295,13 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             efficiency=float(self.conf(CONF_EFFICIENCY, DEFAULT_EFFICIENCY)),
         )
         config = OptimizerConfig(
-            spread_threshold=float(
-                self.conf(CONF_SPREAD_THRESHOLD, DEFAULT_SPREAD_THRESHOLD)
-            ),
+            spread_threshold=float(self.conf(CONF_SPREAD_THRESHOLD, DEFAULT_SPREAD_THRESHOLD)),
             discharge_mode=self.conf(CONF_DISCHARGE_MODE, DEFAULT_DISCHARGE_MODE),
             feed_in_tariff=float(self.conf(CONF_FEED_IN_TARIFF, DEFAULT_FEED_IN_TARIFF)),
             price_offset=float(self.conf(CONF_PRICE_OFFSET, DEFAULT_PRICE_OFFSET)),
         )
 
-        plan = await self.hass.async_add_executor_job(
-            build_plan, input_slots, battery, config
-        )
+        plan = await self.hass.async_add_executor_job(build_plan, input_slots, battery, config)
         if "export_spread_unreachable" in plan.warnings:
             _LOGGER.warning(
                 "Export mode is on but no slot's sell price beats the spread "
@@ -380,10 +376,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         offset = float(self.conf(CONF_PRICE_OFFSET, DEFAULT_PRICE_OFFSET))
         slots = adapter.parse(attrs, now)
         if offset:
-            slots = [
-                PriceSlot(start=s.start, end=s.end, price=s.price + offset)
-                for s in slots
-            ]
+            slots = [PriceSlot(start=s.start, end=s.end, price=s.price + offset) for s in slots]
         self._reject_implausible_prices(slots, entity_id, adapter.name)
         return slots
 
@@ -498,9 +491,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             return
 
         require_temp = bool(self.conf(CONF_HAS_HEAT_PUMP, False))
-        await self.hass.async_add_executor_job(
-            self.forecaster.train, samples, require_temp
-        )
+        await self.hass.async_add_executor_job(self.forecaster.train, samples, require_temp)
         self._last_training = now
         await self.async_persist()
         _LOGGER.debug(
@@ -663,11 +654,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         start_ts, end_ts = start.timestamp(), end.timestamp()
         charge_w = discharge_w = total = 0.0
         for i, (ts, price, action) in enumerate(self._conditions):
-            nxt = (
-                self._conditions[i + 1][0]
-                if i + 1 < len(self._conditions)
-                else float("inf")
-            )
+            nxt = self._conditions[i + 1][0] if i + 1 < len(self._conditions) else float("inf")
             span = min(nxt, end_ts) - max(ts, start_ts)
             if span <= 0:
                 continue
@@ -737,9 +724,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         self._acc_discharge_kwh += delta_discharge
         interval_start = self._prev_savings_at or now
         unit = self._interval_prices(interval_start, now)
-        self._acc_savings_eur += (
-            delta_discharge * unit.discharge - delta_charge * unit.charge
-        )
+        self._acc_savings_eur += delta_discharge * unit.discharge - delta_charge * unit.charge
         self._prev_savings_at = now
         self._trim_conditions(now.timestamp())
 

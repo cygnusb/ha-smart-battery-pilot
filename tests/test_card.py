@@ -96,10 +96,7 @@ def renders() -> dict[str, int]:
     node = shutil.which("node")
     if node is None:
         pytest.skip("node is not installed")
-    script = (
-        f"const CARD_SOURCE = {json.dumps(CARD.read_text(encoding='utf-8'))};\n"
-        + HARNESS
-    )
+    script = f"const CARD_SOURCE = {json.dumps(CARD.read_text(encoding='utf-8'))};\n" + HARNESS
     result = subprocess.run(
         [node, "--input-type=module", "-e", script],
         capture_output=True,

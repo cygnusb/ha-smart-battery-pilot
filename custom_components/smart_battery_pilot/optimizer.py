@@ -111,9 +111,7 @@ class Plan:
     warnings: list[str] = field(default_factory=list)
 
 
-def build_plan(
-    slots: list[InputSlot], battery: BatteryState, config: OptimizerConfig
-) -> Plan:
+def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerConfig) -> Plan:
     """Compute the charge/discharge plan over the given horizon."""
     if not slots or battery.capacity_kwh <= 0:
         return Plan()
@@ -210,9 +208,7 @@ def build_plan(
         # 2. Pair with cheap earlier grid-charge slots.
         remaining = want_stored - assigned
         if remaining > 1e-9:
-            sell_price = (
-                _export_sell_price(d) if store is export_stored else prices[d]
-            )
+            sell_price = _export_sell_price(d) if store is export_stored else prices[d]
             candidates = sorted(
                 (
                     i
@@ -327,9 +323,7 @@ def build_plan(
                 pv_kwh=slot.pv_kwh,
                 power_w=round(charge_power, 1),
                 discharge_kwh=round(delivered, 3),
-                soc_forecast=round(
-                    battery.min_soc + levels[i] / capacity * 100.0, 1
-                ),
+                soc_forecast=round(battery.min_soc + levels[i] / capacity * 100.0, 1),
             )
         )
 
@@ -358,9 +352,7 @@ def build_plan(
         # running. Should not happen - but a wrong plan costs the user money,
         # while a needless fallback only costs an optimization.
         warnings.append("plan_worse_than_baseline")
-        return _auto_plan(
-            slots, prices, baseline_delivered, baseline_levels, battery, warnings
-        )
+        return _auto_plan(slots, prices, baseline_delivered, baseline_levels, battery, warnings)
 
     plan.estimated_savings_eur = round(savings, 2)
     return plan
@@ -387,9 +379,7 @@ def _auto_plan(
                 net_demand_kwh=slot.net_demand_kwh,
                 pv_kwh=slot.pv_kwh,
                 discharge_kwh=round(delivered[i], 3),
-                soc_forecast=round(
-                    battery.min_soc + levels[i] / battery.capacity_kwh * 100.0, 1
-                ),
+                soc_forecast=round(battery.min_soc + levels[i] / battery.capacity_kwh * 100.0, 1),
             )
         )
     return plan

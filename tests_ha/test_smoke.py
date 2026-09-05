@@ -66,9 +66,7 @@ async def _setup(hass: HomeAssistant) -> MockConfigEntry:
     )
     hass.states.async_set("sensor.battery_soc", "55", {"unit_of_measurement": "%"})
 
-    entry = MockConfigEntry(
-        domain=DOMAIN, data=ENTRY_DATA, unique_id="sensor.battery_soc"
-    )
+    entry = MockConfigEntry(domain=DOMAIN, data=ENTRY_DATA, unique_id="sensor.battery_soc")
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
@@ -83,11 +81,7 @@ async def test_the_integration_sets_up_and_creates_its_entities(
     assert entry.state is entry.state.LOADED
     assert sbp_hass.services.has_service(DOMAIN, SERVICE_REPLAN)
 
-    created = [
-        eid
-        for eid in sbp_hass.states.async_entity_ids()
-        if "smart_battery_pilot" in eid
-    ]
+    created = [eid for eid in sbp_hass.states.async_entity_ids() if "smart_battery_pilot" in eid]
     # Ten sensors, two switches, one binary sensor.
     assert len(created) == 13, created
 

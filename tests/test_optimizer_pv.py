@@ -29,9 +29,7 @@ BATTERY = BatteryState(
     max_discharge_power_w=6000,
     efficiency=90,
 )
-CONFIG = OptimizerConfig(
-    spread_threshold=0.20, discharge_mode=DISCHARGE_MODE_SELF_CONSUMPTION
-)
+CONFIG = OptimizerConfig(spread_threshold=0.20, discharge_mode=DISCHARGE_MODE_SELF_CONSUMPTION)
 
 
 def summer_slots() -> list[InputSlot]:
@@ -126,7 +124,9 @@ def test_pv_surplus_and_grid_share_charge_power():
             pv_charge_w = max(0.0, -slot.net_demand_kwh) * 1000.0
             assert slot.power_w + pv_charge_w <= battery.max_charge_power_w + 1
         prev_soc = slot.soc_forecast
-    assert saw_midday_charge, "negative-price surplus slots should still grid-charge leftover headroom"
+    assert saw_midday_charge, (
+        "negative-price surplus slots should still grid-charge leftover headroom"
+    )
 
 
 def test_winter_unchanged_idle_still_works():
@@ -143,8 +143,13 @@ def test_winter_unchanged_idle_still_works():
             )
         )
     battery = BatteryState(
-        capacity_kwh=12.8, soc=45.0, min_soc=10.0, max_soc=95.0,
-        max_charge_power_w=6000, max_discharge_power_w=6000, efficiency=90,
+        capacity_kwh=12.8,
+        soc=45.0,
+        min_soc=10.0,
+        max_soc=95.0,
+        max_charge_power_w=6000,
+        max_discharge_power_w=6000,
+        efficiency=90,
     )
     plan = build_plan(slots, battery, CONFIG)
     actions = [s.action for s in plan.slots]
@@ -156,12 +161,56 @@ def test_winter_unchanged_idle_still_works():
 # energy back for the morning peak used to plan a *worse* day than doing
 # nothing: the reservation filled capacity that midday PV then curtailed.
 CURTAILMENT_PRICES = [
-    0.24, 0.22, 0.21, 0.21, 0.22, 0.25, 0.30, 0.34, 0.31, 0.22, 0.14, 0.09,
-    0.06, 0.05, 0.06, 0.10, 0.16, 0.24, 0.34, 0.42, 0.40, 0.33, 0.27, 0.25,
+    0.24,
+    0.22,
+    0.21,
+    0.21,
+    0.22,
+    0.25,
+    0.30,
+    0.34,
+    0.31,
+    0.22,
+    0.14,
+    0.09,
+    0.06,
+    0.05,
+    0.06,
+    0.10,
+    0.16,
+    0.24,
+    0.34,
+    0.42,
+    0.40,
+    0.33,
+    0.27,
+    0.25,
 ]
 CURTAILMENT_NET = [
-    0.40, 0.35, 0.35, 0.35, 0.40, 0.60, 1.60, 1.60, 0.50, -1.50, -2.60, -3.20,
-    -3.30, -3.00, -2.30, -1.40, -0.40, 0.50, 1.60, 2.00, 1.80, 1.40, 0.90, 0.50,
+    0.40,
+    0.35,
+    0.35,
+    0.35,
+    0.40,
+    0.60,
+    1.60,
+    1.60,
+    0.50,
+    -1.50,
+    -2.60,
+    -3.20,
+    -3.30,
+    -3.00,
+    -2.30,
+    -1.40,
+    -0.40,
+    0.50,
+    1.60,
+    2.00,
+    1.80,
+    1.40,
+    0.90,
+    0.50,
 ]
 
 
@@ -183,8 +232,13 @@ def curtailment_slots() -> list[InputSlot]:
 
 
 CURTAILMENT_BATTERY = BatteryState(
-    capacity_kwh=10.0, soc=60.0, min_soc=10.0, max_soc=95.0,
-    max_charge_power_w=5000, max_discharge_power_w=5000, efficiency=90,
+    capacity_kwh=10.0,
+    soc=60.0,
+    min_soc=10.0,
+    max_soc=95.0,
+    max_charge_power_w=5000,
+    max_discharge_power_w=5000,
+    efficiency=90,
 )
 CURTAILMENT_CONFIG = OptimizerConfig(
     spread_threshold=0.10,
@@ -204,9 +258,7 @@ def test_reservation_released_before_curtailed_pv():
     # It used to hold 1.02 kWh back over night for the morning peak, only for
     # the midday surplus to be curtailed instead - the battery ended the day
     # having delivered *less* to the house than an untouched inverter.
-    baseline = _self_consumption_delivered(
-        curtailment_slots(), CURTAILMENT_BATTERY
-    )
+    baseline = _self_consumption_delivered(curtailment_slots(), CURTAILMENT_BATTERY)
     assert plan.battery_discharge_kwh >= baseline - 1e-6, (
         f"plan delivers {plan.battery_discharge_kwh:.2f} kWh, "
         f"doing nothing delivers {baseline:.2f} kWh"
@@ -222,9 +274,7 @@ def test_reservation_released_before_curtailed_pv():
     assert all(s.discharge_kwh > 0 for s in plan.slots[18:23])
 
 
-def _self_consumption_delivered(
-    slots: list[InputSlot], battery: BatteryState
-) -> float:
+def _self_consumption_delivered(slots: list[InputSlot], battery: BatteryState) -> float:
     """kWh the battery hands the load with no planning at all (hourly slots)."""
     import math
 
@@ -262,9 +312,7 @@ def test_plan_never_worse_than_doing_nothing():
         )
         config = OptimizerConfig(
             spread_threshold=rng.choice([0.05, 0.10, 0.20]),
-            discharge_mode=rng.choice(
-                [DISCHARGE_MODE_SELF_CONSUMPTION, DISCHARGE_MODE_EXPORT]
-            ),
+            discharge_mode=rng.choice([DISCHARGE_MODE_SELF_CONSUMPTION, DISCHARGE_MODE_EXPORT]),
             feed_in_tariff=rng.choice([0.0, 0.08]),
         )
         slots = []

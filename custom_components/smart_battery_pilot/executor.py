@@ -72,8 +72,7 @@ class PlanExecutor:
             if self._last_applied in (None, ACTION_AUTO):
                 return
             _LOGGER.warning(
-                "Setup incomplete while the battery is in '%s' mode - "
-                "restoring auto mode",
+                "Setup incomplete while the battery is in '%s' mode - restoring auto mode",
                 self._last_applied,
             )
             if await self._call_script(ACTION_AUTO, 0.0):
@@ -132,9 +131,7 @@ class PlanExecutor:
         if not self._plan_is_live():
             return None
         now = dt_util.now()
-        return next(
-            (slot for slot in self.coordinator.data.plan.slots if slot.covers(now)), None
-        )
+        return next((slot for slot in self.coordinator.data.plan.slots if slot.covers(now)), None)
 
     def next_slot(self) -> PlanSlot | None:
         if not self._plan_is_live():
@@ -249,11 +246,7 @@ class PlanExecutor:
         _LOGGER.info(
             "Applying action '%s' via script.%s (power_w=%.0f)", action, object_id, power_w
         )
-        payload = (
-            {"power_w": round(power_w)}
-            if action in (ACTION_CHARGE, ACTION_EXPORT)
-            else {}
-        )
+        payload = {"power_w": round(power_w)} if action in (ACTION_CHARGE, ACTION_EXPORT) else {}
         try:
             async with asyncio.timeout(SCRIPT_CALL_TIMEOUT_SECONDS):
                 await self.hass.services.async_call(
