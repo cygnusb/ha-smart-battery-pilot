@@ -1,0 +1,303 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Elektri hinna allikas",
+        "description": "Vali olem, mis pakub dünaamilist elektrihinna prognoosi. Nordpool, EPEX Spot, ENTSO-E, aWATTar ja tunnihindade loendid tuvastatakse automaatselt.",
+        "data": {
+          "price_entity": "Hinnaprognoosi olem",
+          "price_offset": "Hinnalisand (võrgutasud, maksud kWh kohta)",
+          "feed_in_tariff": "Müügihind (0 = turuhind; fikseeritud hind alla hinnavahemiku ei müü kunagi)"
+        },
+        "data_description": {
+          "price_entity": "Olem, mis avaldab elektri tunnihinnad atribuutide loendina (nt sensor.nordpool_kwh_de_eur_3_10_025).",
+          "price_offset": "Lisatakse igale turuhinnale. Katab tavaliselt võrgutasud, maksud ja müüja marginaali (nt 0,12 EUR/kWh). Positiivne = kallim.",
+          "feed_in_tariff": "Mida teenid iga võrku müüdud kWh eest. 0 = dünaamiline turuhind. Fikseeritud hind alla hinnavahemiku ei käivita kunagi müüki."
+        }
+      },
+      "battery": {
+        "title": "Aku parameetrid",
+        "description": "Kirjelda oma koduakut. Laetuse tase loetakse reaalajas valitud olemist.",
+        "data": {
+          "soc_entity": "Laetuse taseme olem (%)",
+          "capacity_kwh": "Kasutatav mahtuvus",
+          "max_charge_power_w": "Maksimaalne laadimisvõimsus",
+          "max_discharge_power_w": "Maksimaalne tühjenemisvõimsus",
+          "min_soc": "Minimaalne SOC",
+          "max_soc": "Maksimaalne SOC",
+          "efficiency": "Kasutegur (edasi-tagasi)",
+          "battery_charge_energy_entity": "Laetud energia olem (kWh, valikuline)",
+          "battery_discharge_energy_entity": "Tühjendatud energia olem (kWh, valikuline)"
+        },
+        "data_description": {
+          "soc_entity": "Andur, mis edastab praeguse laetuse taseme protsentides (0-100). Näide: sensor.byd_battery_box_premium_hv_state_of_charge.",
+          "capacity_kwh": "Aku kasutatav mahtuvus kWh, ilma reserv-SOC-ita. Näide BYD HVS 10 kohta: 10,2 kWh.",
+          "max_charge_power_w": "Maksimaalne võrgust võetav laadimisvõimsus vattides. Tavaliselt 3000-5000 W.",
+          "max_discharge_power_w": "Maksimaalne tühjenemisvõimsus vattides. Tavaliselt 3000-5000 W.",
+          "min_soc": "Laetuse taseme alampiir protsentides. Akut ei tühjendata kunagi sellest allapoole. Soovitatav: 10 %.",
+          "max_soc": "Laetuse taseme ülempiir protsentides. Akut ei laeta kunagi sellest kõrgemale. Soovitatav: 95 %.",
+          "efficiency": "Edasi-tagasi kasutegur protsentides: tagasi saadavad kWh jagatud sisse pandud kWh-ga, korda 100. Tavaliselt 85-95 %.",
+          "battery_charge_energy_entity": "Valikuline arvesti kokku laetud kWh jaoks (total_increasing). Koos võimaldavad mõlemad arvestid tegeliku kokkuhoiu andurid. Näide: sensor.battery_energy_charged.",
+          "battery_discharge_energy_entity": "Valikuline arvesti kokku tühjendatud kWh jaoks (total_increasing). Koos võimaldavad mõlemad arvestid tegeliku kokkuhoiu andurid. Näide: sensor.battery_energy_discharged."
+        }
+      },
+      "control": {
+        "title": "Aku juhtimise skriptid",
+        "description": "Smart Battery Pilot juhib sinu akut Home Assistanti skriptide kaudu. Loo oma inverterile üks skript iga tegevuse kohta (tootjapõhised näited on dokumentatsioonis). Laadimise ja müügi skriptid saavad muutuja `power_w`.",
+        "data": {
+          "script_charge": "Skript: sunnitud laadimine võrgust",
+          "script_idle": "Skript: blokeeri tühjenemine (idle)",
+          "script_auto": "Skript: tavaline automaatrežiim",
+          "script_export": "Skript: sunnitud tühjendamine võrku (valikuline)"
+        },
+        "data_description": {
+          "script_charge": "Kutsutakse, kui aku peab võrgust laadima. Saab muutuja power_w (laadimisvõimsus vattides).",
+          "script_idle": "Kutsutakse, kui tühjenemine tuleb blokeerida, et aku hoiaks energia kallima tunni jaoks.",
+          "script_auto": "Viib inverteri tagasi tavalisse omatarbimise režiimi.",
+          "script_export": "Valikuline: kutsutakse, kui energiat tuleb väga kõrgete hindadega võrku müüa. Saab muutuja power_w (tühjenemisvõimsus vattides)."
+        }
+      },
+      "consumption": {
+        "title": "Majapidamise tarbimine",
+        "description": "Vali andur, mis mõõdab maja kogutarbimist (võimsus W või energia kWh). Seda kasutatakse tarbimisprofiili õppimiseks ajaloost.",
+        "data": {
+          "consumption_entity": "Tarbimisandur",
+          "temperature_entity": "Välistemperatuuri andur (valikuline)",
+          "has_heat_pump": "Soojuspump olemas"
+        },
+        "data_description": {
+          "consumption_entity": "Majapidamise kogutarbimine W või kWh. Kasutatakse tarbimisprofiili treenimiseks.",
+          "temperature_entity": "Valikuline: parandab tarbimisprognoosi soojuspumbaga majapidamistes, sidudes selle välistemperatuuriga.",
+          "has_heat_pump": "Lülitab tarbimisprognoosis sisse küttevajaduse kohe, kui temperatuuriajalugu on olemas, ka puudulik."
+        }
+      },
+      "pv": {
+        "title": "Päikeseenergia prognoos (valikuline)",
+        "description": "Kui sul on päikesepaneelid, vali päevase toodangu prognoosi andurid (kWh). Oodatav päikeseenergia lahutatakse tarbimisprognoosist.",
+        "data": {
+          "pv_forecast_today": "Päikeseprognoos täna (kWh)",
+          "pv_forecast_tomorrow": "Päikeseprognoos homme (kWh)",
+          "pv_power_entity": "Praegune päikesevõimsus (valikuline)"
+        },
+        "data_description": {
+          "pv_forecast_today": "Tänase päikesetoodangu prognoos kWh (nt Open-Meteo Solar Forecast või Solcast).",
+          "pv_forecast_tomorrow": "Homse päikesetoodangu prognoos kWh - parandab öist planeerimist märgatavalt.",
+          "pv_power_entity": "Praegune päikesevõimsus. Kuvatakse reaalajas väärtusena Lovelace'i kaardil."
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "Olemit ei leitud.",
+      "unsupported_price_format": "Selle olemi hinnavormingut ei tuntud ära. Toetatud integratsioonid leiad dokumentatsioonist.",
+      "no_future_prices": "Olem ei sisalda tulevasi hindu.",
+      "soc_range_invalid": "Minimaalne SOC peab olema väiksem kui maksimaalne SOC.",
+      "export_spread_unreachable": "Müügirežiim ei saa nende väärtustega midagi teha: müügihind on minimaalse hinnavahemiku tasemel või allpool, seega ei kvalifitseeru ükski tund kunagi. Tõsta müügihinda, langeta vahemikku või määra müügihinnaks 0, et müüa turuhinnaga."
+    },
+    "abort": {
+      "already_configured": "Juba seadistatud."
+    }
+  },
+  "options": {
+    "step": {
+      "prices": {
+        "title": "Elektri hinna allikas",
+        "data": {
+          "price_entity": "Hinnaprognoosi olem",
+          "price_offset": "Hinnalisand (võrgutasud, maksud kWh kohta)",
+          "feed_in_tariff": "Müügihind (0 = turuhind; fikseeritud hind alla hinnavahemiku ei müü kunagi)"
+        },
+        "data_description": {
+          "price_entity": "Olem, mis avaldab elektri tunnihinnad atribuutide loendina (nt sensor.nordpool_kwh_de_eur_3_10_025).",
+          "price_offset": "Lisatakse igale turuhinnale. Katab tavaliselt võrgutasud, maksud ja müüja marginaali (nt 0,12 EUR/kWh). Positiivne = kallim.",
+          "feed_in_tariff": "Mida teenid iga võrku müüdud kWh eest. 0 = dünaamiline turuhind. Fikseeritud hind alla hinnavahemiku ei käivita kunagi müüki."
+        }
+      },
+      "battery": {
+        "title": "Aku parameetrid",
+        "data": {
+          "soc_entity": "Laetuse taseme olem (%)",
+          "capacity_kwh": "Kasutatav mahtuvus",
+          "max_charge_power_w": "Maksimaalne laadimisvõimsus",
+          "max_discharge_power_w": "Maksimaalne tühjenemisvõimsus",
+          "min_soc": "Minimaalne SOC",
+          "max_soc": "Maksimaalne SOC",
+          "efficiency": "Kasutegur (edasi-tagasi)",
+          "battery_charge_energy_entity": "Laetud energia olem (kWh, valikuline)",
+          "battery_discharge_energy_entity": "Tühjendatud energia olem (kWh, valikuline)"
+        },
+        "data_description": {
+          "soc_entity": "Andur, mis edastab praeguse laetuse taseme protsentides (0-100). Näide: sensor.byd_battery_box_premium_hv_state_of_charge.",
+          "capacity_kwh": "Aku kasutatav mahtuvus kWh, ilma reserv-SOC-ita. Näide BYD HVS 10 kohta: 10,2 kWh.",
+          "max_charge_power_w": "Maksimaalne võrgust võetav laadimisvõimsus vattides. Tavaliselt 3000-5000 W.",
+          "max_discharge_power_w": "Maksimaalne tühjenemisvõimsus vattides. Tavaliselt 3000-5000 W.",
+          "min_soc": "Laetuse taseme alampiir protsentides. Akut ei tühjendata kunagi sellest allapoole. Soovitatav: 10 %.",
+          "max_soc": "Laetuse taseme ülempiir protsentides. Akut ei laeta kunagi sellest kõrgemale. Soovitatav: 95 %.",
+          "efficiency": "Edasi-tagasi kasutegur protsentides: tagasi saadavad kWh jagatud sisse pandud kWh-ga, korda 100. Tavaliselt 85-95 %.",
+          "battery_charge_energy_entity": "Valikuline arvesti kokku laetud kWh jaoks (total_increasing). Koos võimaldavad mõlemad arvestid tegeliku kokkuhoiu andurid. Näide: sensor.battery_energy_charged.",
+          "battery_discharge_energy_entity": "Valikuline arvesti kokku tühjendatud kWh jaoks (total_increasing). Koos võimaldavad mõlemad arvestid tegeliku kokkuhoiu andurid. Näide: sensor.battery_energy_discharged."
+        }
+      },
+      "control": {
+        "title": "Aku juhtimise skriptid",
+        "data": {
+          "script_charge": "Skript: sunnitud laadimine võrgust",
+          "script_idle": "Skript: blokeeri tühjenemine (idle)",
+          "script_auto": "Skript: tavaline automaatrežiim",
+          "script_export": "Skript: sunnitud tühjendamine võrku (valikuline)"
+        },
+        "data_description": {
+          "script_charge": "Kutsutakse, kui aku peab võrgust laadima. Saab muutuja power_w (laadimisvõimsus vattides).",
+          "script_idle": "Kutsutakse, kui tühjenemine tuleb blokeerida, et aku hoiaks energia kallima tunni jaoks.",
+          "script_auto": "Viib inverteri tagasi tavalisse omatarbimise režiimi.",
+          "script_export": "Valikuline: kutsutakse, kui energiat tuleb väga kõrgete hindadega võrku müüa. Saab muutuja power_w (tühjenemisvõimsus vattides)."
+        }
+      },
+      "consumption": {
+        "title": "Majapidamise tarbimine",
+        "data": {
+          "consumption_entity": "Tarbimisandur",
+          "temperature_entity": "Välistemperatuuri andur (valikuline)",
+          "has_heat_pump": "Soojuspump olemas"
+        },
+        "data_description": {
+          "consumption_entity": "Majapidamise kogutarbimine W või kWh. Kasutatakse tarbimisprofiili treenimiseks.",
+          "temperature_entity": "Valikuline: parandab tarbimisprognoosi soojuspumbaga majapidamistes, sidudes selle välistemperatuuriga.",
+          "has_heat_pump": "Lülitab tarbimisprognoosis sisse küttevajaduse kohe, kui temperatuuriajalugu on olemas, ka puudulik."
+        }
+      },
+      "pv": {
+        "title": "Päikeseenergia prognoos (valikuline)",
+        "data": {
+          "pv_forecast_today": "Päikeseprognoos täna (kWh)",
+          "pv_forecast_tomorrow": "Päikeseprognoos homme (kWh)",
+          "pv_power_entity": "Praegune päikesevõimsus (valikuline)"
+        },
+        "data_description": {
+          "pv_forecast_today": "Tänase päikesetoodangu prognoos kWh (nt Open-Meteo Solar Forecast või Solcast).",
+          "pv_forecast_tomorrow": "Homse päikesetoodangu prognoos kWh - parandab öist planeerimist märgatavalt.",
+          "pv_power_entity": "Praegune päikesevõimsus. Kuvatakse reaalajas väärtusena Lovelace'i kaardil."
+        }
+      },
+      "tuning": {
+        "title": "Smart Battery Piloti valikud",
+        "data": {
+          "spread_threshold": "Minimaalne hinnavahe (laadimine vs. tühjendamine)",
+          "discharge_mode": "Tühjendamise režiim",
+          "training_days": "Tarbimise treenimiseks kasutatavad ajaloopäevad"
+        },
+        "data_description": {
+          "spread_threshold": "Minimaalne hinnavahe laadimise ja tühjendamise vahel, EUR/kWh. Sellest allpool ei kata arbitraaž muundamiskadusid. Soovitatav: 0,10-0,25 EUR/kWh.",
+          "discharge_mode": "Ainult omatarbimine: aku katab sinu enda vajaduse. Omatarbimine + müük: müüb väga kõrgete hindadega ka võrku (vajab müügiskripti).",
+          "training_days": "Tarbimisprofiili treenimiseks kasutatavate ajaloopäevade arv. Rohkem = stabiilsem, kuid järgib harjumuste muutust aeglasemalt. Soovitatav: 30-60 päeva."
+        }
+      },
+      "init": {
+        "title": "Smart Battery Pilot",
+        "menu_options": {
+          "tuning": "Optimeerija häälestus (hinnavahe, režiim, treenimine)",
+          "prices": "Hinnaallikas & lisandid",
+          "battery": "Aku parameetrid",
+          "control": "Juhtimisskriptid",
+          "consumption": "Tarbimine & temperatuur",
+          "pv": "Päikeseenergia prognoos",
+          "apply": "💾 Salvesta & sulge"
+        },
+        "description": "Allolevate jaotiste muudatused kogutakse kokku ja salvestatakse alles nupuga „Salvesta & sulge”."
+      }
+    },
+    "error": {
+      "entity_not_found": "Olemit ei leitud.",
+      "unsupported_price_format": "Selle olemi hinnavormingut ei tuntud ära. Toetatud integratsioonid leiad dokumentatsioonist.",
+      "no_future_prices": "Olem ei sisalda tulevasi hindu.",
+      "soc_range_invalid": "Minimaalne SOC peab olema väiksem kui maksimaalne SOC.",
+      "export_spread_unreachable": "Müügirežiim ei saa nende väärtustega midagi teha: müügihind on minimaalse hinnavahemiku tasemel või allpool, seega ei kvalifitseeru ükski tund kunagi. Tõsta müügihinda, langeta vahemikku või määra müügihinnaks 0, et müüa turuhinnaga."
+    }
+  },
+  "selector": {
+    "discharge_mode": {
+      "options": {
+        "self_consumption": "Ainult omatarbimine",
+        "export": "Omatarbimine + müük võrku tipphindadega"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "current_action": {
+        "name": "Praegune tegevus",
+        "state": {
+          "charge": "Laadimine",
+          "auto": "Auto",
+          "idle": "Blokeeritud",
+          "export": "Müük",
+          "no_plan": "Plaan puudub"
+        }
+      },
+      "next_action": {
+        "name": "Järgmine tegevus",
+        "state": {
+          "charge": "Laadimine",
+          "auto": "Auto",
+          "idle": "Blokeeritud",
+          "export": "Müük",
+          "no_change": "Muutust pole"
+        }
+      },
+      "current_price": {
+        "name": "Praegune elektri hind"
+      },
+      "charge_plan": {
+        "name": "Aktiivse plaani tegevused"
+      },
+      "plan_status": {
+        "name": "Plaani olek",
+        "state": {
+          "ok": "OK",
+          "no_price_data": "Hinnaandmed puuduvad",
+          "no_soc": "Laetuse tase puudub",
+          "no_price_adapter": "Tundmatu hinnavorming",
+          "implausible_prices": "Ebausutavad hinnad",
+          "error": "Viga"
+        }
+      },
+      "estimated_savings": {
+        "name": "Hinnanguline kokkuhoid"
+      },
+      "consumption_forecast": {
+        "name": "Tarbimisprognoos 24 h"
+      },
+      "configuration": {
+        "name": "Seadistus",
+        "state": {
+          "active": "Aktiivne",
+          "inactive": "Mitteaktiivne"
+        }
+      },
+      "actual_savings_eur": {
+        "name": "Tegelik kokkuhoid"
+      },
+      "actual_savings_kwh": {
+        "name": "Tegelik energiavõit"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Sisse lülitatud"
+      },
+      "dry_run": {
+        "name": "Testkäivitus"
+      }
+    },
+    "binary_sensor": {
+      "plan_problem": {
+        "name": "Plaani probleem"
+      }
+    }
+  },
+  "services": {
+    "replan": {
+      "name": "Planeeri uuesti",
+      "description": "Arvuta laadimisplaan kohe uuesti."
+    }
+  }
+}

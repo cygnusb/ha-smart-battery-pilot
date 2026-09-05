@@ -1,0 +1,303 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Sähkön hintalähde",
+        "description": "Valitse entiteetti, joka tarjoaa dynaamisen sähkön hintaennusteen. Nordpool, EPEX Spot, ENTSO-E, aWATTar ja tuntihintalistat tunnistetaan automaattisesti.",
+        "data": {
+          "price_entity": "Hintaennusteen entiteetti",
+          "price_offset": "Hinnan lisä (siirtomaksut, verot per kWh)",
+          "feed_in_tariff": "Syöttötariffi (0 = markkinahinta; kiinteä tariffi spreadin alapuolella ei koskaan myy)"
+        },
+        "data_description": {
+          "price_entity": "Entiteetti, joka julkaisee sähkön tuntihinnat attribuuttilistana (esim. sensor.nordpool_kwh_de_eur_3_10_025).",
+          "price_offset": "Lisätään jokaiseen markkinahintaan. Kattaa yleensä siirtomaksut, verot ja myyjän katteen (esim. 0,12 EUR/kWh). Positiivinen = kalliimpi.",
+          "feed_in_tariff": "Mitä ansaitset jokaisesta verkkoon myydystä kWh:sta. 0 = dynaaminen markkinahinta. Kiinteä hinta spreadin alapuolella ei koskaan laukaise myyntiä."
+        }
+      },
+      "battery": {
+        "title": "Akun parametrit",
+        "description": "Kuvaile kotiakkuasi. Varaustila luetaan reaaliajassa valitusta entiteetistä.",
+        "data": {
+          "soc_entity": "Varaustilan entiteetti (%)",
+          "capacity_kwh": "Käytettävä kapasiteetti",
+          "max_charge_power_w": "Suurin latausteho",
+          "max_discharge_power_w": "Suurin purkuteho",
+          "min_soc": "Pienin SOC",
+          "max_soc": "Suurin SOC",
+          "efficiency": "Hyötysuhde (edestakainen)",
+          "battery_charge_energy_entity": "Ladatun energian entiteetti (kWh, valinnainen)",
+          "battery_discharge_energy_entity": "Puretun energian entiteetti (kWh, valinnainen)"
+        },
+        "data_description": {
+          "soc_entity": "Anturi, joka raportoi nykyisen varaustilan prosentteina (0-100). Esimerkki: sensor.byd_battery_box_premium_hv_state_of_charge.",
+          "capacity_kwh": "Akun käytettävä kapasiteetti kWh, ilman varaus-SOC:ia. Esimerkki BYD HVS 10:lle: 10,2 kWh.",
+          "max_charge_power_w": "Suurin verkosta otettava latausteho watteina. Tyypillisesti 3000-5000 W.",
+          "max_discharge_power_w": "Suurin purkuteho watteina. Tyypillisesti 3000-5000 W.",
+          "min_soc": "Varaustilan alaraja prosentteina. Akkua ei koskaan pureta tämän alle. Suositus: 10 %.",
+          "max_soc": "Varaustilan yläraja prosentteina. Akkua ei koskaan ladata tämän yli. Suositus: 95 %.",
+          "efficiency": "Edestakainen hyötysuhde prosentteina: takaisin saatavat kWh jaettuna sisään laitetuilla kWh:lla, kertaa 100. Tyypillisesti 85-95 %.",
+          "battery_charge_energy_entity": "Valinnainen mittari ladatuille kWh:lle yhteensä (total_increasing). Yhdessä molemmat mittarit ottavat käyttöön todellisen säästön anturit. Esimerkki: sensor.battery_energy_charged.",
+          "battery_discharge_energy_entity": "Valinnainen mittari puretuille kWh:lle yhteensä (total_increasing). Yhdessä molemmat mittarit ottavat käyttöön todellisen säästön anturit. Esimerkki: sensor.battery_energy_discharged."
+        }
+      },
+      "control": {
+        "title": "Akun ohjausskriptit",
+        "description": "Smart Battery Pilot ohjaa akkuasi Home Assistantin skripteillä. Luo invertterillesi yksi skripti kutakin toimintoa varten (valmistajakohtaiset esimerkit ovat dokumentaatiossa). Lataus- ja myyntiskriptit saavat muuttujan `power_w`.",
+        "data": {
+          "script_charge": "Skripti: pakotettu lataus verkosta",
+          "script_idle": "Skripti: estä purkaminen (idle)",
+          "script_auto": "Skripti: normaali automaattitila",
+          "script_export": "Skripti: pakotettu purku verkkoon (valinnainen)"
+        },
+        "data_description": {
+          "script_charge": "Kutsutaan, kun akun pitää latautua verkosta. Saa muuttujan power_w (latausteho watteina).",
+          "script_idle": "Kutsutaan, kun purkaminen pitää estää, jotta akku säästää energiansa kalliimpaan tuntiin.",
+          "script_auto": "Palauttaa invertterin normaaliin oman käytön tilaan.",
+          "script_export": "Valinnainen: kutsutaan, kun energiaa pitää myydä verkkoon erittäin korkeilla hinnoilla. Saa muuttujan power_w (purkuteho watteina)."
+        }
+      },
+      "consumption": {
+        "title": "Kotitalouden kulutus",
+        "description": "Valitse anturi, joka mittaa talon kokonaiskulutusta (teho W tai energia kWh). Sitä käytetään kulutusprofiilin oppimiseen historiasta.",
+        "data": {
+          "consumption_entity": "Kulutusanturi",
+          "temperature_entity": "Ulkolämpötila-anturi (valinnainen)",
+          "has_heat_pump": "Lämpöpumppu käytössä"
+        },
+        "data_description": {
+          "consumption_entity": "Kotitalouden kokonaiskulutus W tai kWh. Käytetään kulutusprofiilin kouluttamiseen.",
+          "temperature_entity": "Valinnainen: parantaa kulutusennustetta lämpöpumpputalouksissa korreloimalla ulkolämpötilan kanssa.",
+          "has_heat_pump": "Ottaa lämmitystarpeen mukaan kulutusennusteeseen heti, kun lämpötilahistoriaa on olemassa, myös puutteellista."
+        }
+      },
+      "pv": {
+        "title": "Aurinkoennuste (valinnainen)",
+        "description": "Jos sinulla on aurinkopaneelit, valitse päivittäisen tuotantoennusteen anturit (kWh). Odotettu aurinkotuotanto vähennetään kulutusennusteesta.",
+        "data": {
+          "pv_forecast_today": "Aurinkoennuste tänään (kWh)",
+          "pv_forecast_tomorrow": "Aurinkoennuste huomenna (kWh)",
+          "pv_power_entity": "Nykyinen aurinkoteho (valinnainen)"
+        },
+        "data_description": {
+          "pv_forecast_today": "Aurinkotuotannon ennuste tälle päivälle kWh (esim. Open-Meteo Solar Forecast tai Solcast).",
+          "pv_forecast_tomorrow": "Aurinkotuotannon ennuste huomiselle kWh - parantaa yön suunnittelua huomattavasti.",
+          "pv_power_entity": "Nykyinen aurinkoteho. Näytetään reaaliaikaisena arvona Lovelace-kortilla."
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "Entiteettiä ei löytynyt.",
+      "unsupported_price_format": "Tämän entiteetin hintamuotoa ei tunnistettu. Katso tuetut integraatiot dokumentaatiosta.",
+      "no_future_prices": "Entiteetti ei sisällä tulevia hintoja.",
+      "soc_range_invalid": "Pienimmän SOC:n on oltava suurinta SOC:ia pienempi.",
+      "export_spread_unreachable": "Myyntitila ei voi tehdä näillä arvoilla mitään: syöttötariffi on pienimmän hintaspreadin tasolla tai sen alle, joten yksikään tunti ei voi koskaan täyttää ehtoa. Nosta tariffia, laske spreadia, tai aseta tariffi arvoon 0 myydäksesi markkinahintaan."
+    },
+    "abort": {
+      "already_configured": "Jo määritetty."
+    }
+  },
+  "options": {
+    "step": {
+      "prices": {
+        "title": "Sähkön hintalähde",
+        "data": {
+          "price_entity": "Hintaennusteen entiteetti",
+          "price_offset": "Hinnan lisä (siirtomaksut, verot per kWh)",
+          "feed_in_tariff": "Syöttötariffi (0 = markkinahinta; kiinteä tariffi spreadin alapuolella ei koskaan myy)"
+        },
+        "data_description": {
+          "price_entity": "Entiteetti, joka julkaisee sähkön tuntihinnat attribuuttilistana (esim. sensor.nordpool_kwh_de_eur_3_10_025).",
+          "price_offset": "Lisätään jokaiseen markkinahintaan. Kattaa yleensä siirtomaksut, verot ja myyjän katteen (esim. 0,12 EUR/kWh). Positiivinen = kalliimpi.",
+          "feed_in_tariff": "Mitä ansaitset jokaisesta verkkoon myydystä kWh:sta. 0 = dynaaminen markkinahinta. Kiinteä hinta spreadin alapuolella ei koskaan laukaise myyntiä."
+        }
+      },
+      "battery": {
+        "title": "Akun parametrit",
+        "data": {
+          "soc_entity": "Varaustilan entiteetti (%)",
+          "capacity_kwh": "Käytettävä kapasiteetti",
+          "max_charge_power_w": "Suurin latausteho",
+          "max_discharge_power_w": "Suurin purkuteho",
+          "min_soc": "Pienin SOC",
+          "max_soc": "Suurin SOC",
+          "efficiency": "Hyötysuhde (edestakainen)",
+          "battery_charge_energy_entity": "Ladatun energian entiteetti (kWh, valinnainen)",
+          "battery_discharge_energy_entity": "Puretun energian entiteetti (kWh, valinnainen)"
+        },
+        "data_description": {
+          "soc_entity": "Anturi, joka raportoi nykyisen varaustilan prosentteina (0-100). Esimerkki: sensor.byd_battery_box_premium_hv_state_of_charge.",
+          "capacity_kwh": "Akun käytettävä kapasiteetti kWh, ilman varaus-SOC:ia. Esimerkki BYD HVS 10:lle: 10,2 kWh.",
+          "max_charge_power_w": "Suurin verkosta otettava latausteho watteina. Tyypillisesti 3000-5000 W.",
+          "max_discharge_power_w": "Suurin purkuteho watteina. Tyypillisesti 3000-5000 W.",
+          "min_soc": "Varaustilan alaraja prosentteina. Akkua ei koskaan pureta tämän alle. Suositus: 10 %.",
+          "max_soc": "Varaustilan yläraja prosentteina. Akkua ei koskaan ladata tämän yli. Suositus: 95 %.",
+          "efficiency": "Edestakainen hyötysuhde prosentteina: takaisin saatavat kWh jaettuna sisään laitetuilla kWh:lla, kertaa 100. Tyypillisesti 85-95 %.",
+          "battery_charge_energy_entity": "Valinnainen mittari ladatuille kWh:lle yhteensä (total_increasing). Yhdessä molemmat mittarit ottavat käyttöön todellisen säästön anturit. Esimerkki: sensor.battery_energy_charged.",
+          "battery_discharge_energy_entity": "Valinnainen mittari puretuille kWh:lle yhteensä (total_increasing). Yhdessä molemmat mittarit ottavat käyttöön todellisen säästön anturit. Esimerkki: sensor.battery_energy_discharged."
+        }
+      },
+      "control": {
+        "title": "Akun ohjausskriptit",
+        "data": {
+          "script_charge": "Skripti: pakotettu lataus verkosta",
+          "script_idle": "Skripti: estä purkaminen (idle)",
+          "script_auto": "Skripti: normaali automaattitila",
+          "script_export": "Skripti: pakotettu purku verkkoon (valinnainen)"
+        },
+        "data_description": {
+          "script_charge": "Kutsutaan, kun akun pitää latautua verkosta. Saa muuttujan power_w (latausteho watteina).",
+          "script_idle": "Kutsutaan, kun purkaminen pitää estää, jotta akku säästää energiansa kalliimpaan tuntiin.",
+          "script_auto": "Palauttaa invertterin normaaliin oman käytön tilaan.",
+          "script_export": "Valinnainen: kutsutaan, kun energiaa pitää myydä verkkoon erittäin korkeilla hinnoilla. Saa muuttujan power_w (purkuteho watteina)."
+        }
+      },
+      "consumption": {
+        "title": "Kotitalouden kulutus",
+        "data": {
+          "consumption_entity": "Kulutusanturi",
+          "temperature_entity": "Ulkolämpötila-anturi (valinnainen)",
+          "has_heat_pump": "Lämpöpumppu käytössä"
+        },
+        "data_description": {
+          "consumption_entity": "Kotitalouden kokonaiskulutus W tai kWh. Käytetään kulutusprofiilin kouluttamiseen.",
+          "temperature_entity": "Valinnainen: parantaa kulutusennustetta lämpöpumpputalouksissa korreloimalla ulkolämpötilan kanssa.",
+          "has_heat_pump": "Ottaa lämmitystarpeen mukaan kulutusennusteeseen heti, kun lämpötilahistoriaa on olemassa, myös puutteellista."
+        }
+      },
+      "pv": {
+        "title": "Aurinkoennuste (valinnainen)",
+        "data": {
+          "pv_forecast_today": "Aurinkoennuste tänään (kWh)",
+          "pv_forecast_tomorrow": "Aurinkoennuste huomenna (kWh)",
+          "pv_power_entity": "Nykyinen aurinkoteho (valinnainen)"
+        },
+        "data_description": {
+          "pv_forecast_today": "Aurinkotuotannon ennuste tälle päivälle kWh (esim. Open-Meteo Solar Forecast tai Solcast).",
+          "pv_forecast_tomorrow": "Aurinkotuotannon ennuste huomiselle kWh - parantaa yön suunnittelua huomattavasti.",
+          "pv_power_entity": "Nykyinen aurinkoteho. Näytetään reaaliaikaisena arvona Lovelace-kortilla."
+        }
+      },
+      "tuning": {
+        "title": "Smart Battery Pilotin asetukset",
+        "data": {
+          "spread_threshold": "Pienin hintaspread (lataus vs. purku)",
+          "discharge_mode": "Purkutila",
+          "training_days": "Kulutuksen opetukseen käytettävät historiapäivät"
+        },
+        "data_description": {
+          "spread_threshold": "Pienin hintaero latauksen ja purun välillä, EUR/kWh. Tämän alle arbitraasi ei kata muunnoshäviöitä. Suositus: 0,10-0,25 EUR/kWh.",
+          "discharge_mode": "Vain oma käyttö: akku kattaa oman tarpeesi. Oma käyttö + myynti: myy myös verkkoon erittäin korkeilla hinnoilla (vaatii myyntiskriptin).",
+          "training_days": "Historiapäivien määrä kulutusprofiilin kouluttamiseen. Enemmän = tasaisempi, mutta seuraa tottumusten muutosta hitaammin. Suositus: 30-60 päivää."
+        }
+      },
+      "init": {
+        "title": "Smart Battery Pilot",
+        "menu_options": {
+          "tuning": "Optimoijan hienosäätö (spread, tila, opetus)",
+          "prices": "Hintalähde & lisät",
+          "battery": "Akun parametrit",
+          "control": "Ohjausskriptit",
+          "consumption": "Kulutus & lämpötila",
+          "pv": "Aurinkoennuste",
+          "apply": "💾 Tallenna & sulje"
+        },
+        "description": "Alla olevien osioiden muutokset kerätään ja tallennetaan vasta painikkeella ”Tallenna & sulje”."
+      }
+    },
+    "error": {
+      "entity_not_found": "Entiteettiä ei löytynyt.",
+      "unsupported_price_format": "Tämän entiteetin hintamuotoa ei tunnistettu. Katso tuetut integraatiot dokumentaatiosta.",
+      "no_future_prices": "Entiteetti ei sisällä tulevia hintoja.",
+      "soc_range_invalid": "Pienimmän SOC:n on oltava suurinta SOC:ia pienempi.",
+      "export_spread_unreachable": "Myyntitila ei voi tehdä näillä arvoilla mitään: syöttötariffi on pienimmän hintaspreadin tasolla tai sen alle, joten yksikään tunti ei voi koskaan täyttää ehtoa. Nosta tariffia, laske spreadia, tai aseta tariffi arvoon 0 myydäksesi markkinahintaan."
+    }
+  },
+  "selector": {
+    "discharge_mode": {
+      "options": {
+        "self_consumption": "Vain oma käyttö",
+        "export": "Oma käyttö + myynti verkkoon huippuhinnoilla"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "current_action": {
+        "name": "Nykyinen toiminto",
+        "state": {
+          "charge": "Lataa",
+          "auto": "Auto",
+          "idle": "Estetty",
+          "export": "Myynti",
+          "no_plan": "Ei suunnitelmaa"
+        }
+      },
+      "next_action": {
+        "name": "Seuraava toiminto",
+        "state": {
+          "charge": "Lataa",
+          "auto": "Auto",
+          "idle": "Estetty",
+          "export": "Myynti",
+          "no_change": "Ei muutosta"
+        }
+      },
+      "current_price": {
+        "name": "Nykyinen sähkön hinta"
+      },
+      "charge_plan": {
+        "name": "Aktiivisen suunnitelman toiminnot"
+      },
+      "plan_status": {
+        "name": "Suunnitelman tila",
+        "state": {
+          "ok": "OK",
+          "no_price_data": "Ei hintatietoja",
+          "no_soc": "Ei varaustilaa",
+          "no_price_adapter": "Tuntematon hintamuoto",
+          "implausible_prices": "Epäuskottavat hinnat",
+          "error": "Virhe"
+        }
+      },
+      "estimated_savings": {
+        "name": "Arvioitu säästö"
+      },
+      "consumption_forecast": {
+        "name": "Kulutusennuste 24 h"
+      },
+      "configuration": {
+        "name": "Määritykset",
+        "state": {
+          "active": "Aktiivinen",
+          "inactive": "Ei aktiivinen"
+        }
+      },
+      "actual_savings_eur": {
+        "name": "Todellinen säästö"
+      },
+      "actual_savings_kwh": {
+        "name": "Todellinen energiahyöty"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Käytössä"
+      },
+      "dry_run": {
+        "name": "Testiajo"
+      }
+    },
+    "binary_sensor": {
+      "plan_problem": {
+        "name": "Suunnitelman ongelma"
+      }
+    }
+  },
+  "services": {
+    "replan": {
+      "name": "Suunnittele uudelleen",
+      "description": "Laske lataussuunnitelma heti uudelleen."
+    }
+  }
+}

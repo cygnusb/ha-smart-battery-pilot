@@ -1,0 +1,303 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Kilde til elpris",
+        "description": "Vælg entiteten, der leverer den dynamiske elprisprognose. Nordpool, EPEX Spot, ENTSO-E, aWATTar og timeprislister genkendes automatisk.",
+        "data": {
+          "price_entity": "Entitet med prisprognose",
+          "price_offset": "Pristillæg (nettarif, afgifter pr. kWh)",
+          "feed_in_tariff": "Afregningspris for salg (0 = markedspris; en fast pris under spreadet sælger aldrig)"
+        },
+        "data_description": {
+          "price_entity": "Entitet, der udstiller timepriser på el som en attributliste (f.eks. sensor.nordpool_kwh_de_eur_3_10_025).",
+          "price_offset": "Lægges til hver markedspris. Dækker typisk nettarif, afgifter og elhandlerens avance (f.eks. 0,12 pr. kWh i prissensorens valuta). Positivt = dyrere.",
+          "feed_in_tariff": "Hvad du får pr. kWh, der sælges til elnettet. 0 = variabel markedspris. En fast pris under spreadet udløser aldrig et salg."
+        }
+      },
+      "battery": {
+        "title": "Batteriparametre",
+        "description": "Beskriv dit hjemmebatteri. Ladetilstanden læses live fra den valgte entitet.",
+        "data": {
+          "soc_entity": "Entitet for ladetilstand (%)",
+          "capacity_kwh": "Brugbar kapacitet",
+          "max_charge_power_w": "Maksimal ladeeffekt",
+          "max_discharge_power_w": "Maksimal afladeeffekt",
+          "min_soc": "Mindste SOC",
+          "max_soc": "Største SOC",
+          "efficiency": "Virkningsgrad (frem og tilbage)",
+          "battery_charge_energy_entity": "Entitet for ladet energi (kWh, valgfri)",
+          "battery_discharge_energy_entity": "Entitet for afladet energi (kWh, valgfri)"
+        },
+        "data_description": {
+          "soc_entity": "Sensor, der rapporterer den aktuelle ladetilstand i procent (0-100). Eksempel: sensor.byd_battery_box_premium_hv_state_of_charge.",
+          "capacity_kwh": "Brugbar batterikapacitet i kWh, uden reserve-SOC. Eksempel for en BYD HVS 10: 10,2 kWh.",
+          "max_charge_power_w": "Maksimal ladeeffekt trukket fra elnettet, i watt. Typisk 3000-5000 W.",
+          "max_discharge_power_w": "Maksimal afladeeffekt, i watt. Typisk 3000-5000 W.",
+          "min_soc": "Nedre grænse for ladetilstanden i procent. Batteriet aflades aldrig under dette. Anbefalet: 10 %.",
+          "max_soc": "Øvre grænse for ladetilstanden i procent. Batteriet lades aldrig over dette. Anbefalet: 95 %.",
+          "efficiency": "Virkningsgrad frem og tilbage i procent: kWh du får igen divideret med kWh du putter ind, gange 100. Typisk 85-95 %.",
+          "battery_charge_energy_entity": "Valgfri måler for samlet ladede kWh (total_increasing). Sammen aktiverer de to målere sensorerne for faktisk besparelse. Eksempel: sensor.battery_energy_charged.",
+          "battery_discharge_energy_entity": "Valgfri måler for samlet afladede kWh (total_increasing). Sammen aktiverer de to målere sensorerne for faktisk besparelse. Eksempel: sensor.battery_energy_discharged."
+        }
+      },
+      "control": {
+        "title": "Scripts til batteristyring",
+        "description": "Smart Battery Pilot styrer dit batteri via scripts i Home Assistant. Lav ét script pr. handling til din inverter (se dokumentationen for eksempler pr. producent). Scripts til ladning og salg modtager variablen `power_w`.",
+        "data": {
+          "script_charge": "Script: tvungen ladning fra elnettet",
+          "script_idle": "Script: bloker afladning (idle)",
+          "script_auto": "Script: normal automatisk tilstand",
+          "script_export": "Script: tvungen afladning til elnettet (valgfri)"
+        },
+        "data_description": {
+          "script_charge": "Kaldes, når batteriet skal lades fra elnettet. Modtager variablen power_w (ladeeffekt i watt).",
+          "script_idle": "Kaldes, når afladning skal blokeres, så batteriet gemmer sin energi til en dyrere time.",
+          "script_auto": "Sætter inverteren tilbage til normal tilstand for egetforbrug.",
+          "script_export": "Valgfri: kaldes, når energi skal sælges til elnettet ved meget høje priser. Modtager variablen power_w (afladeeffekt i watt)."
+        }
+      },
+      "consumption": {
+        "title": "Husstandens forbrug",
+        "description": "Vælg sensoren, der måler husets samlede forbrug (effekt i W eller energi i kWh). Den bruges til at lære din forbrugsprofil fra historikken.",
+        "data": {
+          "consumption_entity": "Forbrugssensor",
+          "temperature_entity": "Sensor for udetemperatur (valgfri)",
+          "has_heat_pump": "Varmepumpe til stede"
+        },
+        "data_description": {
+          "consumption_entity": "Husstandens samlede forbrug i W eller kWh. Bruges til at træne forbrugsprofilen.",
+          "temperature_entity": "Valgfri: forbedrer forbrugsprognosen for husstande med varmepumpe ved at korrelere med udetemperaturen.",
+          "has_heat_pump": "Aktiverer varmebehovet i forbrugsprognosen, så snart der findes temperaturhistorik, også en ufuldstændig."
+        }
+      },
+      "pv": {
+        "title": "Solcelleprognose (valgfri)",
+        "description": "Har du solceller, så vælg sensorer med daglig produktionsprognose (kWh). Forventet solproduktion trækkes fra forbrugsprognosen.",
+        "data": {
+          "pv_forecast_today": "Solcelleprognose i dag (kWh)",
+          "pv_forecast_tomorrow": "Solcelleprognose i morgen (kWh)",
+          "pv_power_entity": "Aktuel solcelleeffekt (valgfri)"
+        },
+        "data_description": {
+          "pv_forecast_today": "Prognose for solcelleproduktionen i dag i kWh (f.eks. Open-Meteo Solar Forecast eller Solcast).",
+          "pv_forecast_tomorrow": "Prognose for solcelleproduktionen i morgen i kWh - forbedrer natplanlægningen betydeligt.",
+          "pv_power_entity": "Aktuel solcelleeffekt. Vises som en liveværdi på Lovelace-kortet."
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "Entiteten blev ikke fundet.",
+      "unsupported_price_format": "Prisformatet for denne entitet blev ikke genkendt. Se dokumentationen for understøttede integrationer.",
+      "no_future_prices": "Entiteten indeholder ingen fremtidige priser.",
+      "soc_range_invalid": "Mindste SOC skal være under største SOC.",
+      "export_spread_unreachable": "Salgstilstanden kan ikke gøre noget med disse værdier: afregningsprisen ligger på eller under det mindste prisspread, så ingen time kan nogensinde kvalificere sig. Hæv afregningsprisen, sænk spreadet, eller sæt afregningsprisen til 0 for at sælge til markedspris."
+    },
+    "abort": {
+      "already_configured": "Allerede konfigureret."
+    }
+  },
+  "options": {
+    "step": {
+      "prices": {
+        "title": "Kilde til elpris",
+        "data": {
+          "price_entity": "Entitet med prisprognose",
+          "price_offset": "Pristillæg (nettarif, afgifter pr. kWh)",
+          "feed_in_tariff": "Afregningspris for salg (0 = markedspris; en fast pris under spreadet sælger aldrig)"
+        },
+        "data_description": {
+          "price_entity": "Entitet, der udstiller timepriser på el som en attributliste (f.eks. sensor.nordpool_kwh_de_eur_3_10_025).",
+          "price_offset": "Lægges til hver markedspris. Dækker typisk nettarif, afgifter og elhandlerens avance (f.eks. 0,12 pr. kWh i prissensorens valuta). Positivt = dyrere.",
+          "feed_in_tariff": "Hvad du får pr. kWh, der sælges til elnettet. 0 = variabel markedspris. En fast pris under spreadet udløser aldrig et salg."
+        }
+      },
+      "battery": {
+        "title": "Batteriparametre",
+        "data": {
+          "soc_entity": "Entitet for ladetilstand (%)",
+          "capacity_kwh": "Brugbar kapacitet",
+          "max_charge_power_w": "Maksimal ladeeffekt",
+          "max_discharge_power_w": "Maksimal afladeeffekt",
+          "min_soc": "Mindste SOC",
+          "max_soc": "Største SOC",
+          "efficiency": "Virkningsgrad (frem og tilbage)",
+          "battery_charge_energy_entity": "Entitet for ladet energi (kWh, valgfri)",
+          "battery_discharge_energy_entity": "Entitet for afladet energi (kWh, valgfri)"
+        },
+        "data_description": {
+          "soc_entity": "Sensor, der rapporterer den aktuelle ladetilstand i procent (0-100). Eksempel: sensor.byd_battery_box_premium_hv_state_of_charge.",
+          "capacity_kwh": "Brugbar batterikapacitet i kWh, uden reserve-SOC. Eksempel for en BYD HVS 10: 10,2 kWh.",
+          "max_charge_power_w": "Maksimal ladeeffekt trukket fra elnettet, i watt. Typisk 3000-5000 W.",
+          "max_discharge_power_w": "Maksimal afladeeffekt, i watt. Typisk 3000-5000 W.",
+          "min_soc": "Nedre grænse for ladetilstanden i procent. Batteriet aflades aldrig under dette. Anbefalet: 10 %.",
+          "max_soc": "Øvre grænse for ladetilstanden i procent. Batteriet lades aldrig over dette. Anbefalet: 95 %.",
+          "efficiency": "Virkningsgrad frem og tilbage i procent: kWh du får igen divideret med kWh du putter ind, gange 100. Typisk 85-95 %.",
+          "battery_charge_energy_entity": "Valgfri måler for samlet ladede kWh (total_increasing). Sammen aktiverer de to målere sensorerne for faktisk besparelse. Eksempel: sensor.battery_energy_charged.",
+          "battery_discharge_energy_entity": "Valgfri måler for samlet afladede kWh (total_increasing). Sammen aktiverer de to målere sensorerne for faktisk besparelse. Eksempel: sensor.battery_energy_discharged."
+        }
+      },
+      "control": {
+        "title": "Scripts til batteristyring",
+        "data": {
+          "script_charge": "Script: tvungen ladning fra elnettet",
+          "script_idle": "Script: bloker afladning (idle)",
+          "script_auto": "Script: normal automatisk tilstand",
+          "script_export": "Script: tvungen afladning til elnettet (valgfri)"
+        },
+        "data_description": {
+          "script_charge": "Kaldes, når batteriet skal lades fra elnettet. Modtager variablen power_w (ladeeffekt i watt).",
+          "script_idle": "Kaldes, når afladning skal blokeres, så batteriet gemmer sin energi til en dyrere time.",
+          "script_auto": "Sætter inverteren tilbage til normal tilstand for egetforbrug.",
+          "script_export": "Valgfri: kaldes, når energi skal sælges til elnettet ved meget høje priser. Modtager variablen power_w (afladeeffekt i watt)."
+        }
+      },
+      "consumption": {
+        "title": "Husstandens forbrug",
+        "data": {
+          "consumption_entity": "Forbrugssensor",
+          "temperature_entity": "Sensor for udetemperatur (valgfri)",
+          "has_heat_pump": "Varmepumpe til stede"
+        },
+        "data_description": {
+          "consumption_entity": "Husstandens samlede forbrug i W eller kWh. Bruges til at træne forbrugsprofilen.",
+          "temperature_entity": "Valgfri: forbedrer forbrugsprognosen for husstande med varmepumpe ved at korrelere med udetemperaturen.",
+          "has_heat_pump": "Aktiverer varmebehovet i forbrugsprognosen, så snart der findes temperaturhistorik, også en ufuldstændig."
+        }
+      },
+      "pv": {
+        "title": "Solcelleprognose (valgfri)",
+        "data": {
+          "pv_forecast_today": "Solcelleprognose i dag (kWh)",
+          "pv_forecast_tomorrow": "Solcelleprognose i morgen (kWh)",
+          "pv_power_entity": "Aktuel solcelleeffekt (valgfri)"
+        },
+        "data_description": {
+          "pv_forecast_today": "Prognose for solcelleproduktionen i dag i kWh (f.eks. Open-Meteo Solar Forecast eller Solcast).",
+          "pv_forecast_tomorrow": "Prognose for solcelleproduktionen i morgen i kWh - forbedrer natplanlægningen betydeligt.",
+          "pv_power_entity": "Aktuel solcelleeffekt. Vises som en liveværdi på Lovelace-kortet."
+        }
+      },
+      "tuning": {
+        "title": "Indstillinger for Smart Battery Pilot",
+        "data": {
+          "spread_threshold": "Mindste prisspread (ladning mod afladning)",
+          "discharge_mode": "Afladningstilstand",
+          "training_days": "Antal historikdage til forbrugstræning"
+        },
+        "data_description": {
+          "spread_threshold": "Mindste prisforskel mellem ladning og afladning, pr. kWh i prissensorens valuta. Derunder dækker handlen ikke konverteringstabet. Anbefalet: 0,10-0,25 EUR/kWh eller tilsvarende.",
+          "discharge_mode": "Kun egetforbrug: batteriet dækker dit eget behov. Egetforbrug + salg: sælger også til elnettet ved meget høje priser (kræver et salgsscript).",
+          "training_days": "Antal dages historik brugt til at træne forbrugsprofilen. Flere = mere stabil, men langsommere til at følge ændrede vaner. Anbefalet: 30-60 dage."
+        }
+      },
+      "init": {
+        "title": "Smart Battery Pilot",
+        "menu_options": {
+          "tuning": "Finjuster optimeringen (spread, tilstand, træning)",
+          "prices": "Priskilde & tillæg",
+          "battery": "Batteriparametre",
+          "control": "Styringsscripts",
+          "consumption": "Forbrug & temperatur",
+          "pv": "Solcelleprognose",
+          "apply": "💾 Gem & luk"
+        },
+        "description": "Ændringer i afsnittene nedenfor samles og gemmes først via »Gem & luk«."
+      }
+    },
+    "error": {
+      "entity_not_found": "Entiteten blev ikke fundet.",
+      "unsupported_price_format": "Prisformatet for denne entitet blev ikke genkendt. Se dokumentationen for understøttede integrationer.",
+      "no_future_prices": "Entiteten indeholder ingen fremtidige priser.",
+      "soc_range_invalid": "Mindste SOC skal være under største SOC.",
+      "export_spread_unreachable": "Salgstilstanden kan ikke gøre noget med disse værdier: afregningsprisen ligger på eller under det mindste prisspread, så ingen time kan nogensinde kvalificere sig. Hæv afregningsprisen, sænk spreadet, eller sæt afregningsprisen til 0 for at sælge til markedspris."
+    }
+  },
+  "selector": {
+    "discharge_mode": {
+      "options": {
+        "self_consumption": "Kun egetforbrug",
+        "export": "Egetforbrug + salg til elnettet ved spidspriser"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "current_action": {
+        "name": "Aktuel handling",
+        "state": {
+          "charge": "Lad",
+          "auto": "Auto",
+          "idle": "Blokeret",
+          "export": "Salg",
+          "no_plan": "Ingen plan"
+        }
+      },
+      "next_action": {
+        "name": "Næste handling",
+        "state": {
+          "charge": "Lad",
+          "auto": "Auto",
+          "idle": "Blokeret",
+          "export": "Salg",
+          "no_change": "Ingen ændring"
+        }
+      },
+      "current_price": {
+        "name": "Aktuel elpris"
+      },
+      "charge_plan": {
+        "name": "Handlinger i aktiv plan"
+      },
+      "plan_status": {
+        "name": "Planstatus",
+        "state": {
+          "ok": "OK",
+          "no_price_data": "Ingen prisdata",
+          "no_soc": "Ingen ladetilstand",
+          "no_price_adapter": "Ukendt prisformat",
+          "implausible_prices": "Usandsynlige priser",
+          "error": "Fejl"
+        }
+      },
+      "estimated_savings": {
+        "name": "Anslået besparelse"
+      },
+      "consumption_forecast": {
+        "name": "Forbrugsprognose 24 t"
+      },
+      "configuration": {
+        "name": "Konfiguration",
+        "state": {
+          "active": "Aktiv",
+          "inactive": "Inaktiv"
+        }
+      },
+      "actual_savings_eur": {
+        "name": "Faktisk besparelse"
+      },
+      "actual_savings_kwh": {
+        "name": "Faktisk energigevinst"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Aktiveret"
+      },
+      "dry_run": {
+        "name": "Testkørsel"
+      }
+    },
+    "binary_sensor": {
+      "plan_problem": {
+        "name": "Planproblem"
+      }
+    }
+  },
+  "services": {
+    "replan": {
+      "name": "Planlæg igen",
+      "description": "Genberegn ladeplanen med det samme."
+    }
+  }
+}

@@ -152,6 +152,33 @@ optimizer and renders the card against the result.
 See [docs/optimizer.md](docs/optimizer.md) for the algorithm, the savings
 estimate and worked examples.
 
+## Languages
+
+The setup flow, the entity states and the dashboard card are available in
+English, German, Dutch, Swedish, Norwegian (Bokmål), Danish, Finnish,
+Estonian, Latvian and Lithuanian — chosen to match where dynamic tariffs are
+common and the supported price sources reach (Nordpool, Tibber, aWATTar,
+EPEX Spot, ENTSO-E). Home Assistant falls back to English for any other
+language.
+
+Everything except English and German was translated without a native
+speaker's review, and the vocabulary here is full of inverter jargon —
+**corrections are very welcome.** A language lives in two places:
+
+* `custom_components/smart_battery_pilot/translations/<lang>.json` — setup
+  flow, entity names and states
+* the `TRANSLATIONS` table in
+  `custom_components/smart_battery_pilot/frontend/smart-battery-pilot-card.js`
+  — the dashboard card, which is plain JS and cannot read the files above
+
+`pytest tests/test_translations.py` holds every language to the same keys as
+English, checks that each form field is both labelled and explained, that no
+file was left in English, that the card covers the same languages, and that
+the card's `{entity}` / `{error}` / `{action}` / `{time}` placeholders
+survived. Adding a language is a matter of copying `en.json`, translating it,
+and adding a block to the card table — the tests will tell you what you
+missed.
+
 ## License
 
 MIT

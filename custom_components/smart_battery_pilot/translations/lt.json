@@ -1,0 +1,303 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Elektros kainos šaltinis",
+        "description": "Pasirink objektą, teikiantį dinaminę elektros kainos prognozę. Nordpool, EPEX Spot, ENTSO-E, aWATTar ir valandinių kainų sąrašai atpažįstami automatiškai.",
+        "data": {
+          "price_entity": "Kainų prognozės objektas",
+          "price_offset": "Kainos priedas (tinklo ir kiti mokesčiai už kWh)",
+          "feed_in_tariff": "Atlygis už parduotą elektrą (0 = rinkos kaina; fiksuotas tarifas žemiau skirtumo niekada neparduoda)"
+        },
+        "data_description": {
+          "price_entity": "Objektas, pateikiantis valandines elektros kainas kaip atributų sąrašą (pvz., sensor.nordpool_kwh_de_eur_3_10_025).",
+          "price_offset": "Pridedama prie kiekvienos rinkos kainos. Paprastai padengia tinklo mokesčius, mokesčius ir tiekėjo antkainį (pvz., 0,12 EUR/kWh). Teigiamas = brangiau.",
+          "feed_in_tariff": "Kiek uždirbi už kiekvieną į tinklą parduotą kWh. 0 = dinaminė rinkos kaina. Fiksuotas tarifas žemiau skirtumo niekada nesukels pardavimo."
+        }
+      },
+      "battery": {
+        "title": "Akumuliatoriaus parametrai",
+        "description": "Aprašyk savo namų akumuliatorių. Įkrovos lygis skaitomas tiesiogiai iš pasirinkto objekto.",
+        "data": {
+          "soc_entity": "Įkrovos lygio objektas (%)",
+          "capacity_kwh": "Naudojama talpa",
+          "max_charge_power_w": "Didžiausia įkrovimo galia",
+          "max_discharge_power_w": "Didžiausia iškrovimo galia",
+          "min_soc": "Mažiausias SOC",
+          "max_soc": "Didžiausias SOC",
+          "efficiency": "Naudingumo koeficientas (pirmyn ir atgal)",
+          "battery_charge_energy_entity": "Įkrautos energijos objektas (kWh, nebūtina)",
+          "battery_discharge_energy_entity": "Iškrautos energijos objektas (kWh, nebūtina)"
+        },
+        "data_description": {
+          "soc_entity": "Jutiklis, rodantis dabartinį įkrovos lygį procentais (0-100). Pavyzdys: sensor.byd_battery_box_premium_hv_state_of_charge.",
+          "capacity_kwh": "Naudojama akumuliatoriaus talpa kWh, neįskaitant rezervinio SOC. Pavyzdys BYD HVS 10: 10,2 kWh.",
+          "max_charge_power_w": "Didžiausia iš tinklo imama įkrovimo galia vatais. Paprastai 3000-5000 W.",
+          "max_discharge_power_w": "Didžiausia iškrovimo galia vatais. Paprastai 3000-5000 W.",
+          "min_soc": "Apatinė įkrovos lygio riba procentais. Akumuliatorius niekada neiškraunamas žemiau jos. Rekomenduojama: 10 %.",
+          "max_soc": "Viršutinė įkrovos lygio riba procentais. Akumuliatorius niekada neįkraunamas virš jos. Rekomenduojama: 95 %.",
+          "efficiency": "Naudingumo koeficientas pirmyn ir atgal procentais: atgautos kWh padalytos iš įdėtų kWh, padauginus iš 100. Paprastai 85-95 %.",
+          "battery_charge_energy_entity": "Nebūtinas skaitiklis bendram įkrautų kWh kiekiui (total_increasing). Abu skaitikliai kartu įjungia faktinių santaupų jutiklius. Pavyzdys: sensor.battery_energy_charged.",
+          "battery_discharge_energy_entity": "Nebūtinas skaitiklis bendram iškrautų kWh kiekiui (total_increasing). Abu skaitikliai kartu įjungia faktinių santaupų jutiklius. Pavyzdys: sensor.battery_energy_discharged."
+        }
+      },
+      "control": {
+        "title": "Akumuliatoriaus valdymo scenarijai",
+        "description": "Smart Battery Pilot valdo tavo akumuliatorių per Home Assistant scenarijus. Sukurk po vieną scenarijų kiekvienam veiksmui savo inverteriui (gamintojų pavyzdžiai yra dokumentacijoje). Įkrovimo ir pardavimo scenarijai gauna kintamąjį `power_w`.",
+        "data": {
+          "script_charge": "Scenarijus: priverstinis įkrovimas iš tinklo",
+          "script_idle": "Scenarijus: blokuoti iškrovimą (idle)",
+          "script_auto": "Scenarijus: įprastas automatinis režimas",
+          "script_export": "Scenarijus: priverstinis iškrovimas į tinklą (nebūtina)"
+        },
+        "data_description": {
+          "script_charge": "Iškviečiamas, kai akumuliatorius turi būti įkraunamas iš tinklo. Gauna kintamąjį power_w (įkrovimo galia vatais).",
+          "script_idle": "Iškviečiamas, kai iškrovimas turi būti blokuojamas, kad akumuliatorius išsaugotų energiją brangesnei valandai.",
+          "script_auto": "Grąžina inverterį į įprastą savo suvartojimo režimą.",
+          "script_export": "Nebūtina: iškviečiamas, kai energiją reikia parduoti į tinklą esant labai aukštoms kainoms. Gauna kintamąjį power_w (iškrovimo galia vatais)."
+        }
+      },
+      "consumption": {
+        "title": "Namų ūkio suvartojimas",
+        "description": "Pasirink jutiklį, matuojantį bendrą namo suvartojimą (galia W arba energija kWh). Jis naudojamas tavo suvartojimo profiliui iš istorijos išmokti.",
+        "data": {
+          "consumption_entity": "Suvartojimo jutiklis",
+          "temperature_entity": "Lauko temperatūros jutiklis (nebūtina)",
+          "has_heat_pump": "Yra šilumos siurblys"
+        },
+        "data_description": {
+          "consumption_entity": "Bendras namų ūkio suvartojimas W arba kWh. Naudojamas suvartojimo profiliui apmokyti.",
+          "temperature_entity": "Nebūtina: pagerina suvartojimo prognozę namų ūkiams su šilumos siurbliu, susiejant ją su lauko temperatūra.",
+          "has_heat_pump": "Įjungia šilumos poreikį suvartojimo prognozėje, kai tik atsiranda bent kokia temperatūros istorija, net ir nepilna."
+        }
+      },
+      "pv": {
+        "title": "Saulės energijos prognozė (nebūtina)",
+        "description": "Jei turi saulės elektrinę, pasirink dienos gamybos prognozės jutiklius (kWh). Numatoma saulės gamyba atimama iš suvartojimo prognozės.",
+        "data": {
+          "pv_forecast_today": "Saulės prognozė šiandien (kWh)",
+          "pv_forecast_tomorrow": "Saulės prognozė rytoj (kWh)",
+          "pv_power_entity": "Dabartinė saulės galia (nebūtina)"
+        },
+        "data_description": {
+          "pv_forecast_today": "Šiandienos saulės gamybos prognozė kWh (pvz., Open-Meteo Solar Forecast arba Solcast).",
+          "pv_forecast_tomorrow": "Rytdienos saulės gamybos prognozė kWh - gerokai pagerina nakties planavimą.",
+          "pv_power_entity": "Dabartinė saulės galia. Rodoma kaip tiesioginė reikšmė Lovelace kortelėje."
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "Objektas nerastas.",
+      "unsupported_price_format": "Šio objekto kainų formatas neatpažintas. Palaikomas integracijas rasi dokumentacijoje.",
+      "no_future_prices": "Objekte nėra būsimų kainų.",
+      "soc_range_invalid": "Mažiausias SOC turi būti mažesnis už didžiausią SOC.",
+      "export_spread_unreachable": "Pardavimo režimas su šiomis reikšmėmis nieko negali padaryti: atlygis yra lygus mažiausiam kainų skirtumui arba už jį mažesnis, todėl nė viena valanda niekada netiks. Padidink atlygį, sumažink skirtumą arba nustatyk atlygį į 0, kad parduotum rinkos kaina."
+    },
+    "abort": {
+      "already_configured": "Jau sukonfigūruota."
+    }
+  },
+  "options": {
+    "step": {
+      "prices": {
+        "title": "Elektros kainos šaltinis",
+        "data": {
+          "price_entity": "Kainų prognozės objektas",
+          "price_offset": "Kainos priedas (tinklo ir kiti mokesčiai už kWh)",
+          "feed_in_tariff": "Atlygis už parduotą elektrą (0 = rinkos kaina; fiksuotas tarifas žemiau skirtumo niekada neparduoda)"
+        },
+        "data_description": {
+          "price_entity": "Objektas, pateikiantis valandines elektros kainas kaip atributų sąrašą (pvz., sensor.nordpool_kwh_de_eur_3_10_025).",
+          "price_offset": "Pridedama prie kiekvienos rinkos kainos. Paprastai padengia tinklo mokesčius, mokesčius ir tiekėjo antkainį (pvz., 0,12 EUR/kWh). Teigiamas = brangiau.",
+          "feed_in_tariff": "Kiek uždirbi už kiekvieną į tinklą parduotą kWh. 0 = dinaminė rinkos kaina. Fiksuotas tarifas žemiau skirtumo niekada nesukels pardavimo."
+        }
+      },
+      "battery": {
+        "title": "Akumuliatoriaus parametrai",
+        "data": {
+          "soc_entity": "Įkrovos lygio objektas (%)",
+          "capacity_kwh": "Naudojama talpa",
+          "max_charge_power_w": "Didžiausia įkrovimo galia",
+          "max_discharge_power_w": "Didžiausia iškrovimo galia",
+          "min_soc": "Mažiausias SOC",
+          "max_soc": "Didžiausias SOC",
+          "efficiency": "Naudingumo koeficientas (pirmyn ir atgal)",
+          "battery_charge_energy_entity": "Įkrautos energijos objektas (kWh, nebūtina)",
+          "battery_discharge_energy_entity": "Iškrautos energijos objektas (kWh, nebūtina)"
+        },
+        "data_description": {
+          "soc_entity": "Jutiklis, rodantis dabartinį įkrovos lygį procentais (0-100). Pavyzdys: sensor.byd_battery_box_premium_hv_state_of_charge.",
+          "capacity_kwh": "Naudojama akumuliatoriaus talpa kWh, neįskaitant rezervinio SOC. Pavyzdys BYD HVS 10: 10,2 kWh.",
+          "max_charge_power_w": "Didžiausia iš tinklo imama įkrovimo galia vatais. Paprastai 3000-5000 W.",
+          "max_discharge_power_w": "Didžiausia iškrovimo galia vatais. Paprastai 3000-5000 W.",
+          "min_soc": "Apatinė įkrovos lygio riba procentais. Akumuliatorius niekada neiškraunamas žemiau jos. Rekomenduojama: 10 %.",
+          "max_soc": "Viršutinė įkrovos lygio riba procentais. Akumuliatorius niekada neįkraunamas virš jos. Rekomenduojama: 95 %.",
+          "efficiency": "Naudingumo koeficientas pirmyn ir atgal procentais: atgautos kWh padalytos iš įdėtų kWh, padauginus iš 100. Paprastai 85-95 %.",
+          "battery_charge_energy_entity": "Nebūtinas skaitiklis bendram įkrautų kWh kiekiui (total_increasing). Abu skaitikliai kartu įjungia faktinių santaupų jutiklius. Pavyzdys: sensor.battery_energy_charged.",
+          "battery_discharge_energy_entity": "Nebūtinas skaitiklis bendram iškrautų kWh kiekiui (total_increasing). Abu skaitikliai kartu įjungia faktinių santaupų jutiklius. Pavyzdys: sensor.battery_energy_discharged."
+        }
+      },
+      "control": {
+        "title": "Akumuliatoriaus valdymo scenarijai",
+        "data": {
+          "script_charge": "Scenarijus: priverstinis įkrovimas iš tinklo",
+          "script_idle": "Scenarijus: blokuoti iškrovimą (idle)",
+          "script_auto": "Scenarijus: įprastas automatinis režimas",
+          "script_export": "Scenarijus: priverstinis iškrovimas į tinklą (nebūtina)"
+        },
+        "data_description": {
+          "script_charge": "Iškviečiamas, kai akumuliatorius turi būti įkraunamas iš tinklo. Gauna kintamąjį power_w (įkrovimo galia vatais).",
+          "script_idle": "Iškviečiamas, kai iškrovimas turi būti blokuojamas, kad akumuliatorius išsaugotų energiją brangesnei valandai.",
+          "script_auto": "Grąžina inverterį į įprastą savo suvartojimo režimą.",
+          "script_export": "Nebūtina: iškviečiamas, kai energiją reikia parduoti į tinklą esant labai aukštoms kainoms. Gauna kintamąjį power_w (iškrovimo galia vatais)."
+        }
+      },
+      "consumption": {
+        "title": "Namų ūkio suvartojimas",
+        "data": {
+          "consumption_entity": "Suvartojimo jutiklis",
+          "temperature_entity": "Lauko temperatūros jutiklis (nebūtina)",
+          "has_heat_pump": "Yra šilumos siurblys"
+        },
+        "data_description": {
+          "consumption_entity": "Bendras namų ūkio suvartojimas W arba kWh. Naudojamas suvartojimo profiliui apmokyti.",
+          "temperature_entity": "Nebūtina: pagerina suvartojimo prognozę namų ūkiams su šilumos siurbliu, susiejant ją su lauko temperatūra.",
+          "has_heat_pump": "Įjungia šilumos poreikį suvartojimo prognozėje, kai tik atsiranda bent kokia temperatūros istorija, net ir nepilna."
+        }
+      },
+      "pv": {
+        "title": "Saulės energijos prognozė (nebūtina)",
+        "data": {
+          "pv_forecast_today": "Saulės prognozė šiandien (kWh)",
+          "pv_forecast_tomorrow": "Saulės prognozė rytoj (kWh)",
+          "pv_power_entity": "Dabartinė saulės galia (nebūtina)"
+        },
+        "data_description": {
+          "pv_forecast_today": "Šiandienos saulės gamybos prognozė kWh (pvz., Open-Meteo Solar Forecast arba Solcast).",
+          "pv_forecast_tomorrow": "Rytdienos saulės gamybos prognozė kWh - gerokai pagerina nakties planavimą.",
+          "pv_power_entity": "Dabartinė saulės galia. Rodoma kaip tiesioginė reikšmė Lovelace kortelėje."
+        }
+      },
+      "tuning": {
+        "title": "Smart Battery Pilot parinktys",
+        "data": {
+          "spread_threshold": "Mažiausias kainų skirtumas (įkrovimas prieš iškrovimą)",
+          "discharge_mode": "Iškrovimo režimas",
+          "training_days": "Istorijos dienos suvartojimo mokymui"
+        },
+        "data_description": {
+          "spread_threshold": "Mažiausias kainų skirtumas tarp įkrovimo ir iškrovimo, EUR/kWh. Žemiau jo arbitražas nepadengia konversijos nuostolių. Rekomenduojama: 0,10-0,25 EUR/kWh.",
+          "discharge_mode": "Tik savo suvartojimas: akumuliatorius padengia tavo paties poreikį. Savo suvartojimas + pardavimas: esant labai aukštoms kainoms parduoda ir į tinklą (reikia pardavimo scenarijaus).",
+          "training_days": "Istorijos dienų skaičius suvartojimo profiliui apmokyti. Daugiau = stabiliau, bet lėčiau seka įpročių pokyčius. Rekomenduojama: 30-60 dienų."
+        }
+      },
+      "init": {
+        "title": "Smart Battery Pilot",
+        "menu_options": {
+          "tuning": "Optimizatoriaus derinimas (skirtumas, režimas, mokymas)",
+          "prices": "Kainų šaltinis & priedai",
+          "battery": "Akumuliatoriaus parametrai",
+          "control": "Valdymo scenarijai",
+          "consumption": "Suvartojimas & temperatūra",
+          "pv": "Saulės energijos prognozė",
+          "apply": "💾 Įrašyti & uždaryti"
+        },
+        "description": "Toliau esančiuose skyriuose atlikti pakeitimai kaupiami ir įrašomi tik paspaudus „Įrašyti & uždaryti“."
+      }
+    },
+    "error": {
+      "entity_not_found": "Objektas nerastas.",
+      "unsupported_price_format": "Šio objekto kainų formatas neatpažintas. Palaikomas integracijas rasi dokumentacijoje.",
+      "no_future_prices": "Objekte nėra būsimų kainų.",
+      "soc_range_invalid": "Mažiausias SOC turi būti mažesnis už didžiausią SOC.",
+      "export_spread_unreachable": "Pardavimo režimas su šiomis reikšmėmis nieko negali padaryti: atlygis yra lygus mažiausiam kainų skirtumui arba už jį mažesnis, todėl nė viena valanda niekada netiks. Padidink atlygį, sumažink skirtumą arba nustatyk atlygį į 0, kad parduotum rinkos kaina."
+    }
+  },
+  "selector": {
+    "discharge_mode": {
+      "options": {
+        "self_consumption": "Tik savo suvartojimas",
+        "export": "Savo suvartojimas + pardavimas į tinklą piko kainomis"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "current_action": {
+        "name": "Dabartinis veiksmas",
+        "state": {
+          "charge": "Įkrauti",
+          "auto": "Auto",
+          "idle": "Blokuota",
+          "export": "Pardavimas",
+          "no_plan": "Plano nėra"
+        }
+      },
+      "next_action": {
+        "name": "Kitas veiksmas",
+        "state": {
+          "charge": "Įkrauti",
+          "auto": "Auto",
+          "idle": "Blokuota",
+          "export": "Pardavimas",
+          "no_change": "Pokyčių nėra"
+        }
+      },
+      "current_price": {
+        "name": "Dabartinė elektros kaina"
+      },
+      "charge_plan": {
+        "name": "Aktyvaus plano veiksmai"
+      },
+      "plan_status": {
+        "name": "Plano būsena",
+        "state": {
+          "ok": "OK",
+          "no_price_data": "Nėra kainų duomenų",
+          "no_soc": "Nėra įkrovos lygio",
+          "no_price_adapter": "Nežinomas kainų formatas",
+          "implausible_prices": "Neįtikėtinos kainos",
+          "error": "Klaida"
+        }
+      },
+      "estimated_savings": {
+        "name": "Numatomos santaupos"
+      },
+      "consumption_forecast": {
+        "name": "Suvartojimo prognozė 24 val."
+      },
+      "configuration": {
+        "name": "Konfigūracija",
+        "state": {
+          "active": "Aktyvus",
+          "inactive": "Neaktyvus"
+        }
+      },
+      "actual_savings_eur": {
+        "name": "Faktinės santaupos"
+      },
+      "actual_savings_kwh": {
+        "name": "Faktinis energijos prieaugis"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Įjungta"
+      },
+      "dry_run": {
+        "name": "Bandomasis paleidimas"
+      }
+    },
+    "binary_sensor": {
+      "plan_problem": {
+        "name": "Plano problema"
+      }
+    }
+  },
+  "services": {
+    "replan": {
+      "name": "Perplanuoti",
+      "description": "Nedelsiant perskaičiuoti įkrovimo planą."
+    }
+  }
+}

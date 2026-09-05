@@ -1,0 +1,303 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Elektroenerģijas cenas avots",
+        "description": "Izvēlies entītiju, kas nodrošina dinamisko elektroenerģijas cenas prognozi. Nordpool, EPEX Spot, ENTSO-E, aWATTar un stundu cenu saraksti tiek atpazīti automātiski.",
+        "data": {
+          "price_entity": "Cenu prognozes entītija",
+          "price_offset": "Cenas piemaksa (tīkla maksas, nodokļi par kWh)",
+          "feed_in_tariff": "Atlīdzība par pārdoto elektrību (0 = tirgus cena; fiksēta likme zem starpības nekad nepārdod)"
+        },
+        "data_description": {
+          "price_entity": "Entītija, kas publicē elektroenerģijas stundu cenas kā atribūtu sarakstu (piem., sensor.nordpool_kwh_de_eur_3_10_025).",
+          "price_offset": "Tiek pieskaitīts katrai tirgus cenai. Parasti sedz tīkla maksas, nodokļus un tirgotāja uzcenojumu (piem., 0,12 EUR/kWh). Pozitīvs = dārgāk.",
+          "feed_in_tariff": "Cik nopelni par katru tīklā pārdoto kWh. 0 = dinamiska tirgus cena. Fiksēta likme zem starpības nekad neizraisīs pārdošanu."
+        }
+      },
+      "battery": {
+        "title": "Akumulatora parametri",
+        "description": "Apraksti savu mājas akumulatoru. Uzlādes līmenis tiek nolasīts tiešsaistē no izvēlētās entītijas.",
+        "data": {
+          "soc_entity": "Uzlādes līmeņa entītija (%)",
+          "capacity_kwh": "Izmantojamā ietilpība",
+          "max_charge_power_w": "Maksimālā uzlādes jauda",
+          "max_discharge_power_w": "Maksimālā izlādes jauda",
+          "min_soc": "Minimālais SOC",
+          "max_soc": "Maksimālais SOC",
+          "efficiency": "Lietderības koeficients (turp un atpakaļ)",
+          "battery_charge_energy_entity": "Uzlādētās enerģijas entītija (kWh, neobligāti)",
+          "battery_discharge_energy_entity": "Izlādētās enerģijas entītija (kWh, neobligāti)"
+        },
+        "data_description": {
+          "soc_entity": "Sensors, kas ziņo pašreizējo uzlādes līmeni procentos (0-100). Piemērs: sensor.byd_battery_box_premium_hv_state_of_charge.",
+          "capacity_kwh": "Akumulatora izmantojamā ietilpība kWh, neieskaitot rezerves SOC. Piemērs BYD HVS 10: 10,2 kWh.",
+          "max_charge_power_w": "Maksimālā no tīkla ņemtā uzlādes jauda vatos. Parasti 3000-5000 W.",
+          "max_discharge_power_w": "Maksimālā izlādes jauda vatos. Parasti 3000-5000 W.",
+          "min_soc": "Uzlādes līmeņa apakšējā robeža procentos. Akumulators nekad netiek izlādēts zem tās. Ieteicams: 10 %.",
+          "max_soc": "Uzlādes līmeņa augšējā robeža procentos. Akumulators nekad netiek uzlādēts virs tās. Ieteicams: 95 %.",
+          "efficiency": "Lietderības koeficients turp un atpakaļ procentos: atgūtās kWh dalītas ar ieliktajām kWh, reizinot ar 100. Parasti 85-95 %.",
+          "battery_charge_energy_entity": "Neobligāts skaitītājs kopējām uzlādētajām kWh (total_increasing). Abi skaitītāji kopā iespējo faktiskā ietaupījuma sensorus. Piemērs: sensor.battery_energy_charged.",
+          "battery_discharge_energy_entity": "Neobligāts skaitītājs kopējām izlādētajām kWh (total_increasing). Abi skaitītāji kopā iespējo faktiskā ietaupījuma sensorus. Piemērs: sensor.battery_energy_discharged."
+        }
+      },
+      "control": {
+        "title": "Akumulatora vadības skripti",
+        "description": "Smart Battery Pilot vada tavu akumulatoru ar Home Assistant skriptiem. Izveido vienu skriptu katrai darbībai savam invertoram (ražotāju piemēri ir dokumentācijā). Uzlādes un pārdošanas skripti saņem mainīgo `power_w`.",
+        "data": {
+          "script_charge": "Skripts: piespiedu uzlāde no tīkla",
+          "script_idle": "Skripts: bloķēt izlādi (idle)",
+          "script_auto": "Skripts: parasts automātiskais režīms",
+          "script_export": "Skripts: piespiedu izlāde tīklā (neobligāti)"
+        },
+        "data_description": {
+          "script_charge": "Tiek izsaukts, kad akumulatoram jāuzlādējas no tīkla. Saņem mainīgo power_w (uzlādes jauda vatos).",
+          "script_idle": "Tiek izsaukts, kad izlāde jābloķē, lai akumulators saglabātu enerģiju dārgākai stundai.",
+          "script_auto": "Atgriež invertoru parastajā pašpatēriņa režīmā.",
+          "script_export": "Neobligāti: tiek izsaukts, kad enerģija jāpārdod tīklā ļoti augstu cenu laikā. Saņem mainīgo power_w (izlādes jauda vatos)."
+        }
+      },
+      "consumption": {
+        "title": "Mājsaimniecības patēriņš",
+        "description": "Izvēlies sensoru, kas mēra mājas kopējo patēriņu (jauda W vai enerģija kWh). To izmanto, lai no vēstures apgūtu tava patēriņa profilu.",
+        "data": {
+          "consumption_entity": "Patēriņa sensors",
+          "temperature_entity": "Āra temperatūras sensors (neobligāti)",
+          "has_heat_pump": "Ir siltumsūknis"
+        },
+        "data_description": {
+          "consumption_entity": "Mājsaimniecības kopējais patēriņš W vai kWh. Izmanto patēriņa profila apmācībai.",
+          "temperature_entity": "Neobligāti: uzlabo patēriņa prognozi mājsaimniecībām ar siltumsūkni, saistot to ar āra temperatūru.",
+          "has_heat_pump": "Iespējo siltuma pieprasījumu patēriņa prognozē, tiklīdz pastāv kaut kāda temperatūras vēsture, arī nepilnīga."
+        }
+      },
+      "pv": {
+        "title": "Saules enerģijas prognoze (neobligāti)",
+        "description": "Ja tev ir saules paneļi, izvēlies dienas ražošanas prognozes sensorus (kWh). Sagaidāmā saules enerģija tiek atskaitīta no patēriņa prognozes.",
+        "data": {
+          "pv_forecast_today": "Saules prognoze šodien (kWh)",
+          "pv_forecast_tomorrow": "Saules prognoze rīt (kWh)",
+          "pv_power_entity": "Pašreizējā saules jauda (neobligāti)"
+        },
+        "data_description": {
+          "pv_forecast_today": "Šodienas saules ražošanas prognoze kWh (piem., Open-Meteo Solar Forecast vai Solcast).",
+          "pv_forecast_tomorrow": "Rītdienas saules ražošanas prognoze kWh - būtiski uzlabo nakts plānošanu.",
+          "pv_power_entity": "Pašreizējā saules jauda. Tiek rādīta kā tiešsaistes vērtība Lovelace kartē."
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "Entītija nav atrasta.",
+      "unsupported_price_format": "Šīs entītijas cenu formāts netika atpazīts. Atbalstītās integrācijas skati dokumentācijā.",
+      "no_future_prices": "Entītijā nav nākotnes cenu.",
+      "soc_range_invalid": "Minimālajam SOC jābūt zemākam par maksimālo SOC.",
+      "export_spread_unreachable": "Pārdošanas režīms ar šīm vērtībām neko nevar izdarīt: atlīdzība ir vienāda ar minimālo cenu starpību vai zemāka, tāpēc neviena stunda nekad nekvalificēsies. Palielini atlīdzību, samazini starpību vai iestati atlīdzību uz 0, lai pārdotu par tirgus cenu."
+    },
+    "abort": {
+      "already_configured": "Jau konfigurēts."
+    }
+  },
+  "options": {
+    "step": {
+      "prices": {
+        "title": "Elektroenerģijas cenas avots",
+        "data": {
+          "price_entity": "Cenu prognozes entītija",
+          "price_offset": "Cenas piemaksa (tīkla maksas, nodokļi par kWh)",
+          "feed_in_tariff": "Atlīdzība par pārdoto elektrību (0 = tirgus cena; fiksēta likme zem starpības nekad nepārdod)"
+        },
+        "data_description": {
+          "price_entity": "Entītija, kas publicē elektroenerģijas stundu cenas kā atribūtu sarakstu (piem., sensor.nordpool_kwh_de_eur_3_10_025).",
+          "price_offset": "Tiek pieskaitīts katrai tirgus cenai. Parasti sedz tīkla maksas, nodokļus un tirgotāja uzcenojumu (piem., 0,12 EUR/kWh). Pozitīvs = dārgāk.",
+          "feed_in_tariff": "Cik nopelni par katru tīklā pārdoto kWh. 0 = dinamiska tirgus cena. Fiksēta likme zem starpības nekad neizraisīs pārdošanu."
+        }
+      },
+      "battery": {
+        "title": "Akumulatora parametri",
+        "data": {
+          "soc_entity": "Uzlādes līmeņa entītija (%)",
+          "capacity_kwh": "Izmantojamā ietilpība",
+          "max_charge_power_w": "Maksimālā uzlādes jauda",
+          "max_discharge_power_w": "Maksimālā izlādes jauda",
+          "min_soc": "Minimālais SOC",
+          "max_soc": "Maksimālais SOC",
+          "efficiency": "Lietderības koeficients (turp un atpakaļ)",
+          "battery_charge_energy_entity": "Uzlādētās enerģijas entītija (kWh, neobligāti)",
+          "battery_discharge_energy_entity": "Izlādētās enerģijas entītija (kWh, neobligāti)"
+        },
+        "data_description": {
+          "soc_entity": "Sensors, kas ziņo pašreizējo uzlādes līmeni procentos (0-100). Piemērs: sensor.byd_battery_box_premium_hv_state_of_charge.",
+          "capacity_kwh": "Akumulatora izmantojamā ietilpība kWh, neieskaitot rezerves SOC. Piemērs BYD HVS 10: 10,2 kWh.",
+          "max_charge_power_w": "Maksimālā no tīkla ņemtā uzlādes jauda vatos. Parasti 3000-5000 W.",
+          "max_discharge_power_w": "Maksimālā izlādes jauda vatos. Parasti 3000-5000 W.",
+          "min_soc": "Uzlādes līmeņa apakšējā robeža procentos. Akumulators nekad netiek izlādēts zem tās. Ieteicams: 10 %.",
+          "max_soc": "Uzlādes līmeņa augšējā robeža procentos. Akumulators nekad netiek uzlādēts virs tās. Ieteicams: 95 %.",
+          "efficiency": "Lietderības koeficients turp un atpakaļ procentos: atgūtās kWh dalītas ar ieliktajām kWh, reizinot ar 100. Parasti 85-95 %.",
+          "battery_charge_energy_entity": "Neobligāts skaitītājs kopējām uzlādētajām kWh (total_increasing). Abi skaitītāji kopā iespējo faktiskā ietaupījuma sensorus. Piemērs: sensor.battery_energy_charged.",
+          "battery_discharge_energy_entity": "Neobligāts skaitītājs kopējām izlādētajām kWh (total_increasing). Abi skaitītāji kopā iespējo faktiskā ietaupījuma sensorus. Piemērs: sensor.battery_energy_discharged."
+        }
+      },
+      "control": {
+        "title": "Akumulatora vadības skripti",
+        "data": {
+          "script_charge": "Skripts: piespiedu uzlāde no tīkla",
+          "script_idle": "Skripts: bloķēt izlādi (idle)",
+          "script_auto": "Skripts: parasts automātiskais režīms",
+          "script_export": "Skripts: piespiedu izlāde tīklā (neobligāti)"
+        },
+        "data_description": {
+          "script_charge": "Tiek izsaukts, kad akumulatoram jāuzlādējas no tīkla. Saņem mainīgo power_w (uzlādes jauda vatos).",
+          "script_idle": "Tiek izsaukts, kad izlāde jābloķē, lai akumulators saglabātu enerģiju dārgākai stundai.",
+          "script_auto": "Atgriež invertoru parastajā pašpatēriņa režīmā.",
+          "script_export": "Neobligāti: tiek izsaukts, kad enerģija jāpārdod tīklā ļoti augstu cenu laikā. Saņem mainīgo power_w (izlādes jauda vatos)."
+        }
+      },
+      "consumption": {
+        "title": "Mājsaimniecības patēriņš",
+        "data": {
+          "consumption_entity": "Patēriņa sensors",
+          "temperature_entity": "Āra temperatūras sensors (neobligāti)",
+          "has_heat_pump": "Ir siltumsūknis"
+        },
+        "data_description": {
+          "consumption_entity": "Mājsaimniecības kopējais patēriņš W vai kWh. Izmanto patēriņa profila apmācībai.",
+          "temperature_entity": "Neobligāti: uzlabo patēriņa prognozi mājsaimniecībām ar siltumsūkni, saistot to ar āra temperatūru.",
+          "has_heat_pump": "Iespējo siltuma pieprasījumu patēriņa prognozē, tiklīdz pastāv kaut kāda temperatūras vēsture, arī nepilnīga."
+        }
+      },
+      "pv": {
+        "title": "Saules enerģijas prognoze (neobligāti)",
+        "data": {
+          "pv_forecast_today": "Saules prognoze šodien (kWh)",
+          "pv_forecast_tomorrow": "Saules prognoze rīt (kWh)",
+          "pv_power_entity": "Pašreizējā saules jauda (neobligāti)"
+        },
+        "data_description": {
+          "pv_forecast_today": "Šodienas saules ražošanas prognoze kWh (piem., Open-Meteo Solar Forecast vai Solcast).",
+          "pv_forecast_tomorrow": "Rītdienas saules ražošanas prognoze kWh - būtiski uzlabo nakts plānošanu.",
+          "pv_power_entity": "Pašreizējā saules jauda. Tiek rādīta kā tiešsaistes vērtība Lovelace kartē."
+        }
+      },
+      "tuning": {
+        "title": "Smart Battery Pilot opcijas",
+        "data": {
+          "spread_threshold": "Minimālā cenu starpība (uzlāde pret izlādi)",
+          "discharge_mode": "Izlādes režīms",
+          "training_days": "Vēstures dienas patēriņa apmācībai"
+        },
+        "data_description": {
+          "spread_threshold": "Minimālā cenu starpība starp uzlādi un izlādi, EUR/kWh. Zem tās arbitrāža nesedz pārveidošanas zudumus. Ieteicams: 0,10-0,25 EUR/kWh.",
+          "discharge_mode": "Tikai pašpatēriņš: akumulators sedz tavu paša pieprasījumu. Pašpatēriņš + pārdošana: ļoti augstu cenu laikā pārdod arī tīklā (nepieciešams pārdošanas skripts).",
+          "training_days": "Vēstures dienu skaits patēriņa profila apmācībai. Vairāk = stabilāk, bet lēnāk seko paradumu maiņai. Ieteicams: 30-60 dienas."
+        }
+      },
+      "init": {
+        "title": "Smart Battery Pilot",
+        "menu_options": {
+          "tuning": "Optimizatora regulēšana (starpība, režīms, apmācība)",
+          "prices": "Cenu avots & piemaksas",
+          "battery": "Akumulatora parametri",
+          "control": "Vadības skripti",
+          "consumption": "Patēriņš & temperatūra",
+          "pv": "Saules enerģijas prognoze",
+          "apply": "💾 Saglabāt & aizvērt"
+        },
+        "description": "Izmaiņas zemāk esošajās sadaļās tiek apkopotas un saglabātas tikai ar „Saglabāt & aizvērt”."
+      }
+    },
+    "error": {
+      "entity_not_found": "Entītija nav atrasta.",
+      "unsupported_price_format": "Šīs entītijas cenu formāts netika atpazīts. Atbalstītās integrācijas skati dokumentācijā.",
+      "no_future_prices": "Entītijā nav nākotnes cenu.",
+      "soc_range_invalid": "Minimālajam SOC jābūt zemākam par maksimālo SOC.",
+      "export_spread_unreachable": "Pārdošanas režīms ar šīm vērtībām neko nevar izdarīt: atlīdzība ir vienāda ar minimālo cenu starpību vai zemāka, tāpēc neviena stunda nekad nekvalificēsies. Palielini atlīdzību, samazini starpību vai iestati atlīdzību uz 0, lai pārdotu par tirgus cenu."
+    }
+  },
+  "selector": {
+    "discharge_mode": {
+      "options": {
+        "self_consumption": "Tikai pašpatēriņš",
+        "export": "Pašpatēriņš + pārdošana tīklā maksimālo cenu laikā"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "current_action": {
+        "name": "Pašreizējā darbība",
+        "state": {
+          "charge": "Uzlāde",
+          "auto": "Auto",
+          "idle": "Bloķēts",
+          "export": "Pārdošana",
+          "no_plan": "Nav plāna"
+        }
+      },
+      "next_action": {
+        "name": "Nākamā darbība",
+        "state": {
+          "charge": "Uzlāde",
+          "auto": "Auto",
+          "idle": "Bloķēts",
+          "export": "Pārdošana",
+          "no_change": "Nav izmaiņu"
+        }
+      },
+      "current_price": {
+        "name": "Pašreizējā elektroenerģijas cena"
+      },
+      "charge_plan": {
+        "name": "Aktīvā plāna darbības"
+      },
+      "plan_status": {
+        "name": "Plāna statuss",
+        "state": {
+          "ok": "OK",
+          "no_price_data": "Nav cenu datu",
+          "no_soc": "Nav uzlādes līmeņa",
+          "no_price_adapter": "Nezināms cenu formāts",
+          "implausible_prices": "Neticamas cenas",
+          "error": "Kļūda"
+        }
+      },
+      "estimated_savings": {
+        "name": "Aplēstais ietaupījums"
+      },
+      "consumption_forecast": {
+        "name": "Patēriņa prognoze 24 h"
+      },
+      "configuration": {
+        "name": "Konfigurācija",
+        "state": {
+          "active": "Aktīvs",
+          "inactive": "Neaktīvs"
+        }
+      },
+      "actual_savings_eur": {
+        "name": "Faktiskais ietaupījums"
+      },
+      "actual_savings_kwh": {
+        "name": "Faktiskais enerģijas ieguvums"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Ieslēgts"
+      },
+      "dry_run": {
+        "name": "Testa palaišana"
+      }
+    },
+    "binary_sensor": {
+      "plan_problem": {
+        "name": "Plāna problēma"
+      }
+    }
+  },
+  "services": {
+    "replan": {
+      "name": "Pārplānot",
+      "description": "Nekavējoties pārrēķināt uzlādes plānu."
+    }
+  }
+}
