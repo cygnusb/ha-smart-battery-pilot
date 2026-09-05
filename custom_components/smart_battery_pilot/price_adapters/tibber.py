@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from .base import PriceAdapter, PriceSlot, merge_future_slots
+from .base import PriceAdapter, PriceSlot, merge_future_slots, price_factor_from_attrs
 
 # A local day has 23, 24 or 25 hours. Sources that ship one entry per real
 # hour therefore emit 23 or 25 values on the DST transition days.
@@ -63,7 +63,9 @@ def _boundaries(count: int, midnight: datetime) -> list[datetime]:
     return [_civil_datetime(midnight, round(i * slot_minutes)) for i in range(count + 1)]
 
 
-def _day_slots(values: list[Any], midnight: datetime) -> list[PriceSlot]:
+def _day_slots(
+    values: list[Any], midnight: datetime, price_factor: float = 1.0
+) -> list[PriceSlot]:
     if not values:
         return []
     bounds = _boundaries(len(values), midnight)
@@ -81,18 +83,24 @@ def _day_slots(values: list[Any], midnight: datetime) -> list[PriceSlot]:
         if start_ts in seen or end_ts <= start_ts:
             continue
         seen.add(start_ts)
-        slots.append(PriceSlot(start=start, end=end, price=float(value)))
+        slots.append(
+            PriceSlot(start=start, end=end, price=float(value) * price_factor)
+        )
     return slots
 
 
 def _parse(attrs: dict[str, Any], now: datetime) -> list[PriceSlot]:
     midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    slots = _day_slots(list(attrs.get("today") or []), midnight)
+    # This adapter is also the catch-all that picks up a Nordpool or EPEX
+    # sensor whose own structured attributes are momentarily empty, so it has
+    # to respect the same cents/öre units those sensors can be configured for.
+    factor = price_factor_from_attrs(attrs)
+    slots = _day_slots(list(attrs.get("today") or []), midnight, factor)
     tomorrow = attrs.get("tomorrow")
     tomorrow_valid = attrs.get("tomorrow_valid", bool(tomorrow))
     if tomorrow_valid and isinstance(tomorrow, list):
         next_midnight = _civil_datetime(midnight, 24 * 60)
-        slots += _day_slots(tomorrow, next_midnight)
+        slots += _day_slots(tomorrow, next_midnight, factor)
     return merge_future_slots(slots, now)
 
 

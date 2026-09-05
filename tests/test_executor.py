@@ -7,6 +7,7 @@ from datetime import timedelta
 
 from homeassistant.util import dt as dt_util
 
+from smart_battery_pilot import executor as executor_module
 from smart_battery_pilot.const import (
     ACTION_AUTO,
     ACTION_CHARGE,
@@ -86,7 +87,7 @@ def _slot(action: str, *, hours: float = 1.0, power: float = 4000.0) -> PlanSlot
         action=action,
         price=0.10,
         net_demand_kwh=1.0,
-        charge_power_w=power if action in (ACTION_CHARGE, ACTION_EXPORT) else 0.0,
+        power_w=power if action in (ACTION_CHARGE, ACTION_EXPORT) else 0.0,
     )
 
 
@@ -214,3 +215,47 @@ def test_failed_refresh_with_stale_valid_plan_restores_auto():
     coord.last_update_success = False
     _run(executor.async_apply_current())
     assert hass.services.calls[-1][1] == "sbp_auto"
+
+
+def test_a_hanging_script_does_not_block_forever(monkeypatch):
+    """A control script that never returns must not wedge the executor.
+
+    The call is awaited under the executor lock, and entry unload waits for
+    that same lock - so without a bound, one stuck script hangs reloads and
+    Home Assistant's shutdown.
+    """
+    monkeypatch.setattr(executor_module, "SCRIPT_CALL_TIMEOUT_SECONDS", 0.05)
+    hass = _FakeHass()
+
+    async def _never_returns(domain, service, data=None, blocking=False):
+        hass.services.calls.append((domain, service, data or {}, blocking))
+        if service == "sbp_charge":
+            await asyncio.sleep(3600)
+
+    hass.services.async_call = _never_returns
+    coordinator = _FakeCoordinator([_slot(ACTION_CHARGE)], dry_run=False)
+    executor = PlanExecutor(hass, coordinator)
+
+    asyncio.run(asyncio.wait_for(executor.async_apply_current(), timeout=5))
+
+    called = [service for _, service, _, _ in hass.services.calls]
+    # Charge timed out, so the executor fell back to auto rather than claiming
+    # a mode the inverter is not in.
+    assert called == ["sbp_charge", "sbp_auto"]
+    assert coordinator.last_applied == ACTION_AUTO
+
+
+def test_a_hanging_script_does_not_block_unload(monkeypatch):
+    monkeypatch.setattr(executor_module, "SCRIPT_CALL_TIMEOUT_SECONDS", 0.05)
+    hass = _FakeHass()
+
+    async def _never_returns(domain, service, data=None, blocking=False):
+        await asyncio.sleep(3600)
+
+    hass.services.async_call = _never_returns
+    coordinator = _FakeCoordinator([_slot(ACTION_CHARGE)], dry_run=False)
+    coordinator.last_applied = ACTION_CHARGE
+    executor = PlanExecutor(hass, coordinator)
+
+    # Would hang indefinitely without the timeout.
+    asyncio.run(asyncio.wait_for(executor.async_stop(), timeout=5))

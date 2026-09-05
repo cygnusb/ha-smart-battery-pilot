@@ -69,7 +69,8 @@ async def async_get_config_entry_diagnostics(
                 "price": round(slot.price, 4),
                 "net_demand_kwh": round(slot.net_demand_kwh, 3),
                 "pv_kwh": round(slot.pv_kwh, 3),
-                "charge_power_w": slot.charge_power_w,
+                "power_w": slot.power_w,
+                "charge_power_w": slot.power_w,
                 "discharge_kwh": slot.discharge_kwh,
                 "soc_forecast": slot.soc_forecast,
             }

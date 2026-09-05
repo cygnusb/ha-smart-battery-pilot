@@ -86,7 +86,7 @@ def test_charge_power_limit():
     prices = [0.05] + [0.50] * 10
     plan = build_plan(make_slots(prices, demand_kwh=2.0), BATTERY, CONFIG)
     for slot in plan.slots:
-        assert slot.charge_power_w <= BATTERY.max_charge_power_w + 1
+        assert slot.power_w <= BATTERY.max_charge_power_w + 1
 
 
 def test_scarce_energy_idles_to_preserve_for_peak():
@@ -213,10 +213,10 @@ def test_export_slot_sets_discharge_power():
     assert export_slots
     for slot in export_slots:
         hours = (slot.end - slot.start).total_seconds() / 3600.0
-        assert slot.charge_power_w == pytest.approx(
+        assert slot.power_w == pytest.approx(
             slot.discharge_kwh / hours * 1000.0, abs=1
         )
-        assert 0 < slot.charge_power_w <= BATTERY.max_discharge_power_w + 1
+        assert 0 < slot.power_w <= BATTERY.max_discharge_power_w + 1
 
 
 def test_export_unreachable_spread_sets_warning():
@@ -288,7 +288,7 @@ def test_quarter_hour_slots():
     assert charge_slots
     # 15-min slot at 6 kW can take at most 1.5 kWh from the grid
     for slot in charge_slots:
-        assert slot.charge_power_w <= BATTERY.max_charge_power_w + 1
+        assert slot.power_w <= BATTERY.max_charge_power_w + 1
 
 
 def test_no_slot_both_charges_and_discharges():

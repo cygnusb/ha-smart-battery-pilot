@@ -123,7 +123,7 @@ def test_pv_surplus_and_grid_share_charge_power():
         if 11 <= i <= 13 and slot.action == ACTION_CHARGE:
             saw_midday_charge = True
             pv_charge_w = max(0.0, -slot.net_demand_kwh) * 1000.0
-            assert slot.charge_power_w + pv_charge_w <= battery.max_charge_power_w + 1
+            assert slot.power_w + pv_charge_w <= battery.max_charge_power_w + 1
         prev_soc = slot.soc_forecast
     assert saw_midday_charge, "negative-price surplus slots should still grid-charge leftover headroom"
 

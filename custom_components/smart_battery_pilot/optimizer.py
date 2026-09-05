@@ -77,7 +77,10 @@ class PlanSlot:
     price: float
     net_demand_kwh: float
     pv_kwh: float = 0.0
-    charge_power_w: float = 0.0
+    # Power the slot's action runs at: charge power in a `charge` slot,
+    # discharge power in an `export` one. Named for the action, not for one
+    # direction, because it is handed to whichever script the action selects.
+    power_w: float = 0.0
     discharge_kwh: float = 0.0  # energy delivered (to load or grid)
     soc_forecast: float = 0.0  # SOC at end of slot, percent
 
@@ -297,7 +300,7 @@ def build_plan(
                 price=prices[i],
                 net_demand_kwh=slot.net_demand_kwh,
                 pv_kwh=slot.pv_kwh,
-                charge_power_w=round(charge_power, 1),
+                power_w=round(charge_power, 1),
                 discharge_kwh=round(delivered, 3),
                 soc_forecast=round(
                     battery.min_soc + levels[i] / capacity * 100.0, 1

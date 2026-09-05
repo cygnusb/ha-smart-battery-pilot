@@ -34,6 +34,25 @@ jobs:
       - run: pip install -r tests/requirements.txt
       - run: pytest tests/ -v
 
+  tests-homeassistant:
+    # The fast suite runs against hand-written stubs, so it cannot see Home
+    # Assistant changing an API underneath us. This one installs the real
+    # thing and sets the integration up end to end.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r tests_ha/requirements.txt
+      - name: Install the matching frontend package
+        run: |
+          constraints="$(python -c 'import homeassistant, pathlib; print(pathlib.Path(homeassistant.__file__).parent / "package_constraints.txt")')"
+          pip install "$(grep -m1 -o 'home-assistant-frontend==[0-9.]*' "$constraints")"
+      # Never collected together with tests/: its conftest puts tests/stubs on
+      # sys.path, which would shadow the real homeassistant package.
+      - run: pytest tests_ha/ -v -o asyncio_mode=auto
+
   lint:
     runs-on: ubuntu-latest
     steps:

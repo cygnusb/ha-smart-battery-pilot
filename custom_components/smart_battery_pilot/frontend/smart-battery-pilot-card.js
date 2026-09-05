@@ -489,8 +489,10 @@ class SmartBatteryPilotCard extends HTMLElement {
       if (slot.pv_kwh) rows.push(`${this._tr("pv")}: ${slot.pv_kwh.toFixed(2)} kWh`);
       if (slot.net_demand_kwh !== undefined)
         rows.push(`${this._tr("net_demand")}: ${slot.net_demand_kwh.toFixed(2)} kWh`);
-      if (slot.charge_power_w)
-        rows.push(`${this._tr("charge_power")}: ${Math.round(slot.charge_power_w)} W`);
+      // charge_power_w is the pre-0.6.4 name for the same value.
+      const power = slot.power_w ?? slot.charge_power_w;
+      if (power)
+        rows.push(`${this._tr("charge_power")}: ${Math.round(power)} W`);
       tip.innerHTML = rows.join("<br>");
       tip.style.display = "block";
 

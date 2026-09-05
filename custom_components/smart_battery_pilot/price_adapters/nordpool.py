@@ -10,7 +10,13 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from .base import PriceAdapter, PriceSlot, merge_future_slots, slots_from_entries
+from .base import (
+    PriceAdapter,
+    PriceSlot,
+    merge_future_slots,
+    price_factor_from_attrs,
+    slots_from_entries,
+)
 
 
 def _matches(attrs: dict[str, Any]) -> bool:
@@ -24,21 +30,6 @@ def _matches(attrs: dict[str, Any]) -> bool:
     )
 
 
-def _price_factor(attrs: dict[str, Any]) -> float:
-    """Nordpool can emit EUR/kWh or cents/öre depending on integration settings."""
-    if attrs.get("price_in_cents"):
-        return 0.01
-    unit = str(attrs.get("unit_of_measurement") or attrs.get("unit") or "").lower()
-    unit = unit.replace(" ", "")
-    if "öre" in unit or "øre" in unit or "ore/kwh" in unit:
-        return 0.01
-    if unit.startswith("c") and "eur" in unit:
-        return 0.01
-    if "ct/" in unit or unit in ("ct", "cent", "cents"):
-        return 0.01
-    return 1.0
-
-
 def _parse(attrs: dict[str, Any], now: datetime) -> list[PriceSlot]:
     entries = list(attrs.get("raw_today") or [])
     if attrs.get("tomorrow_valid"):
@@ -48,7 +39,7 @@ def _parse(attrs: dict[str, Any], now: datetime) -> list[PriceSlot]:
         "start",
         "end",
         "value",
-        price_factor=_price_factor(attrs),
+        price_factor=price_factor_from_attrs(attrs),
         default_tz=now.tzinfo,
     )
     return merge_future_slots(slots, now)

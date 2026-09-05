@@ -1,0 +1,10 @@
+# Dependencies for the slow suite that runs against a real Home Assistant.
+# pytest-homeassistant-custom-component pins the homeassistant version it
+# tests against, which is what keeps this suite honest about API drift.
+#
+# home-assistant-frontend is NOT pulled in by it, but this integration depends
+# on the `frontend` component to register its Lovelace card - without the
+# package, setup fails with "No module named 'hass_frontend'". Its version has
+# to match the pinned core, so CI derives it from Home Assistant's own
+# package_constraints.txt rather than hardcoding it here.
+pytest-homeassistant-custom-component

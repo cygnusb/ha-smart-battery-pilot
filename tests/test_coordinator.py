@@ -111,7 +111,7 @@ def _plan_slot(action: str, price: float, start: datetime, hours: float = 1.0) -
     )
 
 
-def _coordinator(hass, **data) -> SBPCoordinator:
+def _coordinator(hass, *, steering: bool = True, **data) -> SBPCoordinator:
     entry = ConfigEntry(
         data={
             CONF_PRICE_ENTITY: "sensor.price",
@@ -121,7 +121,13 @@ def _coordinator(hass, **data) -> SBPCoordinator:
             **data,
         }
     )
-    return SBPCoordinator(hass, entry)
+    coordinator = SBPCoordinator(hass, entry)
+    # Savings only accumulate while the pilot really drives the battery, so
+    # every accounting test has to say so. `steering=False` is the shipped
+    # default state (master switch off, dry-run on) and is asserted separately.
+    coordinator.enabled = steering
+    coordinator.dry_run = not steering
+    return coordinator
 
 
 def test_unavailable_meter_does_not_reset_baseline():
@@ -576,3 +582,140 @@ def test_training_without_statistics_backs_off_instead_of_retrying_every_update(
         assert len(attempts) == 2, "never retried after the backoff elapsed"
 
     _run(scenario())
+
+
+# --- implausible prices ------------------------------------------------------
+
+
+def test_prices_far_outside_any_tariff_are_refused():
+    """Cents read as euros must not become a plan.
+
+    A curve two orders of magnitude too large makes every hour look like a
+    huge spread, and the planner would force-charge from the grid around the
+    clock. Refusing leaves the executor to fail safe to auto mode.
+    """
+    hass = _FakeHass()
+    coord = _coordinator(hass)
+    hass.states.set("sensor.price", 30.0, {"today": [30.0] * 24})
+    hass.states.set("sensor.soc", 50.0)
+
+    result = _run(coord._async_update_data())
+    assert result.valid is False
+    assert result.error == "implausible_prices"
+    assert result.plan.slots == []
+
+
+def test_a_normal_tariff_is_not_refused():
+    hass = _FakeHass()
+    coord = _coordinator(hass)
+    hass.states.set("sensor.price", 0.30, {"today": [0.30] * 24})
+    hass.states.set("sensor.soc", 50.0)
+
+    result = _run(coord._async_update_data())
+    assert result.valid is True
+    assert result.plan.slots
+
+
+def test_a_record_price_spike_is_still_planned():
+    """The guard must not fire on a real market: EPEX peaked well under 1."""
+    hass = _FakeHass()
+    coord = _coordinator(hass)
+    prices = [0.30] * 24
+    prices[18] = 0.95
+    hass.states.set("sensor.price", 0.95, {"today": prices})
+    hass.states.set("sensor.soc", 50.0)
+
+    assert _run(coord._async_update_data()).valid is True
+
+
+# --- savings only accrue while the pilot steers -------------------------------
+
+
+def _cycle_the_battery(hass, coord, plan, steps: int = 4) -> None:
+    """Charge 1 kWh and discharge 2 kWh per step, on the inverter's own."""
+    charge = discharge = 0.0
+    for i in range(steps):
+        charge += 1.0
+        discharge += 2.0
+        hass.states.set("sensor.charge_energy", charge)
+        hass.states.set("sensor.discharge_energy", discharge)
+        coord._update_actual_savings(plan, NOW + timedelta(minutes=30 * i))
+
+
+def test_nothing_accumulates_while_the_pilot_is_switched_off():
+    """The shipped default is master switch off and dry-run on.
+
+    A battery cycling on its own is the inverter's doing, not the pilot's;
+    counting it reported euros a day of savings from an integration that had
+    not called a single script.
+    """
+    hass = _FakeHass()
+    coord = _coordinator(hass, steering=False)
+    plan = Plan(slots=[_plan_slot("auto", 0.40, NOW.replace(hour=3, minute=0), hours=6)])
+
+    _cycle_the_battery(hass, coord, plan)
+
+    assert coord._acc_savings_eur == 0.0
+    assert coord._acc_charge_kwh == 0.0
+    assert coord._acc_discharge_kwh == 0.0
+
+
+def test_dry_run_alone_is_enough_to_stop_accumulating():
+    hass = _FakeHass()
+    coord = _coordinator(hass)
+    coord.enabled = True
+    coord.dry_run = True
+    plan = Plan(slots=[_plan_slot("auto", 0.40, NOW.replace(hour=3, minute=0), hours=6)])
+
+    _cycle_the_battery(hass, coord, plan)
+
+    assert coord._acc_savings_eur == 0.0
+
+
+def test_switching_on_does_not_book_the_energy_that_moved_while_off():
+    """The meter baseline keeps advancing while the accounting is paused.
+
+    Otherwise the first update after switching on would settle days of
+    inverter-driven cycling as one enormous delta.
+    """
+    hass = _FakeHass()
+    coord = _coordinator(hass, steering=False)
+    coord.last_applied = ACTION_CHARGE
+    plan = Plan(slots=[_plan_slot("charge", 0.20, NOW.replace(hour=3, minute=0), hours=6)])
+
+    hass.states.set("sensor.charge_energy", 100.0)
+    hass.states.set("sensor.discharge_energy", 50.0)
+    coord._update_actual_savings(plan, NOW)
+    hass.states.set("sensor.charge_energy", 140.0)
+    hass.states.set("sensor.discharge_energy", 80.0)
+    coord._update_actual_savings(plan, NOW + timedelta(minutes=30))
+
+    coord.enabled, coord.dry_run = True, False
+    hass.states.set("sensor.charge_energy", 142.0)
+    hass.states.set("sensor.discharge_energy", 80.0)
+    coord._update_actual_savings(plan, NOW + timedelta(hours=1))
+
+    # Only the 2 kWh charged after switching on, not the 40 kWh before it.
+    assert coord._acc_charge_kwh == pytest.approx(2.0)
+    assert coord._acc_savings_eur == pytest.approx(-0.40)
+
+
+def test_charge_in_an_unknown_mode_is_priced_at_the_import_price():
+    """No mode on record yet: assume grid, not PV.
+
+    `last_applied` is None until the first script call. Valuing that charge at
+    the feed-in tariff would book grid energy at a fraction of its cost.
+    """
+    hass = _FakeHass()
+    coord = _coordinator(hass, **{CONF_FEED_IN_TARIFF: 0.08})
+    assert coord.last_applied is None
+    plan = Plan(slots=[_plan_slot("auto", 0.40, NOW.replace(hour=3, minute=0), hours=6)])
+
+    hass.states.set("sensor.charge_energy", 10.0)
+    hass.states.set("sensor.discharge_energy", 5.0)
+    coord._update_actual_savings(plan, NOW)
+    hass.states.set("sensor.charge_energy", 12.0)
+    hass.states.set("sensor.discharge_energy", 5.0)
+    coord._update_actual_savings(plan, NOW + timedelta(minutes=30))
+
+    assert coord._acc_savings_eur == pytest.approx(-0.80)

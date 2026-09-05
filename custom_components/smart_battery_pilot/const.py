@@ -70,5 +70,10 @@ UPDATE_INTERVAL_MINUTES = 30
 STORAGE_KEY = f"{DOMAIN}.model"
 STORAGE_VERSION = 1
 STORE_SAVE_DELAY_SECONDS = 60
+# Control scripts are awaited (blocking=True) while the executor holds its
+# lock, and entry unload waits for that same lock. A script that never returns
+# - the vendor examples recommend wrapping Modbus writes in a retry loop -
+# would otherwise hang reloads and Home Assistant's shutdown for good.
+SCRIPT_CALL_TIMEOUT_SECONDS = 120
 
 FRONTEND_SCRIPT_URL = f"/{DOMAIN}/smart-battery-pilot-card.js"

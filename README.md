@@ -87,7 +87,7 @@ Details and the full option reference: [docs/configuration.md](docs/configuratio
 | `sensor.…_charge_plan`                   | Full plan as `slots` attribute               |
 | `sensor.…_plan_status`                   | Plan validity (`ok` / `no_price_data` / …)   |
 | `sensor.…_estimated_savings`             | Plan vs. doing nothing, over the horizon     |
-| `sensor.…_actual_savings_eur`            | Accumulated EUR from energy-meter deltas (grid charge at import, PV charge at feed-in, export credited at feed-in) |
+| `sensor.…_actual_savings_eur`            | Accumulated EUR from energy-meter deltas, counted only while the pilot steers (grid charge at import, PV charge at feed-in, export credited at feed-in) |
 | `sensor.…_actual_savings_kwh`            | Accumulated kWh (discharge − grid charge)    |
 | `sensor.…_consumption_forecast`          | Learned 24h consumption forecast             |
 | `sensor.…_configuration`                 | Diagnostic dump of the active settings       |
@@ -97,7 +97,9 @@ Details and the full option reference: [docs/configuration.md](docs/configuratio
 
 Actual-savings sensors stay empty until **both** optional battery charge and
 discharge energy entities are configured — each reports a net figure, which a
-single meter cannot produce.
+single meter cannot produce. They only accumulate while the pilot actually
+steers (master switch on, dry-run off): a battery cycling under the inverter's
+own control is not the planner's doing.
 
 `estimated_savings` is measured against doing nothing (plain self-consumption),
 not against buying everything from the grid: a plan that changes nothing

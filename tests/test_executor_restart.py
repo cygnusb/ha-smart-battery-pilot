@@ -88,7 +88,7 @@ def _slot(action, *, hours=1.0):
         action=action,
         price=0.10,
         net_demand_kwh=1.0,
-        charge_power_w=4000.0 if action == ACTION_CHARGE else 0.0,
+        power_w=4000.0 if action == ACTION_CHARGE else 0.0,
     )
 
 
