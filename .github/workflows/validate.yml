@@ -37,18 +37,53 @@ jobs:
   tests-homeassistant:
     # The fast suite runs against hand-written stubs, so it cannot see Home
     # Assistant changing an API underneath us. This one installs the real
-    # thing and sets the integration up end to end.
+    # thing and sets the integration up end to end, at both ends of the
+    # version range the README and hacs.json promise.
+    #
+    # The Python version is what selects the core, and it does so silently:
+    # Home Assistant requires >= 3.14.2 from 2026.3 on, so a job pinned to
+    # 3.13 resolves to the newest release that still supported 3.13 instead of
+    # failing. That is how this job spent its first run testing a core seven
+    # months old while looking perfectly green.
+    name: tests-homeassistant (${{ matrix.label }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The floor from hacs.json / the README badge.
+          - label: HA 2024.11 (minimum)
+            python: "3.13"
+            phcc: pytest-homeassistant-custom-component==0.13.181
+            # That release does not pin its transitive dependencies tightly
+            # enough, and today's josepy dropped ComparableX509, which the acme
+            # version it pulls still imports at module level.
+            extra: "josepy<2"
+          # Whatever core the current PHCC pins - the drift detector.
+          - label: latest
+            python: "3.14"
+            phcc: pytest-homeassistant-custom-component
+            extra: ""
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
-      - run: pip install -r tests_ha/requirements.txt
+          python-version: ${{ matrix.python }}
+      - name: Install the pinned Home Assistant core
+        # EXTRA is empty for most entries; ${VAR:+"$VAR"} expands to nothing
+        # then, rather than to an empty argument pip would reject.
+        run: pip install "$PHCC" ${EXTRA:+"$EXTRA"}
+        env:
+          PHCC: ${{ matrix.phcc }}
+          EXTRA: ${{ matrix.extra }}
       - name: Install the matching frontend package
+        # Not pulled in by PHCC, but the integration depends on the `frontend`
+        # component; its version has to match the core that just got installed.
         run: |
           constraints="$(python -c 'import homeassistant, pathlib; print(pathlib.Path(homeassistant.__file__).parent / "package_constraints.txt")')"
           pip install "$(grep -m1 -o 'home-assistant-frontend==[0-9.]*' "$constraints")"
+      - name: Report the core actually under test
+        run: python -c "from homeassistant.const import __version__ as v; print('Home Assistant', v)"
       # Never collected together with tests/: its conftest puts tests/stubs on
       # sys.path, which would shadow the real homeassistant package.
       - run: pytest tests_ha/ -v -o asyncio_mode=auto
