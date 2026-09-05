@@ -226,6 +226,24 @@ STEP_FIELDS: dict[str, list[str]] = {
 }
 
 
+def _export_mode_is_reachable(merged: dict[str, Any]) -> bool:
+    """False when export mode is selected but no slot could ever qualify.
+
+    The optimizer only exports when the sell price beats the spread. With a
+    fixed feed-in tariff the sell price is that tariff, so a tariff at or below
+    the spread makes export mathematically impossible - and the setting looks
+    active while doing nothing. A tariff of 0 means "sell at market price",
+    which varies, so that case cannot be judged here.
+    """
+    if merged.get(CONF_DISCHARGE_MODE) != DISCHARGE_MODE_EXPORT:
+        return True
+    feed_in = float(merged.get(CONF_FEED_IN_TARIFF, DEFAULT_FEED_IN_TARIFF) or 0.0)
+    if feed_in <= 0:
+        return True
+    spread = float(merged.get(CONF_SPREAD_THRESHOLD, DEFAULT_SPREAD_THRESHOLD) or 0.0)
+    return feed_in > spread
+
+
 def _validate_price_entity(hass, entity_id: str) -> str | None:
     """Return an error key or None."""
     state = hass.states.get(entity_id)
@@ -374,6 +392,8 @@ class SBPOptionsFlow(OptionsFlow):
             error = _validate_price_entity(self.hass, user_input[CONF_PRICE_ENTITY])
             if error:
                 errors[CONF_PRICE_ENTITY] = error
+            elif not _export_mode_is_reachable({**self._merged, **user_input}):
+                errors["base"] = "export_spread_unreachable"
             else:
                 return await self._save_step("prices", user_input)
         return self.async_show_form(
@@ -419,6 +439,12 @@ class SBPOptionsFlow(OptionsFlow):
     async def async_step_tuning(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return await self._save_step("tuning", user_input)
-        return self.async_show_form(step_id="tuning", data_schema=schema_tuning(self._merged))
+            if not _export_mode_is_reachable({**self._merged, **user_input}):
+                errors["base"] = "export_spread_unreachable"
+            else:
+                return await self._save_step("tuning", user_input)
+        return self.async_show_form(
+            step_id="tuning", data_schema=schema_tuning(self._merged), errors=errors
+        )

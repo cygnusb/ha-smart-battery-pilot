@@ -90,7 +90,8 @@
       "entity_not_found": "Entity nicht gefunden.",
       "unsupported_price_format": "Das Preisformat dieser Entity wurde nicht erkannt. Unterstützte Integrationen siehe Dokumentation.",
       "no_future_prices": "Die Entity enthält keine zukünftigen Preise.",
-      "soc_range_invalid": "Minimaler SOC muss unter dem maximalen SOC liegen."
+      "soc_range_invalid": "Minimaler SOC muss unter dem maximalen SOC liegen.",
+      "export_spread_unreachable": "Der Einspeise-Modus kann mit diesen Werten nichts tun: Die Einspeisevergütung liegt auf oder unter dem minimalen Preisspread, damit qualifiziert sich kein Slot. Vergütung erhöhen, Spread senken oder die Vergütung auf 0 setzen, um zum Marktpreis einzuspeisen."
     },
     "abort": {
       "already_configured": "Bereits konfiguriert."
@@ -208,7 +209,8 @@
       "entity_not_found": "Entity nicht gefunden.",
       "unsupported_price_format": "Das Preisformat dieser Entity wurde nicht erkannt. Unterstützte Integrationen siehe Dokumentation.",
       "no_future_prices": "Die Entity enthält keine zukünftigen Preise.",
-      "soc_range_invalid": "Minimaler SOC muss unter dem maximalen SOC liegen."
+      "soc_range_invalid": "Minimaler SOC muss unter dem maximalen SOC liegen.",
+      "export_spread_unreachable": "Der Einspeise-Modus kann mit diesen Werten nichts tun: Die Einspeisevergütung liegt auf oder unter dem minimalen Preisspread, damit qualifiziert sich kein Slot. Vergütung erhöhen, Spread senken oder die Vergütung auf 0 setzen, um zum Marktpreis einzuspeisen."
     }
   },
   "selector": {
@@ -254,6 +256,7 @@
           "no_price_data": "Kein Preis",
           "no_soc": "Kein Ladezustand",
           "no_price_adapter": "Preisformat unbekannt",
+          "implausible_prices": "Preise unplausibel",
           "error": "Fehler"
         }
       },

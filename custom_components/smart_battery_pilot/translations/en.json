@@ -90,7 +90,8 @@
       "entity_not_found": "Entity not found.",
       "unsupported_price_format": "The price format of this entity was not recognized. See the documentation for supported integrations.",
       "no_future_prices": "The entity contains no future prices.",
-      "soc_range_invalid": "Minimum SOC must be below maximum SOC."
+      "soc_range_invalid": "Minimum SOC must be below maximum SOC.",
+      "export_spread_unreachable": "Export mode cannot do anything with these values: the feed-in tariff is at or below the minimum price spread, so no slot can ever qualify. Raise the feed-in tariff, lower the spread, or set the feed-in tariff to 0 to export at the market price."
     },
     "abort": {
       "already_configured": "Already configured."
@@ -208,7 +209,8 @@
       "entity_not_found": "Entity not found.",
       "unsupported_price_format": "The price format of this entity was not recognized. See the documentation for supported integrations.",
       "no_future_prices": "The entity contains no future prices.",
-      "soc_range_invalid": "Minimum SOC must be below maximum SOC."
+      "soc_range_invalid": "Minimum SOC must be below maximum SOC.",
+      "export_spread_unreachable": "Export mode cannot do anything with these values: the feed-in tariff is at or below the minimum price spread, so no slot can ever qualify. Raise the feed-in tariff, lower the spread, or set the feed-in tariff to 0 to export at the market price."
     }
   },
   "selector": {
@@ -254,6 +256,7 @@
           "no_price_data": "No price data",
           "no_soc": "No state of charge",
           "no_price_adapter": "Unknown price format",
+          "implausible_prices": "Implausible prices",
           "error": "Error"
         }
       },

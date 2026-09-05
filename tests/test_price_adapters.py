@@ -227,3 +227,71 @@ def test_merge_future_slots_dedupes():
     dupe = PriceSlot(start=NOW, end=NOW + timedelta(hours=1), price=0.2)
     merged = merge_future_slots([slot, dupe], NOW)
     assert len(merged) == 1 and merged[0].price == 0.2
+
+
+# --- unit handling across adapters -------------------------------------------
+
+
+def test_cent_prices_survive_the_fallback_to_the_generic_adapter():
+    """A Nordpool sensor whose raw_today is empty must not be read as euros.
+
+    `raw_today` is briefly empty right after a restart and whenever the
+    upstream API hiccups. The generic `hourly_arrays` adapter then picks the
+    sensor up via its plain `today` list - and used to take 30 cents for 30
+    EUR/kWh, which makes every hour look like a giant arbitrage opportunity.
+    """
+    attrs = {
+        "price_in_cents": True,
+        "unit_of_measurement": "cent/kWh",
+        "today": [30.0] * 24,
+        "raw_today": [],
+        "raw_tomorrow": [],
+        "tomorrow_valid": False,
+    }
+    adapter = detect_adapter(attrs)
+    assert adapter.name == "hourly_arrays"
+    slots = adapter.parse(attrs, NOW)
+    assert slots
+    assert all(slot.price == pytest.approx(0.30) for slot in slots)
+
+
+def test_ore_prices_survive_the_fallback_to_the_generic_adapter():
+    attrs = {
+        "unit_of_measurement": "öre/kWh",
+        "today": [45.0] * 24,
+        "raw_today": [],
+        "tomorrow_valid": False,
+    }
+    adapter = detect_adapter(attrs)
+    assert adapter.name == "hourly_arrays"
+    assert all(slot.price == pytest.approx(0.45) for slot in adapter.parse(attrs, NOW))
+
+
+def test_euro_arrays_are_left_alone():
+    """The common case must not be scaled: a plain EUR/kWh list stays as it is."""
+    attrs = {"unit_of_measurement": "EUR/kWh", "today": [0.28] * 24}
+    slots = detect_adapter(attrs).parse(attrs, NOW)
+    assert all(slot.price == pytest.approx(0.28) for slot in slots)
+
+
+def test_both_adapters_agree_on_the_same_cent_sensor():
+    """Whichever adapter claims a sensor, the price must come out the same."""
+    raw = [
+        {"start": _iso(11, h), "end": _iso(11, h + 1) if h < 23 else _iso(12, 0), "value": 30.0}
+        for h in range(24)
+    ]
+    structured = {
+        "price_in_cents": True,
+        "unit_of_measurement": "cent/kWh",
+        "today": [30.0] * 24,
+        "raw_today": raw,
+        "tomorrow_valid": False,
+    }
+    degraded = {**structured, "raw_today": []}
+
+    via_nordpool = detect_adapter(structured)
+    via_fallback = detect_adapter(degraded)
+    assert (via_nordpool.name, via_fallback.name) == ("nordpool", "hourly_arrays")
+    assert via_nordpool.parse(structured, NOW)[0].price == pytest.approx(
+        via_fallback.parse(degraded, NOW)[0].price
+    )

@@ -33,6 +33,16 @@ class PlanValidSensor(SBPEntity, BinarySensorEntity):
         super().__init__(coordinator, "plan_problem")
 
     @property
+    def available(self) -> bool:
+        """Always available.
+
+        CoordinatorEntity ties availability to `last_update_success`, which
+        would drop this entity to `unavailable` in exactly the situation it
+        exists to report - an automation waiting for `on` would never fire.
+        """
+        return True
+
+    @property
     def is_on(self) -> bool:
         """Problem class: on = there IS a problem."""
         data = self.coordinator.data

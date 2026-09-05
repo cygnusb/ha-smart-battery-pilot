@@ -19,6 +19,7 @@ from .const import (
     CONF_SCRIPT_CHARGE,
     CONF_SCRIPT_EXPORT,
     CONF_SCRIPT_IDLE,
+    SCRIPT_CALL_TIMEOUT_SECONDS,
 )
 from .coordinator import SBPCoordinator
 from .optimizer import PlanSlot
@@ -185,7 +186,7 @@ class PlanExecutor:
             _LOGGER.info(
                 "DRY RUN: would apply action '%s' (%.0f W) for slot %s - %s",
                 action,
-                slot.charge_power_w,
+                slot.power_w,
                 slot.start.isoformat(),
                 slot.end.isoformat(),
             )
@@ -197,7 +198,7 @@ class PlanExecutor:
         ):
             return
 
-        if await self._call_script(action, slot.charge_power_w):
+        if await self._call_script(action, slot.power_w):
             await self._remember(action)
             return
         if action != ACTION_AUTO and await self._call_script(ACTION_AUTO, 0.0):
@@ -254,12 +255,26 @@ class PlanExecutor:
             else {}
         )
         try:
-            await self.hass.services.async_call(
-                "script",
+            async with asyncio.timeout(SCRIPT_CALL_TIMEOUT_SECONDS):
+                await self.hass.services.async_call(
+                    "script",
+                    object_id,
+                    payload,
+                    blocking=True,
+                )
+        except TimeoutError:
+            # Not `.exception`: a timeout carries no traceback worth printing,
+            # and the stack of an awaited service call says nothing about the
+            # script that is actually stuck.
+            _LOGGER.error(  # noqa: TRY400
+                "script.%s did not return within %d s - treating '%s' as failed. "
+                "A control script must not wait indefinitely; give any retry "
+                "loop inside it a bound of its own.",
                 object_id,
-                payload,
-                blocking=True,
+                SCRIPT_CALL_TIMEOUT_SECONDS,
+                action,
             )
+            return False
         except Exception:
             _LOGGER.exception("Calling script.%s failed", object_id)
             return False

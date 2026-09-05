@@ -73,6 +73,13 @@ RETRAIN_RETRY_INTERVAL = timedelta(hours=6)
 # Price/mode samples kept for savings accounting; see _note_conditions.
 MAX_CONDITION_SAMPLES = 200
 
+# Above this, a parsed price is not a price but a unit error - cents or öre
+# read as euros. The all-time EPEX spot record is well under 1 EUR/kWh, so
+# anything past this is two orders of magnitude out. Planning on such a curve
+# would make every hour look like a huge arbitrage opportunity and force-charge
+# the battery from the grid around the clock, so the plan is refused instead.
+MAX_PLAUSIBLE_PRICE_EUR_KWH = 10.0
+
 # Fallback daylight window when sun.sun is unavailable.
 DEFAULT_SUNRISE_HOUR = 6.0
 DEFAULT_SUNSET_HOUR = 21.0
@@ -88,6 +95,10 @@ class PriceAdapterMissing(UpdateFailed):
 
 class PriceParseError(UpdateFailed):
     """The price attributes could not be turned into slots."""
+
+
+class PriceImplausible(UpdateFailed):
+    """The parsed prices are far outside any real tariff - likely a unit error."""
 
 
 class IntervalPrices(NamedTuple):
@@ -156,6 +167,10 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         # moved cannot be recovered from it afterwards - they have to be
         # recorded as they happen.
         self._conditions: list[tuple[float, float, str | None]] = []
+        # Entities already warned about an unexpected unit. The check runs on
+        # every update, so without this one misconfigured meter writes the same
+        # warning to the log twice an hour forever.
+        self._warned_units: set[str] = set()
         self._acc_savings_eur: float = 0.0
         self._acc_charge_kwh: float = 0.0
         self._acc_discharge_kwh: float = 0.0
@@ -223,6 +238,12 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             if self.data is not None:
                 return self._invalid_plan(now, "no_price_adapter")
             raise
+        except PriceImplausible as err:
+            # Never raised on the first refresh: the entry stays loaded so the
+            # status sensor and the diagnostics dump can say what is wrong,
+            # while the executor fails safe to auto on the invalid plan.
+            _LOGGER.warning("Refusing to plan: %s", err)
+            return self._invalid_plan(now, "implausible_prices")
         except Exception as err:
             if self.data is not None:
                 return self._invalid_plan(now, "price_parse_failed")
@@ -356,7 +377,30 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 PriceSlot(start=s.start, end=s.end, price=s.price + offset)
                 for s in slots
             ]
+        self._reject_implausible_prices(slots, entity_id, adapter.name)
         return slots
+
+    @staticmethod
+    def _reject_implausible_prices(
+        slots: list[PriceSlot], entity_id: str, adapter_name: str
+    ) -> None:
+        """Refuse a price curve that cannot be EUR/kWh.
+
+        The adapters convert cents and öre where the entity says so, but a
+        source that labels its unit wrongly - or a generic one the catch-all
+        adapter picked up - still lands here. Better no plan than a plan built
+        on prices a hundred times too large.
+        """
+        if not slots:
+            return
+        worst = max(abs(slot.price) for slot in slots)
+        if worst <= MAX_PLAUSIBLE_PRICE_EUR_KWH:
+            return
+        raise PriceImplausible(
+            f"{entity_id} yields prices up to {worst:.2f} EUR/kWh via the "
+            f"'{adapter_name}' adapter; expected EUR/kWh. Check the entity's "
+            "unit_of_measurement (cents/öre are converted only when declared)."
+        )
 
     def _daylight_window(self) -> tuple[float, float]:
         """Local sunrise/sunset hour from `sun.sun`, else a fixed 06-21 window.
@@ -405,9 +449,11 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             unit = str(state.attributes.get("unit_of_measurement") or "")
         if unit == "Wh":
             return raw / 1000.0
-        if unit and unit not in ("kWh", "kwh"):
+        if unit and unit not in ("kWh", "kwh") and entity_id not in self._warned_units:
+            self._warned_units.add(entity_id)
             _LOGGER.warning(
-                "Energy entity %s uses unit %s; expected kWh or Wh",
+                "Energy entity %s uses unit %s; expected kWh or Wh. Readings are "
+                "taken as kWh; this is logged once per entity.",
                 entity_id,
                 unit,
             )
@@ -529,6 +575,17 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             self.conf(CONF_BATTERY_CHARGE_ENERGY_ENTITY)
             and self.conf(CONF_BATTERY_DISCHARGE_ENERGY_ENTITY)
         )
+
+    def _is_steering(self) -> bool:
+        """True while the pilot actually drives the battery.
+
+        Meter deltas are only the integration's doing when the master switch is
+        on and dry-run is off. Counting them regardless credited the inverter's
+        own self-consumption to the pilot: a battery cycling by itself reported
+        several euros a day of "actual savings" from an integration that had
+        not called a single script.
+        """
+        return self.enabled and not self.dry_run
 
     @property
     def last_applied(self) -> str | None:
@@ -661,6 +718,14 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             self._trim_conditions(now.timestamp())
             return
 
+        if not self._is_steering():
+            # The meter baselines above are still advanced, so switching the
+            # pilot on later books the next real delta only - not everything
+            # that moved while it was off. Just the accounting pauses.
+            self._prev_savings_at = now
+            self._trim_conditions(now.timestamp())
+            return
+
         self._acc_charge_kwh += delta_charge
         self._acc_discharge_kwh += delta_discharge
         interval_start = self._prev_savings_at or now
@@ -697,6 +762,12 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         usually moved on to the next slot by then.
         """
         if action == ACTION_CHARGE:
+            return import_price
+        if action is None:
+            # No mode on record yet: the first interval after the pilot is
+            # switched on, or a restart before its first script call. Assume
+            # the expensive case - valuing unknown charge at the feed-in tariff
+            # would book grid energy at a fraction of what it cost.
             return import_price
         return self._export_value(import_price)
 

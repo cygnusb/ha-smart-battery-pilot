@@ -92,7 +92,10 @@ class CurrentActionSensor(SBPEntity, SensorEntity):
             "slot_start": slot.start.isoformat(),
             "slot_end": slot.end.isoformat(),
             "price": slot.price,
-            "charge_power_w": slot.charge_power_w,
+            "power_w": slot.power_w,
+            # Deprecated alias, kept so existing templates and older
+            # cards keep working; identical value.
+            "charge_power_w": slot.power_w,
             "enabled": self.coordinator.enabled,
             "dry_run": self.coordinator.dry_run,
         }
@@ -141,7 +144,10 @@ class NextActionSensor(SBPEntity, SensorEntity):
             "start": slot.start.isoformat(),
             "in_minutes": minutes,
             "price": slot.price,
-            "charge_power_w": slot.charge_power_w,
+            "power_w": slot.power_w,
+            # Deprecated alias, kept so existing templates and older
+            # cards keep working; identical value.
+            "charge_power_w": slot.power_w,
         }
 
 
@@ -193,7 +199,8 @@ class ChargePlanSensor(SBPEntity, SensorEntity):
                     "price": round(s.price, 4),
                     "net_demand_kwh": round(s.net_demand_kwh, 3),
                     "pv_kwh": round(s.pv_kwh, 3),
-                    "charge_power_w": s.charge_power_w,
+                    "power_w": s.power_w,
+                    "charge_power_w": s.power_w,
                     "discharge_kwh": s.discharge_kwh,
                     "soc_forecast": s.soc_forecast,
                 }
@@ -215,7 +222,14 @@ class PlanStatusSensor(SBPEntity, SensorEntity):
     """Plan validity status — diagnostic, not recorded."""
 
     _attr_device_class = SensorDeviceClass.ENUM
-    _attr_options = ["ok", "no_price_data", "no_soc", "no_price_adapter", "error"]
+    _attr_options = [
+        "ok",
+        "no_price_data",
+        "no_soc",
+        "no_price_adapter",
+        "implausible_prices",
+        "error",
+    ]
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, coordinator: SBPCoordinator) -> None:
@@ -232,6 +246,7 @@ class PlanStatusSensor(SBPEntity, SensorEntity):
                 "price_unavailable": "no_price_data",
                 "soc_unavailable": "no_soc",
                 "no_price_adapter": "no_price_adapter",
+                "implausible_prices": "implausible_prices",
             }
             return error_map.get(data.error or "", "error")
         return "ok"

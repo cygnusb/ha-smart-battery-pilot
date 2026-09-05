@@ -43,6 +43,29 @@ class PriceAdapter:
     parse: Callable[[dict[str, Any], datetime], list[PriceSlot]]
 
 
+def price_factor_from_attrs(attrs: dict[str, Any]) -> float:
+    """Scale factor turning an entity's price unit into EUR/kWh.
+
+    Lives here rather than in one adapter because every adapter that reads a
+    bare number needs it. A Nordpool sensor whose `raw_today` is momentarily
+    empty falls through to the generic `hourly_arrays` adapter, and that one
+    used to read the very same cents as euros - a plan built on prices a
+    hundred times too large charges the battery from the grid at every
+    opportunity.
+    """
+    if attrs.get("price_in_cents"):
+        return 0.01
+    unit = str(attrs.get("unit_of_measurement") or attrs.get("unit") or "").lower()
+    unit = unit.replace(" ", "")
+    if "öre" in unit or "øre" in unit or "ore/kwh" in unit:
+        return 0.01
+    if unit.startswith("c") and "eur" in unit:
+        return 0.01
+    if "ct/" in unit or unit in ("ct", "cent", "cents"):
+        return 0.01
+    return 1.0
+
+
 def _parse_dt(value: Any, default_tz: tzinfo | None = None) -> datetime:
     """Parse an ISO timestamp (or datetime passthrough).
 

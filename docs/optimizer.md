@@ -87,12 +87,29 @@ which Home Assistant only accepts together with `TOTAL`.
 `sensor.…_actual_savings_eur` is the running total from energy-meter deltas,
 priced at the time-weighted slot prices of each interval. Grid charge uses
 the import price; charge that happens in auto/idle (typically PV) uses the
-feed-in tariff. Discharge is valued by where the energy went: self-consumption
+feed-in tariff; charge in a mode not yet on record — the first interval after
+switching on, or a restart before the first script call — is priced at the
+import price, because assuming PV there would book grid energy at a fraction
+of its cost. Discharge is valued by where the energy went: self-consumption
 avoids the full import price, while discharge during an `export` slot only
 earns the feed-in tariff (or the raw market price when the tariff is `0`).
 Wh meters are converted to kWh. Both totals keep their last value when an
 update fails, so a blinking price entity does not tear a hole in their
 long-term statistics.
+
+**It only counts while the pilot steers.** Accounting is paused whenever the
+master switch is off or dry-run is on. A battery cycling under the inverter's
+own control is not the planner's doing, and counting it reported several euros
+a day of "savings" from an integration that had not called a single script.
+The meter baselines keep advancing while paused, so switching the pilot on
+does not settle everything that moved in the meantime as one huge delta.
+
+Note what the figure is: the measured value of the battery's energy flows
+while the pilot is in charge — discharge credited at what it displaced, minus
+what the charge cost. It is not a counterfactual against the inverter's own
+behaviour; a plan whose slots are all `auto` still accrues the value of plain
+self-consumption. `estimated_savings` is the one with a do-nothing baseline,
+and the two therefore answer different questions.
 
 ## Worked example (Dunkelflaute)
 

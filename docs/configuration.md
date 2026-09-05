@@ -22,7 +22,7 @@ If your integration is not recognized, create a template sensor with `today`/
 | Max charge / discharge power | Inverter limits in W. |
 | Min / Max SOC | The plan never leaves this window (e.g. 10–95 %). |
 | Roundtrip efficiency | Grid → battery → load efficiency, typically 88–92 %. Losses are priced into every charge decision. |
-| Battery charge / discharge energy (optional) | Cumulative kWh or Wh meters. **Both** are required before either `sensor.…_actual_savings` entity reports a value — each one is a net figure (discharge minus charge), which a single meter cannot produce. Unavailable readings are skipped so a glitch cannot inflate the total. Grid charge is priced at the import slot; PV charge in auto/idle is priced at the feed-in tariff (opportunity cost); discharge into the grid during an `export` slot is credited at the feed-in tariff, not at the import price. |
+| Battery charge / discharge energy (optional) | Cumulative kWh or Wh meters. **Both** are required before either `sensor.…_actual_savings` entity reports a value — each one is a net figure (discharge minus charge), which a single meter cannot produce. Unavailable readings are skipped so a glitch cannot inflate the total. Accounting only runs while the pilot actually steers (master switch on, dry-run off); the meter baselines keep advancing while it is off, so switching on does not book everything that moved in the meantime. Grid charge is priced at the import slot; PV charge in auto/idle is priced at the feed-in tariff (opportunity cost); charge in a mode not yet on record is priced at the import price; discharge into the grid during an `export` slot is credited at the feed-in tariff, not at the import price. |
 
 ### 3. Control scripts
 
@@ -37,6 +37,8 @@ Assistant scripts that you provide. This is what makes it vendor neutral.
 | Force discharge to grid (optional) | an `export` slot starts (export mode only) | variable `power_w` (planned discharge power) |
 
 Ready-made scripts for specific hardware: see [examples](examples/).
+
+> Each script is awaited (`blocking: true`) and must return within **120 s**, or > the action counts as failed and the battery is handed back to auto mode. Give > any retry loop inside a script a bound of its own — an unbounded one would > otherwise hold up integration reloads and Home Assistant's shutdown.
 
 ### 4. Household consumption
 
@@ -84,7 +86,7 @@ them). Saving reloads the integration and recomputes the plan.
 |---|---|---|
 | Minimum price spread | 0.20 EUR/kWh | Grid charging only happens if `discharge price > charge price / efficiency + spread`. Raise it to be more conservative (fewer cycles), lower it to arbitrage more aggressively. |
 | Discharge mode | Self-consumption | `Self-consumption`: the battery only ever covers the house load. `Export`: additionally force-discharge into the grid during extreme price peaks. **Check your tariff/regulatory situation before enabling export.** |
-| Price offset / feed-in tariff | – | Same as in the config flow. Feed-in `0` uses the market price for export. A fixed tariff below the spread (default 0.20 EUR/kWh) will never schedule export — the plan then carries `export_spread_unreachable`. |
+| Price offset / feed-in tariff | – | Same as in the config flow. Feed-in `0` uses the market price for export. A fixed tariff at or below the spread (default 0.20 EUR/kWh) could never schedule export, so the options flow refuses that combination instead of letting the setting look active while doing nothing. |
 | Training days | 60 | History window for the consumption model. |
 
 ## Going live
