@@ -9,8 +9,19 @@ pytest run - the stub path would shadow the real `homeassistant` package.
 
 from __future__ import annotations
 
+from pathlib import Path
+import sys
+
 from homeassistant.core import HomeAssistant
 import pytest
+
+# The tests import `custom_components.smart_battery_pilot`, the way Home
+# Assistant loads it. pytest only puts the test file's own directory on
+# sys.path, so the repo root has to go on explicitly - otherwise collection
+# dies with "No module named 'custom_components'" under a bare `pytest`.
+# (`python -m pytest` happens to work because it adds the current directory,
+# which is exactly the difference that let this pass locally and fail in CI.)
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 pytest_plugins = "pytest_homeassistant_custom_component"
 
