@@ -36,7 +36,7 @@ sbp_auto_mode:
   sequence:
     # vendor-specific actions
 
-# optional, only for export mode:
+# required for export mode, otherwise optional:
 sbp_force_discharge:
   alias: "SBP: Force discharge to grid"
   fields:
@@ -45,6 +45,11 @@ sbp_force_discharge:
   sequence:
     # vendor-specific actions
 ```
+
+`power_w` on the discharge script is the **total** the battery should deliver:
+the household load plus what goes to the grid. The script should keep serving
+the house from the battery while it exports — see
+[what an export slot assumes](../optimizer.md#what-an-export-slot-assumes).
 
 ## Integration configuration
 

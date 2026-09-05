@@ -91,7 +91,8 @@
       "unsupported_price_format": "The price format of this entity was not recognized. See the documentation for supported integrations.",
       "no_future_prices": "The entity contains no future prices.",
       "soc_range_invalid": "Minimum SOC must be below maximum SOC.",
-      "export_spread_unreachable": "Export mode cannot do anything with these values: the feed-in tariff is at or below the minimum price spread, so no slot can ever qualify. Raise the feed-in tariff, lower the spread, or set the feed-in tariff to 0 to export at the market price."
+      "export_spread_unreachable": "Export mode cannot do anything with these values: the feed-in tariff is at or below the minimum price spread, so no slot can ever qualify. Raise the feed-in tariff, lower the spread, or set the feed-in tariff to 0 to export at the market price.",
+      "export_script_missing": "Export mode needs a force-discharge script. Configure one in the control scripts step, or set the discharge mode back to self-consumption."
     },
     "abort": {
       "already_configured": "Already configured."
@@ -210,7 +211,8 @@
       "unsupported_price_format": "The price format of this entity was not recognized. See the documentation for supported integrations.",
       "no_future_prices": "The entity contains no future prices.",
       "soc_range_invalid": "Minimum SOC must be below maximum SOC.",
-      "export_spread_unreachable": "Export mode cannot do anything with these values: the feed-in tariff is at or below the minimum price spread, so no slot can ever qualify. Raise the feed-in tariff, lower the spread, or set the feed-in tariff to 0 to export at the market price."
+      "export_spread_unreachable": "Export mode cannot do anything with these values: the feed-in tariff is at or below the minimum price spread, so no slot can ever qualify. Raise the feed-in tariff, lower the spread, or set the feed-in tariff to 0 to export at the market price.",
+      "export_script_missing": "Export mode needs a force-discharge script. Configure one in the control scripts step, or set the discharge mode back to self-consumption."
     }
   },
   "selector": {

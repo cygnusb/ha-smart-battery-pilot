@@ -91,7 +91,8 @@
       "unsupported_price_format": "Das Preisformat dieser Entity wurde nicht erkannt. Unterstützte Integrationen siehe Dokumentation.",
       "no_future_prices": "Die Entity enthält keine zukünftigen Preise.",
       "soc_range_invalid": "Minimaler SOC muss unter dem maximalen SOC liegen.",
-      "export_spread_unreachable": "Der Einspeise-Modus kann mit diesen Werten nichts tun: Die Einspeisevergütung liegt auf oder unter dem minimalen Preisspread, damit qualifiziert sich kein Slot. Vergütung erhöhen, Spread senken oder die Vergütung auf 0 setzen, um zum Marktpreis einzuspeisen."
+      "export_spread_unreachable": "Der Einspeise-Modus kann mit diesen Werten nichts tun: Die Einspeisevergütung liegt auf oder unter dem minimalen Preisspread, damit qualifiziert sich kein Slot. Vergütung erhöhen, Spread senken oder die Vergütung auf 0 setzen, um zum Marktpreis einzuspeisen.",
+      "export_script_missing": "Der Export-Modus braucht ein Script zum erzwungenen Entladen. Hinterlege eines bei den Steuerungs-Scripts, oder stelle den Entlademodus zurück auf Eigenverbrauch."
     },
     "abort": {
       "already_configured": "Bereits konfiguriert."
@@ -210,7 +211,8 @@
       "unsupported_price_format": "Das Preisformat dieser Entity wurde nicht erkannt. Unterstützte Integrationen siehe Dokumentation.",
       "no_future_prices": "Die Entity enthält keine zukünftigen Preise.",
       "soc_range_invalid": "Minimaler SOC muss unter dem maximalen SOC liegen.",
-      "export_spread_unreachable": "Der Einspeise-Modus kann mit diesen Werten nichts tun: Die Einspeisevergütung liegt auf oder unter dem minimalen Preisspread, damit qualifiziert sich kein Slot. Vergütung erhöhen, Spread senken oder die Vergütung auf 0 setzen, um zum Marktpreis einzuspeisen."
+      "export_spread_unreachable": "Der Einspeise-Modus kann mit diesen Werten nichts tun: Die Einspeisevergütung liegt auf oder unter dem minimalen Preisspread, damit qualifiziert sich kein Slot. Vergütung erhöhen, Spread senken oder die Vergütung auf 0 setzen, um zum Marktpreis einzuspeisen.",
+      "export_script_missing": "Der Export-Modus braucht ein Script zum erzwungenen Entladen. Hinterlege eines bei den Steuerungs-Scripts, oder stelle den Entlademodus zurück auf Eigenverbrauch."
     }
   },
   "selector": {

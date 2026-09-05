@@ -3,6 +3,13 @@
 Format: attributes contain `prices` (or `forecast`), a list of
 {"start_time": iso, "end_time": iso, "marketprice": float} with the
 market price in EUR/MWh (aWATTar API convention).
+
+Unlike the Nordpool and ENTSO-E adapters this one does *not* consult the
+entity's `unit_of_measurement`. There, the attribute holds the same number the
+state shows, so the declared unit describes it. Here `marketprice` is raw API
+data whose unit is fixed by aWATTar, while the entity's own unit describes the
+state - often ct/kWh. Scaling by it would make a correct sensor ten times too
+expensive, which is the direction that force-charges a battery.
 """
 
 from __future__ import annotations

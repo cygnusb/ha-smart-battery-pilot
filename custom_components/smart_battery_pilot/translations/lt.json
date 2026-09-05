@@ -91,7 +91,8 @@
       "unsupported_price_format": "Šio objekto kainų formatas neatpažintas. Palaikomas integracijas rasi dokumentacijoje.",
       "no_future_prices": "Objekte nėra būsimų kainų.",
       "soc_range_invalid": "Mažiausias SOC turi būti mažesnis už didžiausią SOC.",
-      "export_spread_unreachable": "Pardavimo režimas su šiomis reikšmėmis nieko negali padaryti: atlygis yra lygus mažiausiam kainų skirtumui arba už jį mažesnis, todėl nė viena valanda niekada netiks. Padidink atlygį, sumažink skirtumą arba nustatyk atlygį į 0, kad parduotum rinkos kaina."
+      "export_spread_unreachable": "Pardavimo režimas su šiomis reikšmėmis nieko negali padaryti: atlygis yra lygus mažiausiam kainų skirtumui arba už jį mažesnis, todėl nė viena valanda niekada netiks. Padidink atlygį, sumažink skirtumą arba nustatyk atlygį į 0, kad parduotum rinkos kaina.",
+      "export_script_missing": "Eksporto režimui reikia priverstinio iškrovimo scenarijaus. Pridėkite jį prie valdymo scenarijų arba grąžinkite iškrovimo režimą į savo suvartojimą."
     },
     "abort": {
       "already_configured": "Jau sukonfigūruota."
@@ -210,7 +211,8 @@
       "unsupported_price_format": "Šio objekto kainų formatas neatpažintas. Palaikomas integracijas rasi dokumentacijoje.",
       "no_future_prices": "Objekte nėra būsimų kainų.",
       "soc_range_invalid": "Mažiausias SOC turi būti mažesnis už didžiausią SOC.",
-      "export_spread_unreachable": "Pardavimo režimas su šiomis reikšmėmis nieko negali padaryti: atlygis yra lygus mažiausiam kainų skirtumui arba už jį mažesnis, todėl nė viena valanda niekada netiks. Padidink atlygį, sumažink skirtumą arba nustatyk atlygį į 0, kad parduotum rinkos kaina."
+      "export_spread_unreachable": "Pardavimo režimas su šiomis reikšmėmis nieko negali padaryti: atlygis yra lygus mažiausiam kainų skirtumui arba už jį mažesnis, todėl nė viena valanda niekada netiks. Padidink atlygį, sumažink skirtumą arba nustatyk atlygį į 0, kad parduotum rinkos kaina.",
+      "export_script_missing": "Eksporto režimui reikia priverstinio iškrovimo scenarijaus. Pridėkite jį prie valdymo scenarijų arba grąžinkite iškrovimo režimą į savo suvartojimą."
     }
   },
   "selector": {

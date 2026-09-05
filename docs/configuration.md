@@ -6,7 +6,7 @@
 
 | Field | Description |
 |---|---|
-| Price forecast entity | Entity of your tariff integration holding the price forecast in its attributes. Supported formats are detected automatically: **Nordpool** (`raw_today`/`raw_tomorrow`; `price_in_cents` or ct/öre/cEUR units are scaled to EUR/kWh), **EPEX Spot** (`data` with `price_eur_per_mwh`/`price_ct_per_kwh`), **ENTSO-E** (`prices` with `time`/`price`), **aWATTar** (`marketprice` entries) and plain **hourly arrays** (`today`/`tomorrow` float lists). Arrays may hold 23, 24 or 25 values (96 / 92 / 100 at quarter-hour resolution) — on the two clock-change days a local day is not 24 hours long, and the grid follows the real day. |
+| Price forecast entity | Entity of your tariff integration holding the price forecast in its attributes. Supported formats are detected automatically: **Nordpool** (`raw_today`/`raw_tomorrow`; `price_in_cents` or ct/öre/cEUR units are scaled to EUR/kWh), **EPEX Spot** (`data` with `price_eur_per_mwh`/`price_ct_per_kwh`), **ENTSO-E** (`prices` with `time`/`price`; the declared unit decides the scale, so a sensor configured for cents is converted too), **aWATTar** (`marketprice` entries) and plain **hourly arrays** (`today`/`tomorrow` float lists). Arrays may hold 23, 24 or 25 values (96 / 92 / 100 at quarter-hour resolution) — on the two clock-change days a local day is not 24 hours long, and the grid follows the real day. |
 | Price offset | Fixed surcharge added to every market price: grid fees, taxes, levies (e.g. `0.187` EUR/kWh in Germany). Self-consumption decisions use the *total* import price you actually pay. Grid export is valued at the feed-in tariff, or at the raw market price when the tariff is `0` — the import surcharge is not treated as export revenue. |
 | Feed-in tariff | What you earn per exported kWh. `0` means the market price is used (dynamic feed-in). Only relevant for the export discharge mode. |
 
@@ -34,7 +34,14 @@ Assistant scripts that you provide. This is what makes it vendor neutral.
 | Force charge | a `charge` slot starts | variable `power_w` (planned grid charge power) |
 | Block discharge (idle) | an `idle` slot starts | – |
 | Auto mode | an `auto` slot starts; also when the integration is disabled, unloaded, the plan becomes invalid, or dry-run is turned on after a live script was applied | – |
-| Force discharge to grid (optional) | an `export` slot starts (export mode only) | variable `power_w` (planned discharge power) |
+| Force discharge to grid | an `export` slot starts | variable `power_w` (planned discharge power) |
+
+Only the force-discharge script is optional — and only while the discharge
+mode is *self-consumption*. Selecting **export** mode without it is refused,
+because the planner would keep scheduling export slots that the executor can
+only answer with a warning and a fallback to auto mode. It must keep covering
+the house from the battery while it exports; see
+[what an export slot assumes](optimizer.md#what-an-export-slot-assumes).
 
 Ready-made scripts for specific hardware: see [examples](examples/).
 
@@ -85,7 +92,7 @@ them). Saving reloads the integration and recomputes the plan.
 | Option | Default | Description |
 |---|---|---|
 | Minimum price spread | 0.20 EUR/kWh | Grid charging only happens if `discharge price > charge price / efficiency + spread`. Raise it to be more conservative (fewer cycles), lower it to arbitrage more aggressively. |
-| Discharge mode | Self-consumption | `Self-consumption`: the battery only ever covers the house load. `Export`: additionally force-discharge into the grid during extreme price peaks. **Check your tariff/regulatory situation before enabling export.** |
+| Discharge mode | Self-consumption | `Self-consumption`: the battery only ever covers the house load. `Export`: additionally force-discharge into the grid during extreme price peaks — requires the force-discharge script. **Check your tariff/regulatory situation before enabling export.** |
 | Price offset / feed-in tariff | – | Same as in the config flow. Feed-in `0` uses the market price for export. A fixed tariff at or below the spread (default 0.20 EUR/kWh) could never schedule export, so the options flow refuses that combination instead of letting the setting look active while doing nothing. |
 | Training days | 60 | History window for the consumption model. |
 

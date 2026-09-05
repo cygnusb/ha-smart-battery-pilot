@@ -91,7 +91,8 @@
       "unsupported_price_format": "Prisformatet for denne entitet blev ikke genkendt. Se dokumentationen for understøttede integrationer.",
       "no_future_prices": "Entiteten indeholder ingen fremtidige priser.",
       "soc_range_invalid": "Mindste SOC skal være under største SOC.",
-      "export_spread_unreachable": "Salgstilstanden kan ikke gøre noget med disse værdier: afregningsprisen ligger på eller under det mindste prisspread, så ingen time kan nogensinde kvalificere sig. Hæv afregningsprisen, sænk spreadet, eller sæt afregningsprisen til 0 for at sælge til markedspris."
+      "export_spread_unreachable": "Salgstilstanden kan ikke gøre noget med disse værdier: afregningsprisen ligger på eller under det mindste prisspread, så ingen time kan nogensinde kvalificere sig. Hæv afregningsprisen, sænk spreadet, eller sæt afregningsprisen til 0 for at sælge til markedspris.",
+      "export_script_missing": "Eksporttilstand kræver et script til tvungen afladning. Tilføj et under styringsscripts, eller sæt afladningstilstanden tilbage til eget forbrug."
     },
     "abort": {
       "already_configured": "Allerede konfigureret."
@@ -210,7 +211,8 @@
       "unsupported_price_format": "Prisformatet for denne entitet blev ikke genkendt. Se dokumentationen for understøttede integrationer.",
       "no_future_prices": "Entiteten indeholder ingen fremtidige priser.",
       "soc_range_invalid": "Mindste SOC skal være under største SOC.",
-      "export_spread_unreachable": "Salgstilstanden kan ikke gøre noget med disse værdier: afregningsprisen ligger på eller under det mindste prisspread, så ingen time kan nogensinde kvalificere sig. Hæv afregningsprisen, sænk spreadet, eller sæt afregningsprisen til 0 for at sælge til markedspris."
+      "export_spread_unreachable": "Salgstilstanden kan ikke gøre noget med disse værdier: afregningsprisen ligger på eller under det mindste prisspread, så ingen time kan nogensinde kvalificere sig. Hæv afregningsprisen, sænk spreadet, eller sæt afregningsprisen til 0 for at sælge til markedspris.",
+      "export_script_missing": "Eksporttilstand kræver et script til tvungen afladning. Tilføj et under styringsscripts, eller sæt afladningstilstanden tilbage til eget forbrug."
     }
   },
   "selector": {

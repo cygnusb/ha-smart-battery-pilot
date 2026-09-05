@@ -43,6 +43,13 @@ class PriceAdapter:
     parse: Callable[[dict[str, Any], datetime], list[PriceSlot]]
 
 
+# Every spelling of "hundredth of a currency unit" this has met in the wild.
+# Matched as a prefix of the unit's numerator, not as the whole string: the
+# exact-match version this replaced let `Cent/kWh`, `cents/kWh` and `c€/kWh`
+# through as euros.
+_CENT_PREFIXES = ("ct", "cent", "c€", "ceur", "öre", "øre", "ore")
+
+
 def price_factor_from_attrs(attrs: dict[str, Any]) -> float:
     """Scale factor turning an entity's price unit into EUR/kWh.
 
@@ -52,16 +59,19 @@ def price_factor_from_attrs(attrs: dict[str, Any]) -> float:
     used to read the very same cents as euros - a plan built on prices a
     hundred times too large charges the battery from the grid at every
     opportunity.
+
+    Only the numerator is inspected, so a currency that merely begins with a
+    `c` - CZK, CHF, CAD - is not mistaken for cents.
     """
     if attrs.get("price_in_cents"):
         return 0.01
     unit = str(attrs.get("unit_of_measurement") or attrs.get("unit") or "").lower()
     unit = unit.replace(" ", "")
-    if "öre" in unit or "øre" in unit or "ore/kwh" in unit:
+    # No currency code contains these, so they are safe to find anywhere.
+    if "öre" in unit or "øre" in unit:
         return 0.01
-    if unit.startswith("c") and "eur" in unit:
-        return 0.01
-    if "ct/" in unit or unit in ("ct", "cent", "cents"):
+    numerator = unit.split("/", 1)[0]
+    if numerator.startswith(_CENT_PREFIXES):
         return 0.01
     return 1.0
 
@@ -92,7 +102,7 @@ def slots_from_entries(
     """Build slots from a list of {start, end, price} style dicts.
 
     If end_key is None the end of each slot is the start of the next one;
-    the last slot gets the median slot length of the series.
+    the last slot inherits the length of the one before it.
     """
     parsed: list[tuple[datetime, datetime | None, float]] = []
     for entry in entries:

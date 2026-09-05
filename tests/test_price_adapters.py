@@ -5,7 +5,11 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from smart_battery_pilot.price_adapters import detect_adapter
-from smart_battery_pilot.price_adapters.base import PriceSlot, merge_future_slots
+from smart_battery_pilot.price_adapters.base import (
+    PriceSlot,
+    merge_future_slots,
+    price_factor_from_attrs,
+)
 
 TZ = timezone(timedelta(hours=2))
 NOW = datetime(2026, 6, 11, 10, 5, tzinfo=TZ)
@@ -294,4 +298,81 @@ def test_both_adapters_agree_on_the_same_cent_sensor():
     assert (via_nordpool.name, via_fallback.name) == ("nordpool", "hourly_arrays")
     assert via_nordpool.parse(structured, NOW)[0].price == pytest.approx(
         via_fallback.parse(degraded, NOW)[0].price
+    )
+
+
+# --- price units ------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("unit", "factor"),
+    [
+        ("EUR/kWh", 1.0),
+        ("€/kWh", 1.0),
+        ("SEK/kWh", 1.0),
+        ("CZK/kWh", 1.0),
+        ("CHF/kWh", 1.0),
+        ("ct/kWh", 0.01),
+        ("ct", 0.01),
+        ("cts/kWh", 0.01),
+        ("Cent/kWh", 0.01),
+        ("cent", 0.01),
+        ("cents/kWh", 0.01),
+        ("c€/kWh", 0.01),
+        ("cEUR/kWh", 0.01),
+        ("öre/kWh", 0.01),
+        ("øre/kWh", 0.01),
+        ("ore/kWh", 0.01),
+    ],
+)
+def test_every_spelling_of_a_cent_unit_is_scaled(unit, factor):
+    """A currency that merely starts with a `c` must not be read as cents.
+
+    The check used to be an exact match against three spellings, so
+    `Cent/kWh`, `cents/kWh` and `c€/kWh` all fell through as euros - prices a
+    hundred times too large, which makes every hour look like a giant
+    arbitrage opportunity.
+    """
+    assert price_factor_from_attrs({"unit_of_measurement": unit}) == pytest.approx(factor)
+
+
+def test_the_currency_of_a_cent_unit_does_not_matter():
+    """`price_in_cents` wins regardless of how the unit is spelled."""
+    assert price_factor_from_attrs({"price_in_cents": True, "unit": "whatever"}) == 0.01
+
+
+def test_entsoe_in_cents_is_scaled_to_euros():
+    """The ENTSO-E adapter used to read its `price` as EUR/kWh unconditionally.
+
+    A sensor configured for cents then yielded prices a hundred times too
+    large. Anything above 10 EUR/kWh is refused by the coordinator's
+    plausibility guard, so a curve peaking under 10 ct/kWh slipped through and
+    was planned on - and one peaking above it broke the integration outright.
+    """
+    attrs = {
+        "unit_of_measurement": "ct/kWh",
+        "prices": [{"time": _iso(11, h), "price": 5.0} for h in range(24)],
+    }
+    adapter = detect_adapter(attrs)
+    assert adapter.name == "entsoe"
+    assert all(slot.price == pytest.approx(0.05) for slot in adapter.parse(attrs, NOW))
+
+
+def test_entsoe_in_euros_is_left_alone():
+    attrs = {
+        "unit_of_measurement": "EUR/kWh",
+        "prices": [{"time": _iso(11, h), "price": 0.28} for h in range(24)],
+    }
+    assert all(
+        slot.price == pytest.approx(0.28)
+        for slot in detect_adapter(attrs).parse(attrs, NOW)
+    )
+
+
+def test_entsoe_without_a_unit_is_left_alone():
+    """The integration's own default is EUR/kWh and carries no unit hint."""
+    attrs = {"prices": [{"time": _iso(11, h), "price": 0.28} for h in range(24)]}
+    assert all(
+        slot.price == pytest.approx(0.28)
+        for slot in detect_adapter(attrs).parse(attrs, NOW)
     )

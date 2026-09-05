@@ -244,6 +244,19 @@ def _export_mode_is_reachable(merged: dict[str, Any]) -> bool:
     return feed_in > spread
 
 
+def _export_script_is_configured(merged: dict[str, Any]) -> bool:
+    """False when export mode is selected but no export script carries it.
+
+    Every other action's script is required, this one is optional - it is only
+    ever called in export mode. Without it the planner still schedules export
+    slots, `_call_script` refuses them and the executor falls back to auto at
+    every slot boundary, so the setting looks active while doing nothing.
+    """
+    if merged.get(CONF_DISCHARGE_MODE) != DISCHARGE_MODE_EXPORT:
+        return True
+    return bool(merged.get(CONF_SCRIPT_EXPORT))
+
+
 def _validate_price_entity(hass, entity_id: str) -> str | None:
     """Return an error key or None."""
     state = hass.states.get(entity_id)
@@ -371,10 +384,23 @@ class SBPOptionsFlow(OptionsFlow):
             ],
         )
 
+    def _would_be(self, step: str, user_input: dict[str, Any]) -> dict[str, Any]:
+        """The whole configuration as this step would leave it.
+
+        Cross-step checks have to see an optional field the user just cleared
+        as cleared, not as whatever the entry still holds - so the step's
+        fields are mapped the same way `_save_step` stores them.
+        """
+        return {**self._merged, **self._step_values(step, user_input)}
+
+    @staticmethod
+    def _step_values(step: str, user_input: dict[str, Any]) -> dict[str, Any]:
+        """The step's fields, absent optional ones as None ("removed")."""
+        return {key: user_input.get(key) for key in STEP_FIELDS[step]}
+
     async def _save_step(self, step: str, user_input: dict[str, Any]) -> ConfigFlowResult:
         """Stash the step's fields (absent optional fields -> None), back to menu."""
-        for key in STEP_FIELDS[step]:
-            self._pending[key] = user_input.get(key)
+        self._pending.update(self._step_values(step, user_input))
         return await self.async_step_init()
 
     async def async_step_apply(
@@ -392,7 +418,7 @@ class SBPOptionsFlow(OptionsFlow):
             error = _validate_price_entity(self.hass, user_input[CONF_PRICE_ENTITY])
             if error:
                 errors[CONF_PRICE_ENTITY] = error
-            elif not _export_mode_is_reachable({**self._merged, **user_input}):
+            elif not _export_mode_is_reachable(self._would_be("prices", user_input)):
                 errors["base"] = "export_spread_unreachable"
             else:
                 return await self._save_step("prices", user_input)
@@ -416,9 +442,15 @@ class SBPOptionsFlow(OptionsFlow):
     async def async_step_control(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return await self._save_step("control", user_input)
-        return self.async_show_form(step_id="control", data_schema=schema_control(self._merged))
+            if not _export_script_is_configured(self._would_be("control", user_input)):
+                errors["base"] = "export_script_missing"
+            else:
+                return await self._save_step("control", user_input)
+        return self.async_show_form(
+            step_id="control", data_schema=schema_control(self._merged), errors=errors
+        )
 
     async def async_step_consumption(
         self, user_input: dict[str, Any] | None = None
@@ -441,8 +473,11 @@ class SBPOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
-            if not _export_mode_is_reachable({**self._merged, **user_input}):
+            merged = self._would_be("tuning", user_input)
+            if not _export_mode_is_reachable(merged):
                 errors["base"] = "export_spread_unreachable"
+            elif not _export_script_is_configured(merged):
+                errors["base"] = "export_script_missing"
             else:
                 return await self._save_step("tuning", user_input)
         return self.async_show_form(

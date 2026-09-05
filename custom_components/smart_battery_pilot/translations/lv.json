@@ -91,7 +91,8 @@
       "unsupported_price_format": "Šīs entītijas cenu formāts netika atpazīts. Atbalstītās integrācijas skati dokumentācijā.",
       "no_future_prices": "Entītijā nav nākotnes cenu.",
       "soc_range_invalid": "Minimālajam SOC jābūt zemākam par maksimālo SOC.",
-      "export_spread_unreachable": "Pārdošanas režīms ar šīm vērtībām neko nevar izdarīt: atlīdzība ir vienāda ar minimālo cenu starpību vai zemāka, tāpēc neviena stunda nekad nekvalificēsies. Palielini atlīdzību, samazini starpību vai iestati atlīdzību uz 0, lai pārdotu par tirgus cenu."
+      "export_spread_unreachable": "Pārdošanas režīms ar šīm vērtībām neko nevar izdarīt: atlīdzība ir vienāda ar minimālo cenu starpību vai zemāka, tāpēc neviena stunda nekad nekvalificēsies. Palielini atlīdzību, samazini starpību vai iestati atlīdzību uz 0, lai pārdotu par tirgus cenu.",
+      "export_script_missing": "Eksporta režīmam nepieciešams piespiedu izlādes skripts. Pievienojiet to vadības skriptos vai iestatiet izlādes režīmu atpakaļ uz pašpatēriņu."
     },
     "abort": {
       "already_configured": "Jau konfigurēts."
@@ -210,7 +211,8 @@
       "unsupported_price_format": "Šīs entītijas cenu formāts netika atpazīts. Atbalstītās integrācijas skati dokumentācijā.",
       "no_future_prices": "Entītijā nav nākotnes cenu.",
       "soc_range_invalid": "Minimālajam SOC jābūt zemākam par maksimālo SOC.",
-      "export_spread_unreachable": "Pārdošanas režīms ar šīm vērtībām neko nevar izdarīt: atlīdzība ir vienāda ar minimālo cenu starpību vai zemāka, tāpēc neviena stunda nekad nekvalificēsies. Palielini atlīdzību, samazini starpību vai iestati atlīdzību uz 0, lai pārdotu par tirgus cenu."
+      "export_spread_unreachable": "Pārdošanas režīms ar šīm vērtībām neko nevar izdarīt: atlīdzība ir vienāda ar minimālo cenu starpību vai zemāka, tāpēc neviena stunda nekad nekvalificēsies. Palielini atlīdzību, samazini starpību vai iestati atlīdzību uz 0, lai pārdotu par tirgus cenu.",
+      "export_script_missing": "Eksporta režīmam nepieciešams piespiedu izlādes skripts. Pievienojiet to vadības skriptos vai iestatiet izlādes režīmu atpakaļ uz pašpatēriņu."
     }
   },
   "selector": {
