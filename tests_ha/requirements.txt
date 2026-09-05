@@ -1,10 +1,16 @@
-# Dependencies for the slow suite that runs against a real Home Assistant.
-# pytest-homeassistant-custom-component pins the homeassistant version it
-# tests against, which is what keeps this suite honest about API drift.
+# Reference environment for the suite that runs against a real Home Assistant.
+# CI does not read this file - `.github/workflows/validate.yml` drives a matrix
+# over both ends of the supported range and pins the core per matrix entry.
+# This is the "latest" entry, for reproducing a CI failure locally:
 #
-# home-assistant-frontend is NOT pulled in by it, but this integration depends
-# on the `frontend` component to register its Lovelace card - without the
-# package, setup fails with "No module named 'hass_frontend'". Its version has
-# to match the pinned core, so CI derives it from Home Assistant's own
-# package_constraints.txt rather than hardcoding it here.
+#   python3.14 -m venv .venv-ha && .venv-ha/bin/pip install -r tests_ha/requirements.txt
+#   constraints="$(.venv-ha/bin/python -c 'import homeassistant, pathlib; print(pathlib.Path(homeassistant.__file__).parent / "package_constraints.txt")')"
+#   .venv-ha/bin/pip install "$(grep -m1 -o 'home-assistant-frontend==[0-9.]*' "$constraints")"
+#   .venv-ha/bin/pytest tests_ha/ -o asyncio_mode=auto
+#
+# The Python version selects the core: Home Assistant requires >= 3.14.2 from
+# 2026.3 on, so running this on 3.13 silently gets you a much older core.
+# home-assistant-frontend is not pulled in by PHCC but is needed because the
+# integration depends on the `frontend` component; its version must match the
+# core, hence deriving it from package_constraints.txt above.
 pytest-homeassistant-custom-component
