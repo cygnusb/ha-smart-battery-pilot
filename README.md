@@ -130,9 +130,15 @@ SOC, day separators and a hover tooltip with price/SOC/action/PV per slot.
 If `entity` is omitted or wrong, the card finds the plan sensor automatically.
 See [docs/configuration.md](docs/configuration.md#dashboard).
 
+Click any of them to open the full-resolution image.
+
 | Winter arbitrage | Summer PV export | Dunkelflaute |
 |:---:|:---:|:---:|
-| ![Winter arbitrage](assets/screenshots/card_winter_arbitrage.png) | ![Summer PV export](assets/screenshots/card_summer_export.png) | ![Dunkelflaute](assets/screenshots/card_dunkelflaute.png) |
+| <a href="assets/screenshots/card_winter_arbitrage.png"><img src="assets/screenshots/card_winter_arbitrage.png" alt="Winter arbitrage: charging through the cheap night, battery held for the evening peak" width="300"></a> | <a href="assets/screenshots/card_summer_export.png"><img src="assets/screenshots/card_summer_export.png" alt="Summer PV export: PV fills the battery, the evening peak is sold to the grid" width="300"></a> | <a href="assets/screenshots/card_dunkelflaute.png"><img src="assets/screenshots/card_dunkelflaute.png" alt="Dunkelflaute: an eightfold price spread makes grid charging pay for itself" width="300"></a> |
+
+All three are real plans: [`tools/gen_card_screenshots.py`](tools/gen_card_screenshots.py)
+describes a day of prices, consumption and PV, runs it through the actual
+optimizer and renders the card against the result.
 
 ## Vendor examples
 
