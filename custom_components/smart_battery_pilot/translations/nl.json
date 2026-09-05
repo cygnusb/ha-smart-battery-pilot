@@ -1,0 +1,303 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Bron van de elektriciteitsprijs",
+        "description": "Selecteer de entiteit die de dynamische prijsprognose levert. Nordpool, EPEX Spot, ENTSO-E, aWATTar en uurlijkse prijslijsten worden automatisch herkend.",
+        "data": {
+          "price_entity": "Entiteit met prijsprognose",
+          "price_offset": "Prijsopslag (netbeheerkosten, belastingen per kWh)",
+          "feed_in_tariff": "Terugleververgoeding (0 = marktprijs; een vast tarief onder de spread levert nooit terug)"
+        },
+        "data_description": {
+          "price_entity": "Entiteit die uurprijzen voor elektriciteit als attribuutlijst publiceert (bijv. sensor.nordpool_kwh_de_eur_3_10_025).",
+          "price_offset": "Wordt bij elke marktprijs opgeteld. Dekt doorgaans netbeheerkosten, belastingen en de marge van je leverancier (bijv. 0,12 EUR/kWh). Positief = duurder.",
+          "feed_in_tariff": "Wat je verdient per kWh die je aan het net teruglevert. 0 = dynamische marktprijs. Een vast tarief onder de spread (standaard 0,20) leidt nooit tot teruglevering."
+        }
+      },
+      "battery": {
+        "title": "Accuparameters",
+        "description": "Beschrijf je thuisaccu. De laadtoestand wordt live uit de geselecteerde entiteit gelezen.",
+        "data": {
+          "soc_entity": "Entiteit met laadtoestand (%)",
+          "capacity_kwh": "Bruikbare capaciteit",
+          "max_charge_power_w": "Maximaal laadvermogen",
+          "max_discharge_power_w": "Maximaal ontlaadvermogen",
+          "min_soc": "Minimale SOC",
+          "max_soc": "Maximale SOC",
+          "efficiency": "Rendement (heen en terug)",
+          "battery_charge_energy_entity": "Entiteit met geladen energie (kWh, optioneel)",
+          "battery_discharge_energy_entity": "Entiteit met ontladen energie (kWh, optioneel)"
+        },
+        "data_description": {
+          "soc_entity": "Sensor die de actuele laadtoestand in procenten meldt (0-100). Voorbeeld: sensor.byd_battery_box_premium_hv_state_of_charge.",
+          "capacity_kwh": "Bruikbare accucapaciteit in kWh, exclusief de reserve-SOC. Voorbeeld voor een BYD HVS 10: 10,2 kWh.",
+          "max_charge_power_w": "Maximaal laadvermogen dat van het net wordt afgenomen, in watt. Meestal 3000-5000 W.",
+          "max_discharge_power_w": "Maximaal ontlaadvermogen, in watt. Meestal 3000-5000 W.",
+          "min_soc": "Ondergrens van de laadtoestand in procenten. De accu wordt nooit verder ontladen. Aanbevolen: 10 %.",
+          "max_soc": "Bovengrens van de laadtoestand in procenten. De accu wordt nooit verder geladen. Aanbevolen: 95 %.",
+          "efficiency": "Rendement heen en terug in procenten: kWh die je terugkrijgt gedeeld door kWh die je erin stopt, maal 100. Meestal 85-95 %.",
+          "battery_charge_energy_entity": "Optionele meter voor totaal geladen kWh (total_increasing). Samen met de andere meter maken ze de sensoren voor werkelijke besparing mogelijk. Voorbeeld: sensor.battery_energy_charged.",
+          "battery_discharge_energy_entity": "Optionele meter voor totaal ontladen kWh (total_increasing). Samen met de andere meter maken ze de sensoren voor werkelijke besparing mogelijk. Voorbeeld: sensor.battery_energy_discharged."
+        }
+      },
+      "control": {
+        "title": "Scripts voor accusturing",
+        "description": "Smart Battery Pilot stuurt je accu aan via Home Assistant-scripts. Maak per actie één script voor je omvormer (zie de documentatie voor voorbeelden per fabrikant). De scripts voor laden en terugleveren krijgen de variabele `power_w`.",
+        "data": {
+          "script_charge": "Script: geforceerd laden vanaf het net",
+          "script_idle": "Script: ontladen blokkeren (idle)",
+          "script_auto": "Script: normale automatische modus",
+          "script_export": "Script: geforceerd ontladen naar het net (optioneel)"
+        },
+        "data_description": {
+          "script_charge": "Wordt aangeroepen wanneer de accu vanaf het net moet laden. Krijgt de variabele power_w (laadvermogen in watt).",
+          "script_idle": "Wordt aangeroepen wanneer ontladen geblokkeerd moet worden, zodat de accu zijn energie bewaart voor een duurder uur.",
+          "script_auto": "Zet de omvormer terug in de normale modus voor eigen verbruik.",
+          "script_export": "Optioneel: wordt aangeroepen wanneer energie bij zeer hoge prijzen aan het net verkocht moet worden. Krijgt de variabele power_w (ontlaadvermogen in watt)."
+        }
+      },
+      "consumption": {
+        "title": "Huishoudelijk verbruik",
+        "description": "Selecteer de sensor die het totale huisverbruik meet (vermogen in W of energie in kWh). Die wordt gebruikt om je verbruiksprofiel uit de historie te leren.",
+        "data": {
+          "consumption_entity": "Verbruikssensor",
+          "temperature_entity": "Sensor voor buitentemperatuur (optioneel)",
+          "has_heat_pump": "Warmtepomp aanwezig"
+        },
+        "data_description": {
+          "consumption_entity": "Totaal huishoudelijk verbruik in W of kWh. Wordt gebruikt om het verbruiksprofiel te trainen.",
+          "temperature_entity": "Optioneel: verbetert de verbruiksprognose voor huishoudens met een warmtepomp door correlatie met de buitentemperatuur.",
+          "has_heat_pump": "Schakelt de warmtevraag in de verbruiksprognose in zodra er temperatuurhistorie bestaat, ook een onvolledige."
+        }
+      },
+      "pv": {
+        "title": "PV-prognose (optioneel)",
+        "description": "Heb je zonnepanelen, selecteer dan sensoren met de dagelijkse opbrengstprognose (kWh). De verwachte PV wordt van de verbruiksprognose afgetrokken.",
+        "data": {
+          "pv_forecast_today": "PV-prognose vandaag (kWh)",
+          "pv_forecast_tomorrow": "PV-prognose morgen (kWh)",
+          "pv_power_entity": "Actueel PV-vermogen (optioneel)"
+        },
+        "data_description": {
+          "pv_forecast_today": "Prognose van de PV-opbrengst voor vandaag in kWh (bijv. Open-Meteo Solar Forecast of Solcast).",
+          "pv_forecast_tomorrow": "Prognose van de PV-opbrengst voor morgen in kWh - verbetert de planning voor de nacht aanzienlijk.",
+          "pv_power_entity": "Actueel PV-vermogen. Wordt als live waarde op de Lovelace-kaart getoond."
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "Entiteit niet gevonden.",
+      "unsupported_price_format": "Het prijsformaat van deze entiteit werd niet herkend. Zie de documentatie voor ondersteunde integraties.",
+      "no_future_prices": "De entiteit bevat geen toekomstige prijzen.",
+      "soc_range_invalid": "Minimale SOC moet lager zijn dan maximale SOC.",
+      "export_spread_unreachable": "De terugleverstand kan met deze waarden niets doen: de terugleververgoeding ligt op of onder de minimale prijsspread, waardoor geen enkel tijdvak ooit in aanmerking komt. Verhoog de vergoeding, verlaag de spread, of zet de vergoeding op 0 om tegen de marktprijs terug te leveren."
+    },
+    "abort": {
+      "already_configured": "Al geconfigureerd."
+    }
+  },
+  "options": {
+    "step": {
+      "prices": {
+        "title": "Bron van de elektriciteitsprijs",
+        "data": {
+          "price_entity": "Entiteit met prijsprognose",
+          "price_offset": "Prijsopslag (netbeheerkosten, belastingen per kWh)",
+          "feed_in_tariff": "Terugleververgoeding (0 = marktprijs; een vast tarief onder de spread levert nooit terug)"
+        },
+        "data_description": {
+          "price_entity": "Entiteit die uurprijzen voor elektriciteit als attribuutlijst publiceert (bijv. sensor.nordpool_kwh_de_eur_3_10_025).",
+          "price_offset": "Wordt bij elke marktprijs opgeteld. Dekt doorgaans netbeheerkosten, belastingen en de marge van je leverancier (bijv. 0,12 EUR/kWh). Positief = duurder.",
+          "feed_in_tariff": "Wat je verdient per kWh die je aan het net teruglevert. 0 = dynamische marktprijs. Een vast tarief onder de spread (standaard 0,20) leidt nooit tot teruglevering."
+        }
+      },
+      "battery": {
+        "title": "Accuparameters",
+        "data": {
+          "soc_entity": "Entiteit met laadtoestand (%)",
+          "capacity_kwh": "Bruikbare capaciteit",
+          "max_charge_power_w": "Maximaal laadvermogen",
+          "max_discharge_power_w": "Maximaal ontlaadvermogen",
+          "min_soc": "Minimale SOC",
+          "max_soc": "Maximale SOC",
+          "efficiency": "Rendement (heen en terug)",
+          "battery_charge_energy_entity": "Entiteit met geladen energie (kWh, optioneel)",
+          "battery_discharge_energy_entity": "Entiteit met ontladen energie (kWh, optioneel)"
+        },
+        "data_description": {
+          "soc_entity": "Sensor die de actuele laadtoestand in procenten meldt (0-100). Voorbeeld: sensor.byd_battery_box_premium_hv_state_of_charge.",
+          "capacity_kwh": "Bruikbare accucapaciteit in kWh, exclusief de reserve-SOC. Voorbeeld voor een BYD HVS 10: 10,2 kWh.",
+          "max_charge_power_w": "Maximaal laadvermogen dat van het net wordt afgenomen, in watt. Meestal 3000-5000 W.",
+          "max_discharge_power_w": "Maximaal ontlaadvermogen, in watt. Meestal 3000-5000 W.",
+          "min_soc": "Ondergrens van de laadtoestand in procenten. De accu wordt nooit verder ontladen. Aanbevolen: 10 %.",
+          "max_soc": "Bovengrens van de laadtoestand in procenten. De accu wordt nooit verder geladen. Aanbevolen: 95 %.",
+          "efficiency": "Rendement heen en terug in procenten: kWh die je terugkrijgt gedeeld door kWh die je erin stopt, maal 100. Meestal 85-95 %.",
+          "battery_charge_energy_entity": "Optionele meter voor totaal geladen kWh (total_increasing). Samen met de andere meter maken ze de sensoren voor werkelijke besparing mogelijk. Voorbeeld: sensor.battery_energy_charged.",
+          "battery_discharge_energy_entity": "Optionele meter voor totaal ontladen kWh (total_increasing). Samen met de andere meter maken ze de sensoren voor werkelijke besparing mogelijk. Voorbeeld: sensor.battery_energy_discharged."
+        }
+      },
+      "control": {
+        "title": "Scripts voor accusturing",
+        "data": {
+          "script_charge": "Script: geforceerd laden vanaf het net",
+          "script_idle": "Script: ontladen blokkeren (idle)",
+          "script_auto": "Script: normale automatische modus",
+          "script_export": "Script: geforceerd ontladen naar het net (optioneel)"
+        },
+        "data_description": {
+          "script_charge": "Wordt aangeroepen wanneer de accu vanaf het net moet laden. Krijgt de variabele power_w (laadvermogen in watt).",
+          "script_idle": "Wordt aangeroepen wanneer ontladen geblokkeerd moet worden, zodat de accu zijn energie bewaart voor een duurder uur.",
+          "script_auto": "Zet de omvormer terug in de normale modus voor eigen verbruik.",
+          "script_export": "Optioneel: wordt aangeroepen wanneer energie bij zeer hoge prijzen aan het net verkocht moet worden. Krijgt de variabele power_w (ontlaadvermogen in watt)."
+        }
+      },
+      "consumption": {
+        "title": "Huishoudelijk verbruik",
+        "data": {
+          "consumption_entity": "Verbruikssensor",
+          "temperature_entity": "Sensor voor buitentemperatuur (optioneel)",
+          "has_heat_pump": "Warmtepomp aanwezig"
+        },
+        "data_description": {
+          "consumption_entity": "Totaal huishoudelijk verbruik in W of kWh. Wordt gebruikt om het verbruiksprofiel te trainen.",
+          "temperature_entity": "Optioneel: verbetert de verbruiksprognose voor huishoudens met een warmtepomp door correlatie met de buitentemperatuur.",
+          "has_heat_pump": "Schakelt de warmtevraag in de verbruiksprognose in zodra er temperatuurhistorie bestaat, ook een onvolledige."
+        }
+      },
+      "pv": {
+        "title": "PV-prognose (optioneel)",
+        "data": {
+          "pv_forecast_today": "PV-prognose vandaag (kWh)",
+          "pv_forecast_tomorrow": "PV-prognose morgen (kWh)",
+          "pv_power_entity": "Actueel PV-vermogen (optioneel)"
+        },
+        "data_description": {
+          "pv_forecast_today": "Prognose van de PV-opbrengst voor vandaag in kWh (bijv. Open-Meteo Solar Forecast of Solcast).",
+          "pv_forecast_tomorrow": "Prognose van de PV-opbrengst voor morgen in kWh - verbetert de planning voor de nacht aanzienlijk.",
+          "pv_power_entity": "Actueel PV-vermogen. Wordt als live waarde op de Lovelace-kaart getoond."
+        }
+      },
+      "tuning": {
+        "title": "Smart Battery Pilot-opties",
+        "data": {
+          "spread_threshold": "Minimale prijsspread (laden versus ontladen)",
+          "discharge_mode": "Ontlaadmodus",
+          "training_days": "Dagen historie voor de verbruikstraining"
+        },
+        "data_description": {
+          "spread_threshold": "Minimaal prijsverschil tussen laden en ontladen, in EUR/kWh. Daaronder weegt de handel niet op tegen de omzettingsverliezen. Aanbevolen: 0,10-0,25 EUR/kWh.",
+          "discharge_mode": "Alleen eigen verbruik: de accu dekt je eigen vraag. Eigen verbruik + teruglevering: verkoopt bij zeer hoge prijzen ook aan het net (vereist een terugleverscript).",
+          "training_days": "Dagen historie om het verbruiksprofiel te trainen. Meer = stabieler, maar volgt een verandering in gewoonten trager. Aanbevolen: 30-60 dagen."
+        }
+      },
+      "init": {
+        "title": "Smart Battery Pilot",
+        "menu_options": {
+          "tuning": "Optimalisatie afstemmen (spread, modus, training)",
+          "prices": "Prijsbron & opslagen",
+          "battery": "Accuparameters",
+          "control": "Stuurscripts",
+          "consumption": "Verbruik & temperatuur",
+          "pv": "PV-prognose",
+          "apply": "💾 Opslaan & sluiten"
+        },
+        "description": "Wijzigingen in de secties hieronder worden verzameld en pas via “Opslaan & sluiten” bewaard."
+      }
+    },
+    "error": {
+      "entity_not_found": "Entiteit niet gevonden.",
+      "unsupported_price_format": "Het prijsformaat van deze entiteit werd niet herkend. Zie de documentatie voor ondersteunde integraties.",
+      "no_future_prices": "De entiteit bevat geen toekomstige prijzen.",
+      "soc_range_invalid": "Minimale SOC moet lager zijn dan maximale SOC.",
+      "export_spread_unreachable": "De terugleverstand kan met deze waarden niets doen: de terugleververgoeding ligt op of onder de minimale prijsspread, waardoor geen enkel tijdvak ooit in aanmerking komt. Verhoog de vergoeding, verlaag de spread, of zet de vergoeding op 0 om tegen de marktprijs terug te leveren."
+    }
+  },
+  "selector": {
+    "discharge_mode": {
+      "options": {
+        "self_consumption": "Alleen eigen verbruik",
+        "export": "Eigen verbruik + teruglevering bij piekprijzen"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "current_action": {
+        "name": "Huidige actie",
+        "state": {
+          "charge": "Laden",
+          "auto": "Auto",
+          "idle": "Geblokkeerd",
+          "export": "Terugleveren",
+          "no_plan": "Geen plan"
+        }
+      },
+      "next_action": {
+        "name": "Volgende actie",
+        "state": {
+          "charge": "Laden",
+          "auto": "Auto",
+          "idle": "Geblokkeerd",
+          "export": "Terugleveren",
+          "no_change": "Geen wijziging"
+        }
+      },
+      "current_price": {
+        "name": "Huidige elektriciteitsprijs"
+      },
+      "charge_plan": {
+        "name": "Acties in het actieve plan"
+      },
+      "plan_status": {
+        "name": "Planstatus",
+        "state": {
+          "ok": "OK",
+          "no_price_data": "Geen prijsgegevens",
+          "no_soc": "Geen laadtoestand",
+          "no_price_adapter": "Onbekend prijsformaat",
+          "implausible_prices": "Onaannemelijke prijzen",
+          "error": "Fout"
+        }
+      },
+      "estimated_savings": {
+        "name": "Geschatte besparing"
+      },
+      "consumption_forecast": {
+        "name": "Verbruiksprognose 24 u"
+      },
+      "configuration": {
+        "name": "Configuratie",
+        "state": {
+          "active": "Actief",
+          "inactive": "Inactief"
+        }
+      },
+      "actual_savings_eur": {
+        "name": "Werkelijke besparing"
+      },
+      "actual_savings_kwh": {
+        "name": "Werkelijke energiewinst"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Ingeschakeld"
+      },
+      "dry_run": {
+        "name": "Testmodus"
+      }
+    },
+    "binary_sensor": {
+      "plan_problem": {
+        "name": "Planprobleem"
+      }
+    }
+  },
+  "services": {
+    "replan": {
+      "name": "Opnieuw plannen",
+      "description": "Bereken het laadplan onmiddellijk opnieuw."
+    }
+  }
+}
