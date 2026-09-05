@@ -32,13 +32,30 @@ Greedy pairing with a stored-energy timeline simulation:
    it during the day and doesn't grid-charge needlessly. PV occupies the
    slot's charge-power headroom first; grid charging in the same slot only
    uses what is left. The SOC projection rises with the sun accordingly.
-4. Slots that have real demand but whose stored energy is reserved for a
-   later, more expensive slot are marked **idle** (discharge blocked) so the
-   battery isn't drained early. Slots with PV surplus stay in **auto** —
-   the inverter charges from PV and won't discharge anyway.
-5. In **export mode**, remaining peak slots can additionally be paired for
+4. **Curtailed PV makes earlier energy free to spend.** Where the timeline
+   pins the battery at max SOC, the surplus that no longer fits is thrown
+   away. A kWh discharged *before* such a slot is refilled by that surplus at
+   no cost, so it leaves every later SOC level untouched — the timeline check
+   in step 3 credits each candidate with the curtailed energy between it and
+   the slots it would otherwise starve. Without this, holding energy back for
+   a morning peak on a sunny day displaces free midday PV with energy bought
+   from the grid, and the plan ends the day having delivered *less* to the
+   house than an untouched inverter.
+5. Slots that have real demand but whose stored energy the assignment did not
+   spend are marked **idle** (discharge blocked): the energy is reserved for
+   a later, more expensive slot, so the battery must not be drained early.
+   The label follows from the assignment rather than being re-derived beside
+   it, which is what keeps the inverter's behaviour and the cost model in
+   agreement. Slots with PV surplus stay in **auto** — the inverter charges
+   from PV and won't discharge anyway.
+6. In **export mode**, remaining peak slots can additionally be paired for
    grid export, valued at the feed-in tariff (or the raw market price if 0 —
    the configured import offset is not counted as export revenue).
+7. **Never worse than doing nothing.** If the finished plan's estimated
+   savings still come out negative, it is discarded and the all-`auto` plan
+   is returned instead, carrying a `plan_worse_than_baseline` warning in the
+   plan sensor's attributes. Leaving the inverter alone is always available
+   and is the very baseline the figure is measured against.
 
 The plan is recomputed every 30 minutes, whenever the price entity updates
 (e.g. tomorrow's prices arriving around 14:00), on option changes, and via
