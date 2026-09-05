@@ -272,3 +272,38 @@ def test_apply_queued_before_unload_does_not_revive_a_forced_mode():
     # Only the restore, and no timer left behind.
     assert hass.services.calls == ["sbp_auto"]
     assert event_stub.SCHEDULED_POINTS == []
+
+
+def test_master_switch_off_then_on_resumes_execution():
+    """`EnabledSwitch` stops and restarts the executor around the flag.
+
+    `async_stop` raises the stop flag that makes every queued apply and every
+    boundary timer a no-op; a start that leaves it raised silences the
+    integration until the next reload, with the switch still showing "on".
+    """
+    from homeassistant.helpers import event as event_stub
+
+    event_stub.SCHEDULED_POINTS.clear()
+    hass = _RunningHass()
+    coord = _ListeningCoordinator([_slot(ACTION_CHARGE)])
+    executor = PlanExecutor(hass, coord)
+
+    async def scenario():
+        await executor.async_start()
+        await hass.drain()
+
+        coord.enabled = False  # switch off
+        await executor.async_apply_current()
+        await executor.async_stop(restore_auto=True)
+        await executor.async_start()
+        await hass.drain()
+        hass.services.calls.clear()
+
+        coord.enabled = True  # switch back on
+        await executor.async_apply_current()
+        await hass.drain()
+
+    asyncio.run(scenario())
+
+    assert hass.services.calls == ["sbp_charge"]
+    assert event_stub.SCHEDULED_POINTS != [], "no slot boundary timer armed"

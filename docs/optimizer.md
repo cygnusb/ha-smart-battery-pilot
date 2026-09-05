@@ -87,7 +87,12 @@ which Home Assistant only accepts together with `TOTAL`.
 `sensor.…_actual_savings_eur` is the running total from energy-meter deltas,
 priced at the time-weighted slot prices of each interval. Grid charge uses
 the import price; charge that happens in auto/idle (typically PV) uses the
-feed-in tariff. Wh meters are converted to kWh.
+feed-in tariff. Discharge is valued by where the energy went: self-consumption
+avoids the full import price, while discharge during an `export` slot only
+earns the feed-in tariff (or the raw market price when the tariff is `0`).
+Wh meters are converted to kWh. Both totals keep their last value when an
+update fails, so a blinking price entity does not tear a hole in their
+long-term statistics.
 
 ## Worked example (Dunkelflaute)
 

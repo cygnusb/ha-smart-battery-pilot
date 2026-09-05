@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 import logging
-from typing import Any
+from typing import Any, NamedTuple
 
 from homeassistant.components.recorder import get_instance
 from homeassistant.components.recorder.statistics import statistics_during_period
@@ -18,6 +18,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     ACTION_CHARGE,
+    ACTION_EXPORT,
     CONF_BATTERY_CHARGE_ENERGY_ENTITY,
     CONF_BATTERY_DISCHARGE_ENERGY_ENTITY,
     CONF_CAPACITY_KWH,
@@ -64,6 +65,11 @@ from .price_adapters.base import PriceSlot
 _LOGGER = logging.getLogger(__name__)
 
 RETRAIN_INTERVAL = timedelta(hours=24)
+# Backoff after a training run that produced nothing. Without it a consumption
+# entity that has no long-term statistics (a template sensor without state
+# class, say) makes every 30-minute update re-query weeks of history and log
+# the same warning, forever.
+RETRAIN_RETRY_INTERVAL = timedelta(hours=6)
 # Price/mode samples kept for savings accounting; see _note_conditions.
 MAX_CONDITION_SAMPLES = 200
 
@@ -82,6 +88,13 @@ class PriceAdapterMissing(UpdateFailed):
 
 class PriceParseError(UpdateFailed):
     """The price attributes could not be turned into slots."""
+
+
+class IntervalPrices(NamedTuple):
+    """Unit prices (EUR/kWh) that applied while energy moved over a span."""
+
+    charge: float  # what a kWh put into the battery cost
+    discharge: float  # what a kWh taken out of it was worth
 
 
 @dataclass
@@ -120,6 +133,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         self.forecaster = ConsumptionForecaster()
         self._store: Store = Store(hass, STORAGE_VERSION, f"{STORAGE_KEY}.{entry.entry_id}")
         self._last_training: datetime | None = None
+        self._last_attempt: datetime | None = None
         self._unsub_price = None
         self._adapter_name: str | None = None
 
@@ -215,11 +229,11 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             raise PriceParseError(f"Price parsing failed: {err}") from err
 
         if not slots:
-            return SBPData(plan=Plan(), valid=False, error="no_price_data", updated_at=now)
+            return self._invalid_plan(now, "no_price_data")
 
         soc = self._read_float_state(self.conf(CONF_SOC_ENTITY))
         if soc is None:
-            return SBPData(plan=Plan(), valid=False, error="soc_unavailable", updated_at=now)
+            return self._invalid_plan(now, "soc_unavailable")
 
         await self._maybe_retrain(now)
 
@@ -282,9 +296,6 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
 
         self._update_actual_savings(plan, now)
 
-        actual_savings = self._acc_savings_eur if self._has_energy_entities() else None
-        actual_charge = self._acc_charge_kwh if self._has_energy_entities() else None
-        actual_discharge = self._acc_discharge_kwh if self._has_energy_entities() else None
         pv_entity = self.conf(CONF_PV_POWER_ENTITY)
         pv_power = self._read_float_state(pv_entity) if pv_entity else None
 
@@ -298,17 +309,35 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             updated_at=now,
             consumption_forecast_24h_kwh=round(consumption_24h, 2),
             pv_forecast_24h_kwh=round(pv_24h, 2),
-            actual_savings_eur=round(actual_savings, 3) if actual_savings is not None else None,
-            actual_charge_kwh=round(actual_charge, 2) if actual_charge is not None else None,
-            actual_discharge_kwh=(
-                round(actual_discharge, 2) if actual_discharge is not None else None
-            ),
             pv_power_w=pv_power,
             pv_power_entity=pv_entity,
+            **self._savings_fields(),
         )
 
     def _invalid_plan(self, now: datetime, error: str) -> SBPData:
-        return SBPData(plan=Plan(), valid=False, error=error, updated_at=now)
+        return SBPData(
+            plan=Plan(), valid=False, error=error, updated_at=now, **self._savings_fields()
+        )
+
+    def _savings_fields(self) -> dict[str, float | None]:
+        """The accumulated totals, for every SBPData this coordinator returns.
+
+        They are running totals, not a property of the current plan. Leaving
+        them out of the failure results would drop the two TOTAL sensors to
+        `unknown` - and punch a hole in their long-term statistics - every
+        time the price entity blinks.
+        """
+        if not self._has_energy_entities():
+            return {
+                "actual_savings_eur": None,
+                "actual_charge_kwh": None,
+                "actual_discharge_kwh": None,
+            }
+        return {
+            "actual_savings_eur": round(self._acc_savings_eur, 3),
+            "actual_charge_kwh": round(self._acc_charge_kwh, 2),
+            "actual_discharge_kwh": round(self._acc_discharge_kwh, 2),
+        }
 
     def _read_price_slots(self, now: datetime) -> list[PriceSlot]:
         entity_id = self.conf(CONF_PRICE_ENTITY)
@@ -389,25 +418,20 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
     async def _maybe_retrain(self, now: datetime) -> None:
         if self._last_training and now - self._last_training < RETRAIN_INTERVAL:
             return
+        if self._last_attempt and now - self._last_attempt < RETRAIN_RETRY_INTERVAL:
+            return
         entity_id = self.conf(CONF_CONSUMPTION_ENTITY)
         if not entity_id:
             return
+        # Kept in memory only, so a restart always retries straight away.
+        self._last_attempt = now
         days = int(self.conf(CONF_TRAINING_DAYS, DEFAULT_TRAINING_DAYS))
         start = now - timedelta(days=days)
         temp_entity = self.conf(CONF_TEMPERATURE_ENTITY)
         ids = [entity_id] + ([temp_entity] if temp_entity else [])
 
         try:
-            stats = await get_instance(self.hass).async_add_executor_job(
-                statistics_during_period,
-                self.hass,
-                start,
-                now,
-                set(ids),
-                "hour",
-                None,
-                {"mean", "change"},
-            )
+            stats = await self._fetch_statistics(start, now, ids)
         except Exception as err:  # noqa: BLE001
             _LOGGER.warning("Fetching statistics failed: %s", err)
             return
@@ -430,6 +454,21 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             "Trained consumption model (%s) with %d samples",
             self.forecaster.model_type,
             len(samples),
+        )
+
+    async def _fetch_statistics(
+        self, start: datetime, end: datetime, ids: list[str]
+    ) -> dict[str, list[dict[str, Any]]]:
+        """Hourly long-term statistics, read on the recorder's own thread."""
+        return await get_instance(self.hass).async_add_executor_job(
+            statistics_during_period,
+            self.hass,
+            start,
+            end,
+            set(ids),
+            "hour",
+            None,
+            {"mean", "change"},
         )
 
     def _build_samples(
@@ -548,17 +587,17 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 break
         del self._conditions[:keep]
 
-    def _interval_prices(self, start: datetime, end: datetime) -> tuple[float, float]:
-        """Time-weighted mean import price and charge unit price over the span.
+    def _interval_prices(self, start: datetime, end: datetime) -> IntervalPrices:
+        """Time-weighted unit prices over the span.
 
         Each sample holds until the next one, so a span crossing a slot
         boundary or a mode switch is split at the right instant.
         """
         if not self._conditions:
-            return 0.0, 0.0
+            return IntervalPrices(0.0, 0.0)
 
         start_ts, end_ts = start.timestamp(), end.timestamp()
-        import_w = charge_w = total = 0.0
+        charge_w = discharge_w = total = 0.0
         for i, (ts, price, action) in enumerate(self._conditions):
             nxt = (
                 self._conditions[i + 1][0]
@@ -568,15 +607,18 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             span = min(nxt, end_ts) - max(ts, start_ts)
             if span <= 0:
                 continue
-            import_w += price * span
             charge_w += self._charge_unit_price(price, action) * span
+            discharge_w += self._discharge_unit_price(price, action) * span
             total += span
         if total <= 0:
             # Degenerate span (two reads at the same instant): the freshest
             # sample is the best available answer.
             _, price, action = self._conditions[-1]
-            return price, self._charge_unit_price(price, action)
-        return import_w / total, charge_w / total
+            return IntervalPrices(
+                self._charge_unit_price(price, action),
+                self._discharge_unit_price(price, action),
+            )
+        return IntervalPrices(charge_w / total, discharge_w / total)
 
     def _update_actual_savings(self, plan: Plan, now: datetime) -> None:
         """Read energy meter deltas and accumulate actual savings."""
@@ -622,8 +664,10 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         self._acc_charge_kwh += delta_charge
         self._acc_discharge_kwh += delta_discharge
         interval_start = self._prev_savings_at or now
-        price, charge_price = self._interval_prices(interval_start, now)
-        self._acc_savings_eur += delta_discharge * price - delta_charge * charge_price
+        unit = self._interval_prices(interval_start, now)
+        self._acc_savings_eur += (
+            delta_discharge * unit.discharge - delta_charge * unit.charge
+        )
         self._prev_savings_at = now
         self._trim_conditions(now.timestamp())
 
@@ -632,6 +676,18 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
     def _price_for_now(self, plan: Plan, now: datetime) -> float:
         """Price of the plan slot covering `now`."""
         return next((slot.price for slot in plan.slots if slot.covers(now)), 0.0)
+
+    def _export_value(self, import_price: float) -> float:
+        """What a kWh handed to the grid is worth: feed-in, else market price.
+
+        Mirrors the optimizer's `_export_sell_price`: with no feed-in tariff
+        the export earns the raw market price, so the import surcharge baked
+        into the slot price has to come off again.
+        """
+        feed_in = float(self.conf(CONF_FEED_IN_TARIFF, DEFAULT_FEED_IN_TARIFF))
+        if feed_in > 0:
+            return feed_in
+        return import_price - float(self.conf(CONF_PRICE_OFFSET, DEFAULT_PRICE_OFFSET))
 
     def _charge_unit_price(self, import_price: float, action: str | None) -> float:
         """Grid charge costs the import price; PV charge costs the feed-in.
@@ -642,11 +698,18 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         """
         if action == ACTION_CHARGE:
             return import_price
-        feed_in = float(self.conf(CONF_FEED_IN_TARIFF, DEFAULT_FEED_IN_TARIFF))
-        if feed_in > 0:
-            return feed_in
-        offset = float(self.conf(CONF_PRICE_OFFSET, DEFAULT_PRICE_OFFSET))
-        return import_price - offset
+        return self._export_value(import_price)
+
+    def _discharge_unit_price(self, import_price: float, action: str | None) -> float:
+        """Self-consumption avoids an import; an export slot only earns the sale.
+
+        Crediting exported energy at the import price would book German
+        household levies and taxes as income - three to four times what the
+        grid actually pays for it.
+        """
+        if action == ACTION_EXPORT:
+            return self._export_value(import_price)
+        return import_price
 
     def _store_payload(self) -> dict[str, Any]:
         return {

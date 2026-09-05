@@ -289,3 +289,88 @@ def test_quarter_hour_slots():
     # 15-min slot at 6 kW can take at most 1.5 kWh from the grid
     for slot in charge_slots:
         assert slot.charge_power_w <= BATTERY.max_charge_power_w + 1
+
+
+def test_no_slot_both_charges_and_discharges():
+    """A force-charged slot cannot serve the house or the grid at the same time.
+
+    The greedy pairing used to hand a cheap slot to a pricier one as a charge
+    candidate after that same slot had already been credited with covering its
+    own demand. The plan then asked the inverter to force-charge a full
+    battery while the cost model booked a discharge that never happened.
+    """
+    prices = [0.05, 0.04, 0.03, 0.03, 0.04, 0.08, 0.18, 0.30, 0.34, 0.28, 0.20, 0.15,
+              0.12, 0.14, 0.18, 0.24, 0.32, 0.42, 0.48, 0.44, 0.36, 0.28, 0.20, 0.12]
+    slots = [
+        InputSlot(
+            price_slot=PriceSlot(
+                start=T0 + timedelta(hours=i),
+                end=T0 + timedelta(hours=i + 1),
+                price=price,
+            ),
+            net_demand_kwh=0.6,
+        )
+        for i, price in enumerate(prices)
+    ]
+    battery = BatteryState(
+        capacity_kwh=10.0,
+        soc=50.0,
+        min_soc=10.0,
+        max_soc=95.0,
+        max_charge_power_w=5000,
+        max_discharge_power_w=5000,
+        efficiency=90,
+    )
+    config = OptimizerConfig(
+        spread_threshold=0.05,
+        discharge_mode=DISCHARGE_MODE_EXPORT,
+        feed_in_tariff=0.0,
+    )
+
+    plan = build_plan(slots, battery, config)
+
+    conflicting = [
+        s for s in plan.slots if s.action == ACTION_CHARGE and s.discharge_kwh > 1e-9
+    ]
+    assert conflicting == [], f"charge slots also crediting a discharge: {conflicting}"
+
+
+def test_charge_slots_never_discharge_across_random_price_curves():
+    """The pairing has two directions, so one guard is not enough."""
+    random = __import__("random").Random(20260904)
+    for _ in range(300):
+        prices = [round(random.uniform(-0.1, 0.8), 3) for _ in range(24)]
+        slots = [
+            InputSlot(
+                price_slot=PriceSlot(
+                    start=T0 + timedelta(hours=i),
+                    end=T0 + timedelta(hours=i + 1),
+                    price=price,
+                ),
+                net_demand_kwh=round(random.uniform(-2, 3), 2),
+            )
+            for i, price in enumerate(prices)
+        ]
+        battery = BatteryState(
+            capacity_kwh=random.choice([5.0, 10.0, 20.0]),
+            soc=random.uniform(10, 95),
+            min_soc=10.0,
+            max_soc=95.0,
+            max_charge_power_w=random.choice([2000, 5000, 10000]),
+            max_discharge_power_w=random.choice([2000, 5000]),
+            efficiency=random.choice([85, 90, 95]),
+        )
+        config = OptimizerConfig(
+            spread_threshold=random.choice([0.0, 0.05, 0.2]),
+            discharge_mode=random.choice(
+                [DISCHARGE_MODE_SELF_CONSUMPTION, DISCHARGE_MODE_EXPORT]
+            ),
+            feed_in_tariff=random.choice([0.0, 0.08]),
+            price_offset=random.choice([0.0, 0.15]),
+        )
+
+        plan = build_plan(slots, battery, config)
+
+        assert not [
+            s for s in plan.slots if s.action == ACTION_CHARGE and s.discharge_kwh > 1e-9
+        ]

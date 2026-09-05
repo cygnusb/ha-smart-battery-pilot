@@ -228,7 +228,7 @@
           "auto": "Auto",
           "idle": "Idle",
           "export": "Export",
-          "unknown": "Unknown"
+          "no_plan": "No plan"
         }
       },
       "next_action": {

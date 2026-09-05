@@ -80,6 +80,10 @@ class PlanExecutor:
         await self.coordinator.async_persist()
 
     async def async_start(self) -> None:
+        # The master switch stops and restarts the executor, so a start has to
+        # clear the stop flag - otherwise switching off once would silence the
+        # executor for good and no boundary timer would ever be armed again.
+        self._stopped = False
         self._unsub_coordinator = self.coordinator.async_add_listener(
             self._handle_coordinator_update
         )
@@ -111,12 +115,7 @@ class PlanExecutor:
         if self._apply_queued or self._stopped:
             return
         self._apply_queued = True
-
-        async def _run() -> None:
-            self._apply_queued = False
-            await self.async_apply_current()
-
-        self.hass.async_create_task(_run())
+        self.hass.async_create_task(self.async_apply_current())
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -148,6 +147,10 @@ class PlanExecutor:
     async def async_apply_current(self) -> None:
         """Apply the action of the current slot and arm the next boundary timer."""
         async with self._lock:
+            # Cleared under the lock, not when the task starts: a trigger
+            # arriving while this run waits for the lock has to queue a fresh
+            # run, but one arriving while it waits for a script must not.
+            self._apply_queued = False
             if self._stopped:
                 return
             self._schedule_boundary()

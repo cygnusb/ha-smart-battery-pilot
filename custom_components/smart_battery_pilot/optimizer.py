@@ -161,6 +161,10 @@ def build_plan(
             return config.feed_in_tariff
         return prices[i] - config.price_offset
 
+    def _delivers(i: int) -> bool:
+        """True when slot i is already planned to take energy out of the battery."""
+        return discharge_stored[i] > 1e-9 or export_stored[i] > 1e-9
+
     def assign_discharge(d: int, want_stored: float, store: list[float]) -> float:
         """Try to supply `want_stored` kWh at slot d; returns assigned amount."""
         assigned = 0.0
@@ -184,6 +188,7 @@ def build_plan(
                     i
                     for i in range(d)
                     if charge_cap[i] - charge_stored[i] - pv_surplus_stored[i] > 1e-9
+                    and not _delivers(i)
                 ),
                 key=lambda i: prices[i],
             )
@@ -214,6 +219,11 @@ def build_plan(
         if prices[d] <= 0:
             # Import is paid (or free). Hold the energy for a later positive hour.
             continue
+        if charge_stored[d] > 1e-9:
+            # A slot already paired as a cheap charge slot for a pricier hour
+            # will be force-charged. The inverter cannot serve the house from
+            # the battery at the same time, so that demand comes from the grid.
+            continue
         # Energy delivered to the load is limited by demand and power.
         deliverable = min(demand[d], discharge_cap[d])
         want_stored = deliverable / eta_one_way
@@ -231,6 +241,8 @@ def build_plan(
             sell_price = _export_sell_price(d)
             if sell_price <= config.spread_threshold:
                 continue
+            if charge_stored[d] > 1e-9:
+                continue  # force-charging; the battery cannot export as well
             room = discharge_cap[d] - discharge_stored[d] * eta_one_way
             want_stored = max(0.0, room) / eta_one_way
             if want_stored <= 1e-9:
