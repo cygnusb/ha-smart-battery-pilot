@@ -105,9 +105,9 @@ def schema_battery(d: dict[str, Any]) -> vol.Schema:
     return vol.Schema(
         {
             vol.Required(CONF_SOC_ENTITY, description=_sugg(d.get(CONF_SOC_ENTITY))): _ENTITY,
-            vol.Required(
-                CONF_CAPACITY_KWH, default=d.get(CONF_CAPACITY_KWH, 10.0)
-            ): num(1, 200, 0.1, "kWh"),
+            vol.Required(CONF_CAPACITY_KWH, default=d.get(CONF_CAPACITY_KWH, 10.0)): num(
+                1, 200, 0.1, "kWh"
+            ),
             vol.Required(
                 CONF_MAX_CHARGE_POWER_W, default=d.get(CONF_MAX_CHARGE_POWER_W, 5000)
             ): num(100, 50000, 100, "W"),
@@ -115,15 +115,15 @@ def schema_battery(d: dict[str, Any]) -> vol.Schema:
                 CONF_MAX_DISCHARGE_POWER_W,
                 default=d.get(CONF_MAX_DISCHARGE_POWER_W, 5000),
             ): num(100, 50000, 100, "W"),
-            vol.Required(
-                CONF_MIN_SOC, default=d.get(CONF_MIN_SOC, DEFAULT_MIN_SOC)
-            ): num(0, 100, 1, "%"),
-            vol.Required(
-                CONF_MAX_SOC, default=d.get(CONF_MAX_SOC, DEFAULT_MAX_SOC)
-            ): num(0, 100, 1, "%"),
-            vol.Required(
-                CONF_EFFICIENCY, default=d.get(CONF_EFFICIENCY, DEFAULT_EFFICIENCY)
-            ): num(50, 100, 1, "%"),
+            vol.Required(CONF_MIN_SOC, default=d.get(CONF_MIN_SOC, DEFAULT_MIN_SOC)): num(
+                0, 100, 1, "%"
+            ),
+            vol.Required(CONF_MAX_SOC, default=d.get(CONF_MAX_SOC, DEFAULT_MAX_SOC)): num(
+                0, 100, 1, "%"
+            ),
+            vol.Required(CONF_EFFICIENCY, default=d.get(CONF_EFFICIENCY, DEFAULT_EFFICIENCY)): num(
+                50, 100, 1, "%"
+            ),
             vol.Optional(
                 CONF_BATTERY_CHARGE_ENERGY_ENTITY,
                 description=_sugg(d.get(CONF_BATTERY_CHARGE_ENERGY_ENTITY)),
@@ -278,9 +278,7 @@ class SBPConfigFlow(ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         self._data: dict[str, Any] = {}
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Step 1: price source."""
         errors: dict[str, str] = {}
         if user_input is not None:
@@ -330,9 +328,7 @@ class SBPConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="consumption", data_schema=schema_consumption(self._data)
         )
 
-    async def async_step_pv(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_pv(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             self._data.update(user_input)
             return self.async_create_entry(
@@ -368,9 +364,7 @@ class SBPOptionsFlow(OptionsFlow):
     def _merged(self) -> dict[str, Any]:
         return {**self.config_entry.data, **self.config_entry.options, **self._pending}
 
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return self.async_show_menu(
             step_id="init",
             menu_options=[
@@ -403,16 +397,10 @@ class SBPOptionsFlow(OptionsFlow):
         self._pending.update(self._step_values(step, user_input))
         return await self.async_step_init()
 
-    async def async_step_apply(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        return self.async_create_entry(
-            data={**self.config_entry.options, **self._pending}
-        )
+    async def async_step_apply(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        return self.async_create_entry(data={**self.config_entry.options, **self._pending})
 
-    async def async_step_prices(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_prices(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
             error = _validate_price_entity(self.hass, user_input[CONF_PRICE_ENTITY])
@@ -461,16 +449,12 @@ class SBPOptionsFlow(OptionsFlow):
             step_id="consumption", data_schema=schema_consumption(self._merged)
         )
 
-    async def async_step_pv(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_pv(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             return await self._save_step("pv", user_input)
         return self.async_show_form(step_id="pv", data_schema=schema_pv(self._merged))
 
-    async def async_step_tuning(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_tuning(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
             merged = self._would_be("tuning", user_input)

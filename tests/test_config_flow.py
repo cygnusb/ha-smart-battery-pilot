@@ -158,19 +158,28 @@ def test_the_full_setup_walks_every_step_and_starts_safe():
     hass.states.set("sensor.price", _hourly_price_attrs())
     flow = _flow(hass)
 
-    assert _run(
-        flow.async_step_user(
-            {CONF_PRICE_ENTITY: "sensor.price", CONF_PRICE_OFFSET: 0.15,
-             CONF_FEED_IN_TARIFF: 0.08}
-        )
-    )["step_id"] == "battery"
+    assert (
+        _run(
+            flow.async_step_user(
+                {
+                    CONF_PRICE_ENTITY: "sensor.price",
+                    CONF_PRICE_OFFSET: 0.15,
+                    CONF_FEED_IN_TARIFF: 0.08,
+                }
+            )
+        )["step_id"]
+        == "battery"
+    )
     assert _run(flow.async_step_battery(dict(BATTERY_INPUT)))["step_id"] == "control"
     assert _run(flow.async_step_control(dict(CONTROL_INPUT)))["step_id"] == "consumption"
-    assert _run(
-        flow.async_step_consumption(
-            {CONF_CONSUMPTION_ENTITY: "sensor.load", CONF_HAS_HEAT_PUMP: False}
-        )
-    )["step_id"] == "pv"
+    assert (
+        _run(
+            flow.async_step_consumption(
+                {CONF_CONSUMPTION_ENTITY: "sensor.load", CONF_HAS_HEAT_PUMP: False}
+            )
+        )["step_id"]
+        == "pv"
+    )
 
     entry = _run(flow.async_step_pv({CONF_PV_FORECAST_TODAY: "sensor.pv"}))
     assert entry["type"] == "create_entry"
@@ -221,8 +230,7 @@ def test_an_inverted_soc_window_is_rejected(min_soc, max_soc):
     _run(flow.async_step_user({CONF_PRICE_ENTITY: "sensor.price"}))
 
     result = _run(
-        flow.async_step_battery({**BATTERY_INPUT, CONF_MIN_SOC: min_soc,
-                                 CONF_MAX_SOC: max_soc})
+        flow.async_step_battery({**BATTERY_INPUT, CONF_MIN_SOC: min_soc, CONF_MAX_SOC: max_soc})
     )
     assert result["errors"] == {"base": "soc_range_invalid"}
 
@@ -263,9 +271,15 @@ def test_sections_only_persist_once_apply_is_chosen():
     hass = _FakeHass()
     flow = _options_flow(hass, _entry())
 
-    result = _run(flow.async_step_tuning({CONF_SPREAD_THRESHOLD: 0.05,
-                                          CONF_DISCHARGE_MODE: DISCHARGE_MODE_SELF_CONSUMPTION,
-                                          CONF_TRAINING_DAYS: 30}))
+    result = _run(
+        flow.async_step_tuning(
+            {
+                CONF_SPREAD_THRESHOLD: 0.05,
+                CONF_DISCHARGE_MODE: DISCHARGE_MODE_SELF_CONSUMPTION,
+                CONF_TRAINING_DAYS: 30,
+            }
+        )
+    )
     assert result["type"] == "menu"
     assert flow.config_entry.options[CONF_SPREAD_THRESHOLD] == 0.20
 
@@ -279,9 +293,15 @@ def test_apply_keeps_options_the_menu_never_offers():
     """dry_run has no form field; it must survive an options edit."""
     hass = _FakeHass()
     flow = _options_flow(hass, _entry())
-    _run(flow.async_step_tuning({CONF_SPREAD_THRESHOLD: 0.05,
-                                 CONF_DISCHARGE_MODE: DISCHARGE_MODE_SELF_CONSUMPTION,
-                                 CONF_TRAINING_DAYS: 30}))
+    _run(
+        flow.async_step_tuning(
+            {
+                CONF_SPREAD_THRESHOLD: 0.05,
+                CONF_DISCHARGE_MODE: DISCHARGE_MODE_SELF_CONSUMPTION,
+                CONF_TRAINING_DAYS: 30,
+            }
+        )
+    )
     assert _run(flow.async_step_apply())["data"][CONF_DRY_RUN] is True
 
 
@@ -292,8 +312,11 @@ def test_clearing_an_optional_entity_really_clears_it():
     entry.data[CONF_TEMPERATURE_ENTITY] = "sensor.outside"
     flow = _options_flow(hass, entry)
 
-    _run(flow.async_step_consumption({CONF_CONSUMPTION_ENTITY: "sensor.load",
-                                      CONF_HAS_HEAT_PUMP: False}))
+    _run(
+        flow.async_step_consumption(
+            {CONF_CONSUMPTION_ENTITY: "sensor.load", CONF_HAS_HEAT_PUMP: False}
+        )
+    )
     assert _run(flow.async_step_apply())["data"][CONF_TEMPERATURE_ENTITY] is None
 
 
@@ -313,9 +336,7 @@ def test_a_changed_soc_entity_lands_in_options_not_data():
 def test_options_battery_step_validates_the_soc_window():
     hass = _FakeHass()
     flow = _options_flow(hass, _entry())
-    result = _run(
-        flow.async_step_battery({**BATTERY_INPUT, CONF_MIN_SOC: 90, CONF_MAX_SOC: 20})
-    )
+    result = _run(flow.async_step_battery({**BATTERY_INPUT, CONF_MIN_SOC: 90, CONF_MAX_SOC: 20}))
     assert result["errors"] == {"base": "soc_range_invalid"}
 
 
@@ -334,9 +355,13 @@ def test_export_mode_below_the_spread_is_refused():
     hass = _FakeHass()
     flow = _options_flow(hass, _entry())
     result = _run(
-        flow.async_step_tuning({CONF_SPREAD_THRESHOLD: 0.20,
-                                CONF_DISCHARGE_MODE: DISCHARGE_MODE_EXPORT,
-                                CONF_TRAINING_DAYS: 60})
+        flow.async_step_tuning(
+            {
+                CONF_SPREAD_THRESHOLD: 0.20,
+                CONF_DISCHARGE_MODE: DISCHARGE_MODE_EXPORT,
+                CONF_TRAINING_DAYS: 60,
+            }
+        )
     )
     assert result["errors"] == {"base": "export_spread_unreachable"}
 
@@ -345,9 +370,13 @@ def test_export_mode_above_the_spread_is_accepted():
     hass = _FakeHass()
     flow = _options_flow(hass, _entry())
     result = _run(
-        flow.async_step_tuning({CONF_SPREAD_THRESHOLD: 0.05,
-                                CONF_DISCHARGE_MODE: DISCHARGE_MODE_EXPORT,
-                                CONF_TRAINING_DAYS: 60})
+        flow.async_step_tuning(
+            {
+                CONF_SPREAD_THRESHOLD: 0.05,
+                CONF_DISCHARGE_MODE: DISCHARGE_MODE_EXPORT,
+                CONF_TRAINING_DAYS: 60,
+            }
+        )
     )
     assert result["type"] == "menu"
 
@@ -358,9 +387,13 @@ def test_market_price_export_is_never_refused():
     flow = _options_flow(hass, _entry())
     flow._pending[CONF_FEED_IN_TARIFF] = 0.0
     result = _run(
-        flow.async_step_tuning({CONF_SPREAD_THRESHOLD: 0.30,
-                                CONF_DISCHARGE_MODE: DISCHARGE_MODE_EXPORT,
-                                CONF_TRAINING_DAYS: 60})
+        flow.async_step_tuning(
+            {
+                CONF_SPREAD_THRESHOLD: 0.30,
+                CONF_DISCHARGE_MODE: DISCHARGE_MODE_EXPORT,
+                CONF_TRAINING_DAYS: 60,
+            }
+        )
     )
     assert result["type"] == "menu"
 
@@ -371,9 +404,9 @@ def test_lowering_the_feed_in_under_an_active_export_mode_is_refused():
     hass.states.set("sensor.price", _hourly_price_attrs())
     flow = _options_flow(hass, _entry(**{CONF_DISCHARGE_MODE: DISCHARGE_MODE_EXPORT}))
     result = _run(
-        flow.async_step_prices({CONF_PRICE_ENTITY: "sensor.price",
-                                CONF_PRICE_OFFSET: 0.0,
-                                CONF_FEED_IN_TARIFF: 0.10})
+        flow.async_step_prices(
+            {CONF_PRICE_ENTITY: "sensor.price", CONF_PRICE_OFFSET: 0.0, CONF_FEED_IN_TARIFF: 0.10}
+        )
     )
     assert result["errors"] == {"base": "export_spread_unreachable"}
 
@@ -398,9 +431,13 @@ def test_export_mode_without_an_export_script_is_refused():
     hass = _FakeHass()
     flow = _options_flow(hass, _export_entry())
     result = _run(
-        flow.async_step_tuning({CONF_SPREAD_THRESHOLD: 0.05,
-                                CONF_DISCHARGE_MODE: DISCHARGE_MODE_EXPORT,
-                                CONF_TRAINING_DAYS: 60})
+        flow.async_step_tuning(
+            {
+                CONF_SPREAD_THRESHOLD: 0.05,
+                CONF_DISCHARGE_MODE: DISCHARGE_MODE_EXPORT,
+                CONF_TRAINING_DAYS: 60,
+            }
+        )
     )
     assert result["errors"] == {"base": "export_script_missing"}
 
@@ -411,9 +448,13 @@ def test_an_export_script_staged_in_the_same_session_satisfies_the_check():
     flow = _options_flow(hass, _export_entry())
     _run(flow.async_step_control({**CONTROL_INPUT, CONF_SCRIPT_EXPORT: "script.export"}))
     result = _run(
-        flow.async_step_tuning({CONF_SPREAD_THRESHOLD: 0.05,
-                                CONF_DISCHARGE_MODE: DISCHARGE_MODE_EXPORT,
-                                CONF_TRAINING_DAYS: 60})
+        flow.async_step_tuning(
+            {
+                CONF_SPREAD_THRESHOLD: 0.05,
+                CONF_DISCHARGE_MODE: DISCHARGE_MODE_EXPORT,
+                CONF_TRAINING_DAYS: 60,
+            }
+        )
     )
     assert result["type"] == "menu"
 

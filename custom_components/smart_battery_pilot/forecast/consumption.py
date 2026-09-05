@@ -133,9 +133,7 @@ class ConsumptionForecaster:
 
     # --- training -----------------------------------------------------------
 
-    def train(
-        self, samples: list[TrainingSample], require_temperature: bool = False
-    ) -> None:
+    def train(self, samples: list[TrainingSample], require_temperature: bool = False) -> None:
         """Fit profile and (if enough data) the ridge regression model.
 
         ``require_temperature`` (heat-pump households) enables the heating-demand
@@ -152,9 +150,7 @@ class ConsumptionForecaster:
 
         if len(samples) >= MIN_REGRESSION_SAMPLES:
             n_temp = sum(1 for s in samples if s.temperature is not None)
-            use_temp = (
-                n_temp > 0 if require_temperature else n_temp >= len(samples) / 2
-            )
+            use_temp = n_temp > 0 if require_temperature else n_temp >= len(samples) / 2
             try:
                 self._weights = self._train_ridge(samples, use_temp)
                 self._uses_temperature = use_temp
@@ -191,9 +187,7 @@ class ConsumptionForecaster:
 
     # --- prediction -----------------------------------------------------------
 
-    def predict_kwh(
-        self, start: datetime, hours: float, temperature: float | None = None
-    ) -> float:
+    def predict_kwh(self, start: datetime, hours: float, temperature: float | None = None) -> float:
         """Predict consumption in kWh for a slot of `hours` starting at `start`."""
         if self._weights is not None:
             feats = _features(start, temperature, self._uses_temperature)

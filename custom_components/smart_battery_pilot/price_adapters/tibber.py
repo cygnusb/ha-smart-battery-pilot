@@ -63,9 +63,7 @@ def _boundaries(count: int, midnight: datetime) -> list[datetime]:
     return [_civil_datetime(midnight, round(i * slot_minutes)) for i in range(count + 1)]
 
 
-def _day_slots(
-    values: list[Any], midnight: datetime, price_factor: float = 1.0
-) -> list[PriceSlot]:
+def _day_slots(values: list[Any], midnight: datetime, price_factor: float = 1.0) -> list[PriceSlot]:
     if not values:
         return []
     bounds = _boundaries(len(values), midnight)
@@ -83,9 +81,7 @@ def _day_slots(
         if start_ts in seen or end_ts <= start_ts:
             continue
         seen.add(start_ts)
-        slots.append(
-            PriceSlot(start=start, end=end, price=float(value) * price_factor)
-        )
+        slots.append(PriceSlot(start=start, end=end, price=float(value) * price_factor))
     return slots
 
 

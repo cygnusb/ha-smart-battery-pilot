@@ -158,5 +158,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: pip install ruff
+      # Pinned: an unpinned formatter turns somebody else's ruff release into
+      # a red build on a branch that changed nothing.
+      - run: pip install ruff==0.16.5
       - run: ruff check .
+      - run: ruff format --check .

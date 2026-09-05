@@ -21,8 +21,7 @@ def _matches(attrs: dict[str, Any]) -> bool:
         and isinstance(data[0], dict)
         and "start_time" in data[0]
         and any(
-            key in data[0]
-            for key in ("price_eur_per_mwh", "price_ct_per_kwh", "price_per_kwh")
+            key in data[0] for key in ("price_eur_per_mwh", "price_ct_per_kwh", "price_per_kwh")
         )
     )
 
@@ -38,9 +37,7 @@ def _parse(attrs: dict[str, Any], now: datetime) -> list[PriceSlot]:
         key, factor = "price_ct_per_kwh", 1 / 100.0
     else:
         key, factor = "price_per_kwh", 1.0
-    slots = slots_from_entries(
-        data, "start_time", "end_time", key, factor, default_tz=now.tzinfo
-    )
+    slots = slots_from_entries(data, "start_time", "end_time", key, factor, default_tz=now.tzinfo)
     return merge_future_slots(slots, now)
 
 

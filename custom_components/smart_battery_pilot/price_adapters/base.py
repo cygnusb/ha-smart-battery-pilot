@@ -83,8 +83,10 @@ def _parse_dt(value: Any, default_tz: tzinfo | None = None) -> datetime:
     local time. Leaving them naive would blow up later when they meet the
     timezone-aware `now`, and the traceback would say nothing useful.
     """
-    parsed = value if isinstance(value, datetime) else datetime.fromisoformat(
-        str(value).replace("Z", "+00:00")
+    parsed = (
+        value
+        if isinstance(value, datetime)
+        else datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     )
     if parsed.tzinfo is None and default_tz is not None:
         return parsed.replace(tzinfo=default_tz)
@@ -110,11 +112,7 @@ def slots_from_entries(
         if price is None:
             continue
         start = _parse_dt(entry[start_key], default_tz)
-        end = (
-            _parse_dt(entry[end_key], default_tz)
-            if end_key and entry.get(end_key)
-            else None
-        )
+        end = _parse_dt(entry[end_key], default_tz) if end_key and entry.get(end_key) else None
         parsed.append((start, end, float(price) * price_factor))
 
     parsed.sort(key=lambda item: item[0])

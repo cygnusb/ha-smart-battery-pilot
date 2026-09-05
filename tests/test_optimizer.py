@@ -102,9 +102,7 @@ def test_scarce_energy_idles_to_preserve_for_peak():
         efficiency=90,
     )
     # Spread 0.20 makes grid arbitrage 0.30->0.45 unattractive
-    config = OptimizerConfig(
-        spread_threshold=0.20, discharge_mode=DISCHARGE_MODE_SELF_CONSUMPTION
-    )
+    config = OptimizerConfig(spread_threshold=0.20, discharge_mode=DISCHARGE_MODE_SELF_CONSUMPTION)
     prices = [0.30] * 6 + [0.45] * 4 + [0.30] * 14
     plan = build_plan(make_slots(prices, demand_kwh=1.0), battery, config)
     actions = [s.action for s in plan.slots]
@@ -137,9 +135,9 @@ def test_abundant_energy_no_idle():
 def test_negative_prices_charge():
     prices = [-0.05] * 3 + [0.30] * 21
     plan = build_plan(make_slots(prices, demand_kwh=1.0), BATTERY, CONFIG)
-    assert any(
-        s.action == ACTION_CHARGE for s in plan.slots[:3]
-    ), "should charge at negative prices"
+    assert any(s.action == ACTION_CHARGE for s in plan.slots[:3]), (
+        "should charge at negative prices"
+    )
 
 
 def test_negative_slots_hold_stored_energy_for_later_positive_hours():
@@ -178,9 +176,7 @@ def test_pv_surplus_reduces_demand():
     """Slots with PV surplus (net demand <= 0) never trigger discharge pairing."""
     slots = make_slots([0.10] * 6 + [0.40] * 18, demand_kwh=1.0)
     surplus = [
-        InputSlot(price_slot=s.price_slot, net_demand_kwh=-0.5)
-        if 8 <= i <= 16
-        else s
+        InputSlot(price_slot=s.price_slot, net_demand_kwh=-0.5) if 8 <= i <= 16 else s
         for i, s in enumerate(slots)
     ]
     plan = build_plan(surplus, BATTERY, CONFIG)
@@ -213,9 +209,7 @@ def test_export_slot_sets_discharge_power():
     assert export_slots
     for slot in export_slots:
         hours = (slot.end - slot.start).total_seconds() / 3600.0
-        assert slot.power_w == pytest.approx(
-            slot.discharge_kwh / hours * 1000.0, abs=1
-        )
+        assert slot.power_w == pytest.approx(slot.discharge_kwh / hours * 1000.0, abs=1)
         assert 0 < slot.power_w <= BATTERY.max_discharge_power_w + 1
 
 
@@ -299,8 +293,32 @@ def test_no_slot_both_charges_and_discharges():
     own demand. The plan then asked the inverter to force-charge a full
     battery while the cost model booked a discharge that never happened.
     """
-    prices = [0.05, 0.04, 0.03, 0.03, 0.04, 0.08, 0.18, 0.30, 0.34, 0.28, 0.20, 0.15,
-              0.12, 0.14, 0.18, 0.24, 0.32, 0.42, 0.48, 0.44, 0.36, 0.28, 0.20, 0.12]
+    prices = [
+        0.05,
+        0.04,
+        0.03,
+        0.03,
+        0.04,
+        0.08,
+        0.18,
+        0.30,
+        0.34,
+        0.28,
+        0.20,
+        0.15,
+        0.12,
+        0.14,
+        0.18,
+        0.24,
+        0.32,
+        0.42,
+        0.48,
+        0.44,
+        0.36,
+        0.28,
+        0.20,
+        0.12,
+    ]
     slots = [
         InputSlot(
             price_slot=PriceSlot(
@@ -329,9 +347,7 @@ def test_no_slot_both_charges_and_discharges():
 
     plan = build_plan(slots, battery, config)
 
-    conflicting = [
-        s for s in plan.slots if s.action == ACTION_CHARGE and s.discharge_kwh > 1e-9
-    ]
+    conflicting = [s for s in plan.slots if s.action == ACTION_CHARGE and s.discharge_kwh > 1e-9]
     assert conflicting == [], f"charge slots also crediting a discharge: {conflicting}"
 
 
@@ -362,15 +378,11 @@ def test_charge_slots_never_discharge_across_random_price_curves():
         )
         config = OptimizerConfig(
             spread_threshold=random.choice([0.0, 0.05, 0.2]),
-            discharge_mode=random.choice(
-                [DISCHARGE_MODE_SELF_CONSUMPTION, DISCHARGE_MODE_EXPORT]
-            ),
+            discharge_mode=random.choice([DISCHARGE_MODE_SELF_CONSUMPTION, DISCHARGE_MODE_EXPORT]),
             feed_in_tariff=random.choice([0.0, 0.08]),
             price_offset=random.choice([0.0, 0.15]),
         )
 
         plan = build_plan(slots, battery, config)
 
-        assert not [
-            s for s in plan.slots if s.action == ACTION_CHARGE and s.discharge_kwh > 1e-9
-        ]
+        assert not [s for s in plan.slots if s.action == ACTION_CHARGE and s.discharge_kwh > 1e-9]

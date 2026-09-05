@@ -101,9 +101,7 @@ def test_pv_distribution():
     now = datetime(2026, 6, 11, 8, 0, tzinfo=TZ)
     noon = pv_kwh_for_slot(datetime(2026, 6, 11, 13, 0, tzinfo=TZ), 1.0, 30.0, 20.0, now)
     night = pv_kwh_for_slot(datetime(2026, 6, 11, 23, 0, tzinfo=TZ), 1.0, 30.0, 20.0, now)
-    tomorrow_noon = pv_kwh_for_slot(
-        datetime(2026, 6, 12, 13, 0, tzinfo=TZ), 1.0, 30.0, 20.0, now
-    )
+    tomorrow_noon = pv_kwh_for_slot(datetime(2026, 6, 12, 13, 0, tzinfo=TZ), 1.0, 30.0, 20.0, now)
     assert noon > 2.0  # noon hour carries far more than average
     assert night == 0.0
     assert tomorrow_noon == pytest.approx(noon * 20 / 30, rel=0.05)

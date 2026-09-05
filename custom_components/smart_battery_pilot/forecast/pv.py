@@ -52,9 +52,7 @@ def pv_kwh_for_slot(
 
     # Integrate the shape over the slot (10-minute steps) and normalize by
     # the shape's integral over the full day.
-    total_shape = (
-        sum(_shape(h / 6.0, sunrise_hour, sunset_hour) for h in range(24 * 6)) / 6.0
-    )
+    total_shape = sum(_shape(h / 6.0, sunrise_hour, sunset_hour) for h in range(24 * 6)) / 6.0
     if total_shape <= 0:
         return 0.0
     steps = max(1, int(hours * 6))
@@ -62,7 +60,5 @@ def pv_kwh_for_slot(
     slot_shape = 0.0
     for i in range(steps):
         t = start + (i + 0.5) * step
-        slot_shape += _shape(t.hour + t.minute / 60.0, sunrise_hour, sunset_hour) * (
-            hours / steps
-        )
+        slot_shape += _shape(t.hour + t.minute / 60.0, sunrise_hour, sunset_hour) * (hours / steps)
     return daily * slot_shape / total_shape

@@ -263,7 +263,7 @@ def test_apply_queued_before_unload_does_not_revive_a_forced_mode():
         await hass.drain()
         hass.services.calls.clear()
 
-        executor._queue_apply()          # in flight when the unload starts
+        executor._queue_apply()  # in flight when the unload starts
         await executor.async_stop(restore_auto=True)
         await hass.drain()
 
