@@ -91,7 +91,8 @@
       "unsupported_price_format": "Tämän entiteetin hintamuotoa ei tunnistettu. Katso tuetut integraatiot dokumentaatiosta.",
       "no_future_prices": "Entiteetti ei sisällä tulevia hintoja.",
       "soc_range_invalid": "Pienimmän SOC:n on oltava suurinta SOC:ia pienempi.",
-      "export_spread_unreachable": "Myyntitila ei voi tehdä näillä arvoilla mitään: syöttötariffi on pienimmän hintaspreadin tasolla tai sen alle, joten yksikään tunti ei voi koskaan täyttää ehtoa. Nosta tariffia, laske spreadia, tai aseta tariffi arvoon 0 myydäksesi markkinahintaan."
+      "export_spread_unreachable": "Myyntitila ei voi tehdä näillä arvoilla mitään: syöttötariffi on pienimmän hintaspreadin tasolla tai sen alle, joten yksikään tunti ei voi koskaan täyttää ehtoa. Nosta tariffia, laske spreadia, tai aseta tariffi arvoon 0 myydäksesi markkinahintaan.",
+      "export_script_missing": "Vientitila vaatii pakotetun purun skriptin. Lisää sellainen ohjausskripteihin tai vaihda purkutila takaisin omaan käyttöön."
     },
     "abort": {
       "already_configured": "Jo määritetty."
@@ -210,7 +211,8 @@
       "unsupported_price_format": "Tämän entiteetin hintamuotoa ei tunnistettu. Katso tuetut integraatiot dokumentaatiosta.",
       "no_future_prices": "Entiteetti ei sisällä tulevia hintoja.",
       "soc_range_invalid": "Pienimmän SOC:n on oltava suurinta SOC:ia pienempi.",
-      "export_spread_unreachable": "Myyntitila ei voi tehdä näillä arvoilla mitään: syöttötariffi on pienimmän hintaspreadin tasolla tai sen alle, joten yksikään tunti ei voi koskaan täyttää ehtoa. Nosta tariffia, laske spreadia, tai aseta tariffi arvoon 0 myydäksesi markkinahintaan."
+      "export_spread_unreachable": "Myyntitila ei voi tehdä näillä arvoilla mitään: syöttötariffi on pienimmän hintaspreadin tasolla tai sen alle, joten yksikään tunti ei voi koskaan täyttää ehtoa. Nosta tariffia, laske spreadia, tai aseta tariffi arvoon 0 myydäksesi markkinahintaan.",
+      "export_script_missing": "Vientitila vaatii pakotetun purun skriptin. Lisää sellainen ohjausskripteihin tai vaihda purkutila takaisin omaan käyttöön."
     }
   },
   "selector": {

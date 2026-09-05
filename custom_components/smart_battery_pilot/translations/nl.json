@@ -91,7 +91,8 @@
       "unsupported_price_format": "Het prijsformaat van deze entiteit werd niet herkend. Zie de documentatie voor ondersteunde integraties.",
       "no_future_prices": "De entiteit bevat geen toekomstige prijzen.",
       "soc_range_invalid": "Minimale SOC moet lager zijn dan maximale SOC.",
-      "export_spread_unreachable": "De terugleverstand kan met deze waarden niets doen: de terugleververgoeding ligt op of onder de minimale prijsspread, waardoor geen enkel tijdvak ooit in aanmerking komt. Verhoog de vergoeding, verlaag de spread, of zet de vergoeding op 0 om tegen de marktprijs terug te leveren."
+      "export_spread_unreachable": "De terugleverstand kan met deze waarden niets doen: de terugleververgoeding ligt op of onder de minimale prijsspread, waardoor geen enkel tijdvak ooit in aanmerking komt. Verhoog de vergoeding, verlaag de spread, of zet de vergoeding op 0 om tegen de marktprijs terug te leveren.",
+      "export_script_missing": "De exportmodus heeft een script voor geforceerd ontladen nodig. Stel er een in bij de stuurscripts, of zet de ontlaadmodus terug op eigen verbruik."
     },
     "abort": {
       "already_configured": "Al geconfigureerd."
@@ -210,7 +211,8 @@
       "unsupported_price_format": "Het prijsformaat van deze entiteit werd niet herkend. Zie de documentatie voor ondersteunde integraties.",
       "no_future_prices": "De entiteit bevat geen toekomstige prijzen.",
       "soc_range_invalid": "Minimale SOC moet lager zijn dan maximale SOC.",
-      "export_spread_unreachable": "De terugleverstand kan met deze waarden niets doen: de terugleververgoeding ligt op of onder de minimale prijsspread, waardoor geen enkel tijdvak ooit in aanmerking komt. Verhoog de vergoeding, verlaag de spread, of zet de vergoeding op 0 om tegen de marktprijs terug te leveren."
+      "export_spread_unreachable": "De terugleverstand kan met deze waarden niets doen: de terugleververgoeding ligt op of onder de minimale prijsspread, waardoor geen enkel tijdvak ooit in aanmerking komt. Verhoog de vergoeding, verlaag de spread, of zet de vergoeding op 0 om tegen de marktprijs terug te leveren.",
+      "export_script_missing": "De exportmodus heeft een script voor geforceerd ontladen nodig. Stel er een in bij de stuurscripts, of zet de ontlaadmodus terug op eigen verbruik."
     }
   },
   "selector": {

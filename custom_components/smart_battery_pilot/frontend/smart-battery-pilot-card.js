@@ -290,7 +290,8 @@ class SmartBatteryPilotCard extends HTMLElement {
       state === this._renderedState &&
       pvState === this._renderedPv &&
       lang === this._lang &&
-      tz === this._tz
+      tz === this._tz &&
+      !this._renderedSlotIsOver()
     )
       return;
     this._lang = lang;
@@ -298,6 +299,18 @@ class SmartBatteryPilotCard extends HTMLElement {
     this._renderedState = state;
     this._renderedPv = pvState;
     this._render(state);
+  }
+
+  // True once the slot the DOM was drawn for has ended.
+  //
+  // The plan sensor's state and attributes are the same on both sides of a
+  // slot boundary - the plan itself did not change - so Home Assistant fires
+  // no state_changed event for it and the comparison above would hold the
+  // stale action chip and "now" marker until the next coordinator refresh,
+  // up to 30 minutes into a 15-minute slot. Comparing one cached timestamp
+  // keeps `set hass`, which runs on every state change in the system, O(1).
+  _renderedSlotIsOver() {
+    return this._renderedSlotEnd != null && Date.now() >= this._renderedSlotEnd;
   }
 
   // Calendar fields of `ms` as Home Assistant sees them.
@@ -402,6 +415,7 @@ class SmartBatteryPilotCard extends HTMLElement {
   _render(state) {
     const title = this._config.title || "Smart Battery Pilot";
 
+    this._renderedSlotEnd = null;
     if (!state) {
       this._html(
         title,
@@ -540,6 +554,7 @@ class SmartBatteryPilotCard extends HTMLElement {
       }" class="now"/>`;
     }
     const current = slots.find((s) => now >= s.startMs && now < s.endMs);
+    this._renderedSlotEnd = current ? current.endMs : null;
     const next = slots.find((s) => s.startMs > now && current && s.action !== current.action);
     const statusBits = [];
     if (current) {

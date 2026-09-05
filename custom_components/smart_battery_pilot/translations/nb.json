@@ -91,7 +91,8 @@
       "unsupported_price_format": "Prisformatet til denne entiteten ble ikke gjenkjent. Se dokumentasjonen for integrasjoner som støttes.",
       "no_future_prices": "Entiteten inneholder ingen fremtidige priser.",
       "soc_range_invalid": "Laveste SOC må være under høyeste SOC.",
-      "export_spread_unreachable": "Innmatingsmodusen kan ikke gjøre noe med disse verdiene: innmatingstariffen ligger på eller under den minste prisspreaden, så ingen time kan noen gang kvalifisere. Øk tariffen, senk spreaden, eller sett tariffen til 0 for å selge til markedspris."
+      "export_spread_unreachable": "Innmatingsmodusen kan ikke gjøre noe med disse verdiene: innmatingstariffen ligger på eller under den minste prisspreaden, så ingen time kan noen gang kvalifisere. Øk tariffen, senk spreaden, eller sett tariffen til 0 for å selge til markedspris.",
+      "export_script_missing": "Eksportmodus krever et skript for tvungen utlading. Legg til ett under styringsskript, eller sett utladingsmodus tilbake til eget forbruk."
     },
     "abort": {
       "already_configured": "Allerede konfigurert."
@@ -210,7 +211,8 @@
       "unsupported_price_format": "Prisformatet til denne entiteten ble ikke gjenkjent. Se dokumentasjonen for integrasjoner som støttes.",
       "no_future_prices": "Entiteten inneholder ingen fremtidige priser.",
       "soc_range_invalid": "Laveste SOC må være under høyeste SOC.",
-      "export_spread_unreachable": "Innmatingsmodusen kan ikke gjøre noe med disse verdiene: innmatingstariffen ligger på eller under den minste prisspreaden, så ingen time kan noen gang kvalifisere. Øk tariffen, senk spreaden, eller sett tariffen til 0 for å selge til markedspris."
+      "export_spread_unreachable": "Innmatingsmodusen kan ikke gjøre noe med disse verdiene: innmatingstariffen ligger på eller under den minste prisspreaden, så ingen time kan noen gang kvalifisere. Øk tariffen, senk spreaden, eller sett tariffen til 0 for å selge til markedspris.",
+      "export_script_missing": "Eksportmodus krever et skript for tvungen utlading. Legg til ett under styringsskript, eller sett utladingsmodus tilbake til eget forbruk."
     }
   },
   "selector": {

@@ -50,7 +50,10 @@ Greedy pairing with a stored-energy timeline simulation:
    from PV and won't discharge anyway.
 6. In **export mode**, remaining peak slots can additionally be paired for
    grid export, valued at the feed-in tariff (or the raw market price if 0 —
-   the configured import offset is not counted as export revenue).
+   the configured import offset is not counted as export revenue). An export
+   script is required for this mode; the options flow refuses to select it
+   without one. What the cost model assumes of that script is spelled out
+   under [Export slots](#what-an-export-slot-assumes) below.
 7. **Never worse than doing nothing.** If the finished plan's estimated
    savings still come out negative, it is discarded and the all-`auto` plan
    is returned instead, carrying a `plan_worse_than_baseline` warning in the
@@ -61,6 +64,38 @@ The plan is recomputed every 30 minutes, whenever the price entity updates
 (e.g. tomorrow's prices arriving around 14:00), on option changes, and via
 the `smart_battery_pilot.replan` service. Only the *current* slot's action is
 ever executed, so plan revisions take effect immediately.
+
+## What an export slot assumes
+
+An export slot is the one action where the plan asks the inverter to do two
+things at once. The cost model still credits the household load as covered
+from the battery and charges only the *remainder* to the grid at the feed-in
+price — and the `power_w` handed to the export script is the **sum** of both,
+the load share plus the exported share.
+
+Your export script must therefore keep serving the house from the battery
+while it discharges into the grid. A script that switches the inverter to a
+pure "sell at `power_w`" mode and leaves the house on the grid meter still
+runs safely, but the household demand of those slots is then bought at the
+import price without the model knowing, and the realised saving comes out
+below `estimated_savings`. Export slots are rare and short by construction
+(only genuine price peaks qualify), so the gap stays small — but if your
+inverter cannot do both, prefer self-consumption mode.
+
+## What curtailed PV is worth
+
+Where the timeline pins the battery at max SOC, the surplus that no longer
+fits is treated as worth **nothing** — step 4 above spends energy freely
+ahead of such a slot because the PV refills it at no cost. In reality that
+surplus is exported and earns the feed-in tariff, so those withdrawals do
+have a price.
+
+It does not change any decision. The withdrawal happens to avoid an *import*,
+and as long as the import price exceeds the feed-in tariff — which it does in
+every residential tariff this integration targets — spending stored energy
+before a curtailment window is the better trade regardless. It makes
+`estimated_savings` a touch optimistic on sunny days with a fixed feed-in
+tariff, by at most the feed-in value of the energy moved.
 
 ## Why a spread threshold?
 

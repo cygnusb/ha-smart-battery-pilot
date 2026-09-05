@@ -33,6 +33,7 @@ from smart_battery_pilot.const import (
     CONF_PV_FORECAST_TODAY,
     CONF_SCRIPT_AUTO,
     CONF_SCRIPT_CHARGE,
+    CONF_SCRIPT_EXPORT,
     CONF_SCRIPT_IDLE,
     CONF_SOC_ENTITY,
     CONF_SPREAD_THRESHOLD,
@@ -244,6 +245,7 @@ def _entry(**options) -> ConfigEntry:
             CONF_FEED_IN_TARIFF: 0.08,
             **BATTERY_INPUT,
             **CONTROL_INPUT,
+            CONF_SCRIPT_EXPORT: "script.export",
             CONF_CONSUMPTION_ENTITY: "sensor.load",
         },
         options={
@@ -374,3 +376,59 @@ def test_lowering_the_feed_in_under_an_active_export_mode_is_refused():
                                 CONF_FEED_IN_TARIFF: 0.10})
     )
     assert result["errors"] == {"base": "export_spread_unreachable"}
+
+
+# --- export mode without the script that carries it --------------------------
+
+
+def _export_entry(**options) -> ConfigEntry:
+    """An entry in export mode whose export script was never configured."""
+    entry = _entry(**{CONF_DISCHARGE_MODE: DISCHARGE_MODE_EXPORT, **options})
+    del entry.data[CONF_SCRIPT_EXPORT]
+    return entry
+
+
+def test_export_mode_without_an_export_script_is_refused():
+    """Export mode is the one action whose script is optional everywhere else.
+
+    Without it the planner still schedules export slots, the executor logs
+    "no export script configured" at every slot boundary and falls back to
+    auto mode - so the setting looks active while doing nothing at all.
+    """
+    hass = _FakeHass()
+    flow = _options_flow(hass, _export_entry())
+    result = _run(
+        flow.async_step_tuning({CONF_SPREAD_THRESHOLD: 0.05,
+                                CONF_DISCHARGE_MODE: DISCHARGE_MODE_EXPORT,
+                                CONF_TRAINING_DAYS: 60})
+    )
+    assert result["errors"] == {"base": "export_script_missing"}
+
+
+def test_an_export_script_staged_in_the_same_session_satisfies_the_check():
+    """Sections are collected before they are applied; the check sees them."""
+    hass = _FakeHass()
+    flow = _options_flow(hass, _export_entry())
+    _run(flow.async_step_control({**CONTROL_INPUT, CONF_SCRIPT_EXPORT: "script.export"}))
+    result = _run(
+        flow.async_step_tuning({CONF_SPREAD_THRESHOLD: 0.05,
+                                CONF_DISCHARGE_MODE: DISCHARGE_MODE_EXPORT,
+                                CONF_TRAINING_DAYS: 60})
+    )
+    assert result["type"] == "menu"
+
+
+def test_clearing_the_export_script_under_an_active_export_mode_is_refused():
+    """The other half of the pair: the script lives in the control step."""
+    hass = _FakeHass()
+    flow = _options_flow(hass, _entry(**{CONF_DISCHARGE_MODE: DISCHARGE_MODE_EXPORT}))
+    result = _run(flow.async_step_control(dict(CONTROL_INPUT)))
+    assert result["errors"] == {"base": "export_script_missing"}
+
+
+def test_the_export_script_stays_optional_in_self_consumption_mode():
+    hass = _FakeHass()
+    flow = _options_flow(hass, _entry())
+    result = _run(flow.async_step_control(dict(CONTROL_INPUT)))
+    assert result["type"] == "menu"
+    assert _run(flow.async_step_apply())["data"][CONF_SCRIPT_EXPORT] is None

@@ -91,7 +91,8 @@
       "unsupported_price_format": "Prisformatet för den här entiteten kändes inte igen. Se dokumentationen för integrationer som stöds.",
       "no_future_prices": "Entiteten innehåller inga framtida priser.",
       "soc_range_invalid": "Lägsta SOC måste vara under högsta SOC.",
-      "export_spread_unreachable": "Försäljningsläget kan inte göra något med dessa värden: ersättningen ligger på eller under den minsta prisspreaden, så ingen timme kan någonsin kvalificera sig. Höj ersättningen, sänk spreaden, eller sätt ersättningen till 0 för att sälja till marknadspris."
+      "export_spread_unreachable": "Försäljningsläget kan inte göra något med dessa värden: ersättningen ligger på eller under den minsta prisspreaden, så ingen timme kan någonsin kvalificera sig. Höj ersättningen, sänk spreaden, eller sätt ersättningen till 0 för att sälja till marknadspris.",
+      "export_script_missing": "Exportläget kräver ett skript för tvingad urladdning. Lägg till ett under styrskript, eller ställ tillbaka urladdningsläget till egenförbrukning."
     },
     "abort": {
       "already_configured": "Redan konfigurerad."
@@ -210,7 +211,8 @@
       "unsupported_price_format": "Prisformatet för den här entiteten kändes inte igen. Se dokumentationen för integrationer som stöds.",
       "no_future_prices": "Entiteten innehåller inga framtida priser.",
       "soc_range_invalid": "Lägsta SOC måste vara under högsta SOC.",
-      "export_spread_unreachable": "Försäljningsläget kan inte göra något med dessa värden: ersättningen ligger på eller under den minsta prisspreaden, så ingen timme kan någonsin kvalificera sig. Höj ersättningen, sänk spreaden, eller sätt ersättningen till 0 för att sälja till marknadspris."
+      "export_spread_unreachable": "Försäljningsläget kan inte göra något med dessa värden: ersättningen ligger på eller under den minsta prisspreaden, så ingen timme kan någonsin kvalificera sig. Höj ersättningen, sänk spreaden, eller sätt ersättningen till 0 för att sälja till marknadspris.",
+      "export_script_missing": "Exportläget kräver ett skript för tvingad urladdning. Lägg till ett under styrskript, eller ställ tillbaka urladdningsläget till egenförbrukning."
     }
   },
   "selector": {

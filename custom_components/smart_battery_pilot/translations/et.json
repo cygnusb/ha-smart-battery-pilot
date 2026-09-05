@@ -91,7 +91,8 @@
       "unsupported_price_format": "Selle olemi hinnavormingut ei tuntud ära. Toetatud integratsioonid leiad dokumentatsioonist.",
       "no_future_prices": "Olem ei sisalda tulevasi hindu.",
       "soc_range_invalid": "Minimaalne SOC peab olema väiksem kui maksimaalne SOC.",
-      "export_spread_unreachable": "Müügirežiim ei saa nende väärtustega midagi teha: müügihind on minimaalse hinnavahemiku tasemel või allpool, seega ei kvalifitseeru ükski tund kunagi. Tõsta müügihinda, langeta vahemikku või määra müügihinnaks 0, et müüa turuhinnaga."
+      "export_spread_unreachable": "Müügirežiim ei saa nende väärtustega midagi teha: müügihind on minimaalse hinnavahemiku tasemel või allpool, seega ei kvalifitseeru ükski tund kunagi. Tõsta müügihinda, langeta vahemikku või määra müügihinnaks 0, et müüa turuhinnaga.",
+      "export_script_missing": "Ekspordirežiim vajab sunnitud tühjendamise skripti. Lisa see juhtimisskriptide sammus või määra tühjendusrežiim tagasi omatarbeks."
     },
     "abort": {
       "already_configured": "Juba seadistatud."
@@ -210,7 +211,8 @@
       "unsupported_price_format": "Selle olemi hinnavormingut ei tuntud ära. Toetatud integratsioonid leiad dokumentatsioonist.",
       "no_future_prices": "Olem ei sisalda tulevasi hindu.",
       "soc_range_invalid": "Minimaalne SOC peab olema väiksem kui maksimaalne SOC.",
-      "export_spread_unreachable": "Müügirežiim ei saa nende väärtustega midagi teha: müügihind on minimaalse hinnavahemiku tasemel või allpool, seega ei kvalifitseeru ükski tund kunagi. Tõsta müügihinda, langeta vahemikku või määra müügihinnaks 0, et müüa turuhinnaga."
+      "export_spread_unreachable": "Müügirežiim ei saa nende väärtustega midagi teha: müügihind on minimaalse hinnavahemiku tasemel või allpool, seega ei kvalifitseeru ükski tund kunagi. Tõsta müügihinda, langeta vahemikku või määra müügihinnaks 0, et müüa turuhinnaga.",
+      "export_script_missing": "Ekspordirežiim vajab sunnitud tühjendamise skripti. Lisa see juhtimisskriptide sammus või määra tühjendusrežiim tagasi omatarbeks."
     }
   },
   "selector": {
