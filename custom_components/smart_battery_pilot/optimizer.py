@@ -14,7 +14,10 @@ Discharge candidates are visited from the most expensive slot down;
 each first consumes already-stored (PV/initial) energy, then is paired
 with the cheapest earlier grid-charge slots whose price plus efficiency
 losses and the configured spread still undercut the discharge price.
-All assignments are validated against SOC and power limits over time.
+All assignments are validated against SOC and power limits over time -
+including PV curtailment, which makes energy spent before a full battery
+free to spend. A plan that still comes out worse than doing nothing is
+discarded in favour of leaving the inverter alone.
 """
 
 from __future__ import annotations
@@ -147,17 +150,41 @@ def build_plan(
         for i in range(n)
     ]
 
-    def timeline() -> list[float]:
-        """Stored energy (above min SOC) at the END of each slot.
+    def timeline() -> tuple[list[float], list[float]]:
+        """Stored energy (above min SOC) at the END of each slot, and the PV
+        curtailed in each slot.
 
-        PV surplus charging is clamped at max SOC (excess is exported)."""
+        PV surplus charging is clamped at max SOC; whatever does not fit is
+        curtailed (exported or throttled away) and is reported per slot."""
         levels = []
+        curtailed = []
         e = e_init
         for i in range(n):
             e += charge_stored[i] - discharge_stored[i] - export_stored[i]
-            e = min(e + pv_surplus_stored[i], e_max)
+            e += pv_surplus_stored[i]
+            curtailed.append(max(0.0, e - e_max))
+            e = min(e, e_max)
             levels.append(e)
-        return levels
+        return levels, curtailed
+
+    def withdrawable(levels: list[float], curtailed: list[float], d: int) -> float:
+        """Stored energy that slot d may spend without emptying a later slot.
+
+        Taking energy out at d lowers every later level by the same amount -
+        unless a slot in between curtails PV. There the surplus that was about
+        to be thrown away refills the gap for free, so a withdrawal before such
+        a slot costs the tail nothing up to the curtailed amount. Reserving
+        energy across a curtailment window therefore buys nothing: it only
+        replaces free PV with energy the household paid for.
+        """
+        if d >= n:
+            return 0.0
+        room = math.inf
+        absorbed = 0.0
+        for j in range(d, n):
+            absorbed += curtailed[j]
+            room = min(room, levels[j] + absorbed)
+        return max(0.0, room)
 
     def _export_sell_price(i: int) -> float:
         if config.feed_in_tariff > 0:
@@ -173,9 +200,9 @@ def build_plan(
         assigned = 0.0
 
         # 1. Use energy that is already in the battery at slot d.
-        levels = timeline()
-        available = min(levels[d:]) if d < n else 0.0
-        use = min(want_stored, max(0.0, available))
+        levels, curtailed = timeline()
+        available = withdrawable(levels, curtailed, d)
+        use = min(want_stored, available)
         if use > 1e-9:
             store[d] += use
             assigned += use
@@ -201,7 +228,7 @@ def build_plan(
                 # Cost to deliver 1 kWh from grid via battery vs. discharge value
                 if prices[c] / eta + config.spread_threshold >= sell_price:
                     break  # candidates are price-sorted: none cheaper left
-                levels = timeline()
+                levels, _ = timeline()
                 headroom = e_max - max(levels[c:d])
                 q = min(
                     remaining,
@@ -253,16 +280,9 @@ def build_plan(
             assign_discharge(d, want_stored, export_stored)
 
     # --- build plan slots ----------------------------------------------------
-    plan = Plan()
-    if export_spread_unreachable:
-        plan.warnings.append("export_spread_unreachable")
-    levels = timeline()
-    max_future_price = [0.0] * n
-    running_max = 0.0
-    for i in range(n - 1, -1, -1):
-        max_future_price[i] = running_max
-        if discharge_stored[i] > 1e-9 or export_stored[i] > 1e-9:
-            running_max = max(running_max, prices[i])
+    warnings = ["export_spread_unreachable"] if export_spread_unreachable else []
+    plan = Plan(warnings=list(warnings))
+    levels, _ = timeline()
 
     for i, slot in enumerate(slots):
         action = ACTION_AUTO
@@ -283,10 +303,15 @@ def build_plan(
                 )
         elif discharge_stored[i] > 1e-9:
             action = ACTION_AUTO
-        elif demand[i] > 1e-9 and max_future_price[i] > prices[i] and levels[i] > 1e-9:
-            # Demand exists, but the stored energy is reserved for a pricier
-            # future slot. Surplus slots (no demand) stay in auto mode: the
-            # inverter charges from PV and won't discharge anyway.
+        elif demand[i] > 1e-9 and levels[i] > 1e-9:
+            # The battery holds energy and the house is drawing, so the
+            # inverter would discharge here - but the assignment did not spend
+            # this slot's energy, which means it is reserved for a pricier slot
+            # later (or the price here is negative, where importing pays).
+            # Blocking is what makes the rest of the plan come true; without it
+            # the cost model and the inverter disagree. Surplus slots (no
+            # demand) stay in auto mode: the inverter charges from PV and won't
+            # discharge anyway.
             action = ACTION_IDLE
 
         if delivered > 0:
@@ -313,7 +338,7 @@ def build_plan(
     # consumption from whatever the battery happens to hold - not "buy
     # everything from the grid". Otherwise an all-auto plan that changes
     # nothing would still report a fat saving.
-    baseline_delivered = _simulate_self_consumption(
+    baseline_delivered, baseline_levels = _simulate_self_consumption(
         n, demand, discharge_cap, pv_surplus_stored, e_init, e_max, eta_one_way
     )
     cost_plan = 0.0
@@ -325,7 +350,48 @@ def build_plan(
         if export_stored[i] > 1e-9:
             cost_plan -= export_stored[i] * eta_one_way * _export_sell_price(i)
         cost_baseline += (demand[i] - baseline_delivered[i]) * prices[i]
-    plan.estimated_savings_eur = round(cost_baseline - cost_plan, 2)
+    savings = cost_baseline - cost_plan
+
+    if savings < -1e-9:
+        # Doing nothing is always available and is the very baseline the number
+        # is measured against, so a plan that loses money is never worth
+        # running. Should not happen - but a wrong plan costs the user money,
+        # while a needless fallback only costs an optimization.
+        warnings.append("plan_worse_than_baseline")
+        return _auto_plan(
+            slots, prices, baseline_delivered, baseline_levels, battery, warnings
+        )
+
+    plan.estimated_savings_eur = round(savings, 2)
+    return plan
+
+
+def _auto_plan(
+    slots: list[InputSlot],
+    prices: list[float],
+    delivered: list[float],
+    levels: list[float],
+    battery: BatteryState,
+    warnings: list[str],
+) -> Plan:
+    """The do-nothing plan: leave the inverter in auto mode all the way."""
+    plan = Plan(warnings=list(warnings))
+    for i, slot in enumerate(slots):
+        plan.battery_discharge_kwh += delivered[i]
+        plan.slots.append(
+            PlanSlot(
+                start=slot.price_slot.start,
+                end=slot.price_slot.end,
+                action=ACTION_AUTO,
+                price=prices[i],
+                net_demand_kwh=slot.net_demand_kwh,
+                pv_kwh=slot.pv_kwh,
+                discharge_kwh=round(delivered[i], 3),
+                soc_forecast=round(
+                    battery.min_soc + levels[i] / battery.capacity_kwh * 100.0, 1
+                ),
+            )
+        )
     return plan
 
 
@@ -337,17 +403,20 @@ def _simulate_self_consumption(
     e_init: float,
     e_max: float,
     eta_one_way: float,
-) -> list[float]:
-    """Energy the battery would deliver to the load without any planning.
+) -> tuple[list[float], list[float]]:
+    """Energy the battery would deliver to the load without any planning, and
+    the stored energy left at the end of each slot.
 
     The do-nothing reference: discharge whatever is stored as soon as there
     is demand, recharge from PV surplus, never touch the grid.
     """
     delivered = [0.0] * n
+    levels = [0.0] * n
     energy = e_init
     for i in range(n):
         want_stored = min(demand[i], discharge_cap[i]) / eta_one_way
         used = min(want_stored, energy)
         delivered[i] = used * eta_one_way
         energy = min(energy - used + pv_surplus_stored[i], e_max)
-    return delivered
+        levels[i] = energy
+    return delivered, levels

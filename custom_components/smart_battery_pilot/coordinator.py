@@ -314,6 +314,13 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 config.feed_in_tariff,
                 config.spread_threshold,
             )
+        if "plan_worse_than_baseline" in plan.warnings:
+            _LOGGER.warning(
+                "The optimized plan came out worse than leaving the inverter "
+                "alone, so this cycle runs the all-auto plan instead. This "
+                "should not happen - please report it at %s",
+                "https://github.com/cygnusb/ha-smart-battery-pilot/issues",
+            )
 
         self._update_actual_savings(plan, now)
 
