@@ -13,10 +13,13 @@ import pytest
 from smart_battery_pilot.const import (
     ACTION_AUTO,
     ACTION_CHARGE,
+    ACTION_EXPORT,
     CONF_BATTERY_CHARGE_ENERGY_ENTITY,
     CONF_BATTERY_DISCHARGE_ENERGY_ENTITY,
+    CONF_CONSUMPTION_ENTITY,
     CONF_FEED_IN_TARIFF,
     CONF_PRICE_ENTITY,
+    CONF_PRICE_OFFSET,
     CONF_SOC_ENTITY,
     DOMAIN,
     SERVICE_REPLAN,
@@ -440,3 +443,136 @@ def test_condition_samples_are_capped_when_trimming_stalls():
         coord._note_conditions(Plan(slots=[_plan_slot("auto", minute / 100.0, moment)]), moment)
 
     assert len(coord._conditions) == MAX_CONDITION_SAMPLES
+
+
+# --- export is sold, not saved ---------------------------------------------
+
+
+def test_exported_energy_is_credited_at_the_feed_in_tariff():
+    """Energy sent to the grid earns the feed-in, not the import price.
+
+    Booking it at the import price would count German levies and taxes as
+    income - three to four times what the grid actually pays.
+    """
+    hass = _FakeHass()
+    coord = _coordinator(hass, **{CONF_FEED_IN_TARIFF: 0.08})
+    coord.last_applied = ACTION_EXPORT
+    peak = _plan_slot(ACTION_EXPORT, 0.45, NOW)
+    plan = Plan(slots=[peak])
+
+    hass.states.set("sensor.charge_energy", 10.0)
+    hass.states.set("sensor.discharge_energy", 5.0)
+    coord._update_actual_savings(plan, NOW)
+
+    hass.states.set("sensor.discharge_energy", 7.0)
+    coord._update_actual_savings(plan, NOW)
+
+    assert coord._acc_discharge_kwh == pytest.approx(2.0)
+    assert coord._acc_savings_eur == pytest.approx(2.0 * 0.08)
+
+
+def test_exported_energy_without_feed_in_earns_the_market_price():
+    """Feed-in 0 means "sell at market"; the import surcharge is not earned."""
+    hass = _FakeHass()
+    coord = _coordinator(hass, **{CONF_FEED_IN_TARIFF: 0.0, CONF_PRICE_OFFSET: 0.15})
+    coord.last_applied = ACTION_EXPORT
+    plan = Plan(slots=[_plan_slot(ACTION_EXPORT, 0.45, NOW)])
+
+    hass.states.set("sensor.charge_energy", 10.0)
+    hass.states.set("sensor.discharge_energy", 5.0)
+    coord._update_actual_savings(plan, NOW)
+
+    hass.states.set("sensor.discharge_energy", 6.0)
+    coord._update_actual_savings(plan, NOW)
+
+    assert coord._acc_savings_eur == pytest.approx(0.45 - 0.15)
+
+
+def test_self_consumption_still_avoids_the_full_import_price():
+    hass = _FakeHass()
+    coord = _coordinator(hass, **{CONF_FEED_IN_TARIFF: 0.08})
+    coord.last_applied = ACTION_AUTO
+    plan = Plan(slots=[_plan_slot(ACTION_AUTO, 0.45, NOW)])
+
+    hass.states.set("sensor.charge_energy", 10.0)
+    hass.states.set("sensor.discharge_energy", 5.0)
+    coord._update_actual_savings(plan, NOW)
+
+    hass.states.set("sensor.discharge_energy", 7.0)
+    coord._update_actual_savings(plan, NOW)
+
+    assert coord._acc_savings_eur == pytest.approx(2.0 * 0.45)
+
+
+# --- running totals survive a failed update --------------------------------
+
+
+def test_accumulated_totals_survive_an_unavailable_price_entity():
+    """They are running totals, not a property of the current plan.
+
+    Dropping them punches a hole in the statistics of two TOTAL sensors every
+    time the price entity blinks.
+    """
+    hass = _FakeHass()
+    coord = _coordinator(hass)
+    coord._acc_savings_eur = 4.2
+    coord._acc_charge_kwh = 30.0
+    coord._acc_discharge_kwh = 25.0
+    coord.data = SBPData(plan=Plan(slots=[_plan_slot("charge", 0.1, NOW)]), valid=True)
+    hass.states.set("sensor.price", "unavailable")
+
+    result = _run(coord._async_update_data())
+
+    assert result.valid is False
+    assert result.actual_savings_eur == pytest.approx(4.2)
+    assert result.actual_charge_kwh == pytest.approx(30.0)
+    assert result.actual_discharge_kwh == pytest.approx(25.0)
+
+
+def test_totals_stay_none_without_meters():
+    hass = _FakeHass()
+    coord = _coordinator(
+        hass,
+        **{
+            CONF_BATTERY_CHARGE_ENERGY_ENTITY: None,
+            CONF_BATTERY_DISCHARGE_ENERGY_ENTITY: None,
+        },
+    )
+    coord.data = SBPData(plan=Plan(slots=[_plan_slot("charge", 0.1, NOW)]), valid=True)
+    hass.states.set("sensor.price", "unavailable")
+
+    result = _run(coord._async_update_data())
+
+    assert result.actual_savings_eur is None
+    assert result.actual_charge_kwh is None
+    assert result.actual_discharge_kwh is None
+
+
+# --- training backoff -------------------------------------------------------
+
+
+def test_training_without_statistics_backs_off_instead_of_retrying_every_update():
+    """A consumption entity with no long-term statistics is a config error.
+
+    Retrying it every 30 minutes re-queries weeks of recorder history and logs
+    the same warning forever, so a failed run has to hold off too.
+    """
+    hass = _FakeHass()
+    coord = _coordinator(hass, **{CONF_CONSUMPTION_ENTITY: "sensor.house"})
+    attempts: list[datetime] = []
+
+    async def _no_statistics(start, end, ids):
+        attempts.append(end)
+        return {}
+
+    coord._fetch_statistics = _no_statistics
+
+    async def scenario():
+        await coord._maybe_retrain(NOW)
+        await coord._maybe_retrain(NOW + timedelta(minutes=30))
+        await coord._maybe_retrain(NOW + timedelta(hours=1))
+        assert len(attempts) == 1, "re-queried the recorder without a successful train"
+        await coord._maybe_retrain(NOW + timedelta(hours=7))
+        assert len(attempts) == 2, "never retried after the backoff elapsed"
+
+    _run(scenario())

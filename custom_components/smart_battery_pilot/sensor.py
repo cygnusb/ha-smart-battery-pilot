@@ -70,7 +70,10 @@ class CurrentActionSensor(SBPEntity, SensorEntity):
     """The action the plan prescribes right now."""
 
     _attr_device_class = SensorDeviceClass.ENUM
-    _attr_options = ["charge", "auto", "idle", "export", "unknown"]
+    # "unknown" is a state Home Assistant reserves for itself: as an option it
+    # is indistinguishable from a genuinely unknown state and its translation
+    # is never shown. "no_plan" says the same thing and survives the round trip.
+    _attr_options = ["charge", "auto", "idle", "export", "no_plan"]
 
     def __init__(self, coordinator: SBPCoordinator) -> None:
         super().__init__(coordinator, "current_action")
@@ -78,7 +81,7 @@ class CurrentActionSensor(SBPEntity, SensorEntity):
     @property
     def native_value(self) -> str:
         slot = _find_current_slot(self.coordinator)
-        return slot.action if slot else "unknown"
+        return slot.action if slot else "no_plan"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

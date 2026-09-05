@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from smart_battery_pilot import config_flow
+from smart_battery_pilot import config_flow, sensor
 
 TRANSLATIONS = Path(config_flow.__file__).parent / "translations"
 LANGUAGES = ["en", "de"]
@@ -81,3 +81,26 @@ def test_no_empty_help_texts(language):
         for step, body in doc[section]["step"].items():
             for field, text in body.get("data_description", {}).items():
                 assert text.strip(), f"{language} {section}.{step}.{field} is empty"
+
+
+# Enum sensors whose declared options must all be translatable.
+ENUM_SENSORS = {
+    "current_action": sensor.CurrentActionSensor,
+    "next_action": sensor.NextActionSensor,
+    "plan_status": sensor.PlanStatusSensor,
+    "configuration": sensor.ConfigSensor,
+}
+
+
+@pytest.mark.parametrize("language", LANGUAGES)
+def test_every_enum_option_has_a_state_translation(language):
+    """An option without a translation shows up raw in the UI.
+
+    Renaming an option and forgetting the translation files is otherwise
+    invisible until someone looks at the dashboard.
+    """
+    states = _load(language)["entity"]["sensor"]
+    for key, entity in ENUM_SENSORS.items():
+        assert set(states[key]["state"]) == set(entity._attr_options), (
+            f"{language} entity.sensor.{key}.state"
+        )

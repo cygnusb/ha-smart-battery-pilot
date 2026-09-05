@@ -75,15 +75,28 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 
 def _ensure_unique_id(hass: HomeAssistant, entry: SBPConfigEntry) -> None:
-    """Back-fill the unique id on entries created before it existed.
+    """Keep the unique id on the battery the entry actually steers.
 
     The config flow's "one battery, one plan" guard matches on the unique id,
-    and entries from 0.5.x carry None - a second entry for the same inverter
-    would walk straight through it and both executors would fight over the
-    same battery.
+    so it has to track the SOC entity in use: entries from 0.5.x carry None,
+    and the options flow writes a changed SOC entity to `options`, leaving the
+    id pointing at the old inverter. Either way a second entry for the same
+    battery would walk straight through the guard and both executors would
+    fight over it.
     """
-    soc_entity = entry.data.get(CONF_SOC_ENTITY)
-    if entry.unique_id is not None or not soc_entity:
+    soc_entity = entry.options.get(CONF_SOC_ENTITY) or entry.data.get(CONF_SOC_ENTITY)
+    if not soc_entity or entry.unique_id == soc_entity:
+        return
+    if any(
+        other.unique_id == soc_entity
+        for other in hass.config_entries.async_entries(DOMAIN)
+        if other.entry_id != entry.entry_id
+    ):
+        _LOGGER.warning(
+            "Another Smart Battery Pilot entry already steers %s; leaving this "
+            "entry's unique id unchanged",
+            soc_entity,
+        )
         return
     hass.config_entries.async_update_entry(entry, unique_id=soc_entity)
 
