@@ -4,7 +4,11 @@ on:
   push:
   pull_request:
   schedule:
-    - cron: "0 4 * * 1"
+    # Daily, not weekly: the `latest` matrix entry below resolves to whatever
+    # core pytest-homeassistant-custom-component currently pins, so this is
+    # what picks up a new Home Assistant release without anyone pushing a
+    # commit. A failing scheduled run notifies the repository owner.
+    - cron: "0 4 * * *"
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -64,6 +68,9 @@ jobs:
             python: "3.14"
             phcc: pytest-homeassistant-custom-component
             extra: ""
+            # Only this entry is supposed to be current; the floor is old on
+            # purpose and must not be compared against PyPI.
+            check_latest: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -87,6 +94,62 @@ jobs:
       # Never collected together with tests/: its conftest puts tests/stubs on
       # sys.path, which would shadow the real homeassistant package.
       - run: pytest tests_ha/ -v -o asyncio_mode=auto
+
+      - name: Check the tested core is the newest Home Assistant minor
+        if: matrix.check_latest
+        # Not a failure: after a Home Assistant release it takes
+        # pytest-homeassistant-custom-component a few days to publish a
+        # matching version, and a red repository for that is noise. It is a
+        # warning annotation so a *lasting* gap - PHCC stalled, or the Python
+        # version pinned above gone stale, which is how this job once tested a
+        # seven-month-old core while looking green - is visible in the run.
+        # Patch releases are ignored: only YYYY.M is compared.
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          from homeassistant.const import __version__ as installed
+          from packaging.version import InvalidVersion, Version
+
+          try:
+              with urllib.request.urlopen(
+                  "https://pypi.org/pypi/homeassistant/json", timeout=30
+              ) as response:
+                  releases = json.load(response)["releases"]
+          except Exception as err:  # noqa: BLE001
+              # This step only reports; it must never turn a green test run red
+              # because PyPI was briefly unreachable.
+              print(f"::warning::Could not ask PyPI for the newest release: {err}")
+              raise SystemExit(0) from None
+
+          published = []
+          for raw in releases:
+              try:
+                  version = Version(raw)
+              except InvalidVersion:
+                  continue
+              if not version.is_prerelease:
+                  published.append(version)
+
+          newest = max(published)
+          current = Version(installed)
+          summary = f"Tested Home Assistant {current}; newest release is {newest}"
+
+          if (newest.major, newest.minor) > (current.major, current.minor):
+              print(
+                  f"::warning::{summary}. Either pytest-homeassistant-custom-component "
+                  f"has not published support for {newest.major}.{newest.minor} yet, or "
+                  "the Python version pinned for this job is too old for it and pip "
+                  "silently resolved to an older core."
+              )
+          else:
+              print(f"{summary} - same minor, patch releases are not tracked separately.")
+
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write(summary + "\n")
+          PY
 
   lint:
     runs-on: ubuntu-latest
