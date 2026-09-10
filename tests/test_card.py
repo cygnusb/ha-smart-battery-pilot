@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import re
 import shutil
 import subprocess
 
@@ -141,3 +142,154 @@ def test_a_plan_that_has_run_out_does_not_spin(renders):
     """
     assert renders["past_plan_end"] == 3
     assert renders["no_current_slot"] == 3
+
+
+# A second harness: render the same plan in every view and hand the produced
+# markup back for inspection. The DOM shim above is enough - the card builds
+# its whole output as a string and assigns it to `innerHTML`.
+VIEW_HARNESS = """
+class FakeEl {
+  constructor() { this.innerHTML = ""; this.style = {}; }
+  querySelector() { return null; }
+  addEventListener() {}
+  setAttribute() {}
+  getBoundingClientRect() { return { left: 0, top: 0, width: 480, height: 300 }; }
+}
+globalThis.HTMLElement = FakeEl;
+globalThis.customElements = { get: () => undefined, define: () => {} };
+globalThis.window = globalThis;
+
+const Card = new Function(CARD_SOURCE + "\\nreturn SmartBatteryPilotCard;")();
+
+const T0 = Date.parse("2026-01-15T00:00:00Z");
+const HOUR = 3600000;
+// A sunny day: PV an order of magnitude above the household load. Sharing one
+// scale normalized to the PV maximum is what used to press the consumption
+// curve flat onto the baseline.
+const slots = Array.from({ length: 24 }, (_, i) => {
+  const pv = i >= 8 && i <= 16 ? 4.0 : 0.0;
+  const cons = 0.4;
+  return {
+    start: new Date(T0 + i * HOUR).toISOString(),
+    end: new Date(T0 + (i + 1) * HOUR).toISOString(),
+    action: i === 3 ? "charge" : i >= 18 && i <= 20 ? "idle" : "auto",
+    price: 0.1 + (i >= 18 ? 0.5 : 0),
+    net_demand_kwh: cons - pv,
+    pv_kwh: pv,
+    power_w: 3000,
+    discharge_kwh: 0,
+    soc_forecast: 40 + i,
+  };
+});
+const planState = {
+  state: "4",
+  attributes: {
+    slots, price_adapter: "nordpool", error: null, warnings: [],
+    min_soc: 10, max_soc: 95,
+    grid_charge_kwh: 3.2, battery_discharge_kwh: 5.5,
+    updated_at: "2026-01-15T00:00:00+00:00",
+  },
+};
+const hass = {
+  states: { "sensor.plan": planState },
+  config: { time_zone: "UTC" },
+  locale: { language: "en" },
+  language: "en",
+};
+
+Date.now = () => T0 + 30 * 60000;
+
+const out = {};
+for (const view of ["tracks", "balance", "compact", "nonsense", null]) {
+  const card = new Card();
+  const config = { entity: "sensor.plan" };
+  if (view !== null) config.view = view;
+  card.setConfig(config);
+  card.hass = hass;
+  out[String(view)] = { html: card.innerHTML, size: card.getCardSize() };
+}
+console.log(JSON.stringify(out));
+"""
+
+
+@pytest.fixture(scope="module")
+def views() -> dict[str, dict]:
+    """The card's markup in each view."""
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not installed")
+    script = f"const CARD_SOURCE = {json.dumps(CARD.read_text(encoding='utf-8'))};\n" + VIEW_HARNESS
+    result = subprocess.run(
+        [node, "--input-type=module", "-e", script],
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    assert result.returncode == 0, f"card view harness failed:\n{result.stderr}"
+    return json.loads(result.stdout.strip().splitlines()[-1])
+
+
+def test_every_unit_gets_its_own_panel(views):
+    """The default view is three stacked scales, not three units on one plot.
+
+    PV and consumption used to share the lower 45 % of the price plot,
+    normalized to the PV maximum - on the sunny day this fixture describes
+    that is a tenfold squeeze, and a perfectly correct consumption forecast
+    ends up drawn along the baseline.
+    """
+    html = views["tracks"]["html"]
+    for label in ("Price €/kWh", "Energy kWh", "SOC"):
+        assert f'class="ax pl">{label}<' in html
+    assert 'class="pvarea"' in html
+    assert 'class="consline"' in html
+    assert 'class="socline"' in html
+
+
+def test_the_soc_track_uses_the_configured_window(views):
+    """0-100 % spends most of the panel on a range the battery cannot enter."""
+    html = views["tracks"]["html"]
+    assert 'class="ax pr">10%<' in html
+    assert 'class="ax pr">95%<' in html
+    assert 'class="ax pr">0%<' not in html
+    assert 'class="ax pr">100%<' not in html
+
+
+def test_filled_areas_are_a_single_subpath(views):
+    """An area whose steps start with `M` opens a second subpath.
+
+    The closing `Z` then runs from the last point back to that `M` instead of
+    along the baseline, drawing a diagonal across the whole panel.
+    """
+    paths = re.findall(
+        r'<path d="([^"]+)" class="(?:pvarea|socarea|pricearea|balarea[^"]*)"',
+        views["tracks"]["html"] + views["balance"]["html"],
+    )
+    assert paths, "no filled areas rendered"
+    for d in paths:
+        assert d.count("M") == 1, f"area path has {d.count('M')} subpaths"
+
+
+def test_balance_view_replaces_the_energy_panel(views):
+    html = views["balance"]["html"]
+    assert 'class="ax pl">Balance kWh<' in html
+    assert 'class="balarea pos"' in html and 'class="balarea neg"' in html
+    assert 'class="pvarea"' not in html
+    assert 'class="consline"' not in html
+    # Price and SOC are untouched - only the middle panel changes.
+    assert 'class="ax pl">Price €/kWh<' in html
+    assert 'class="socline"' in html
+
+
+def test_compact_view_leads_with_figures(views):
+    html = views["compact"]["html"]
+    assert 'class="tiles"' in html
+    assert "Next change" in html and "From battery" in html
+    assert 'class="pvarea"' not in html
+    assert views["compact"]["size"] < views["tracks"]["size"]
+
+
+def test_an_unknown_view_draws_the_default(views):
+    """A typo in a dashboard must not cost the user their plan."""
+    assert views["nonsense"]["html"] == views["tracks"]["html"]
+    assert views["null"]["html"] == views["tracks"]["html"]

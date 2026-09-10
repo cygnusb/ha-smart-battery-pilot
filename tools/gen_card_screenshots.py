@@ -465,7 +465,7 @@ HTML_TEMPLATE = textwrap.dedent("""\
 <script type="module">
 import("/card.js").then(() => {{
   const card = document.createElement("smart-battery-pilot-card");
-  card.setConfig({{ entity: {plan_entity}, title: {title_json} }});
+  card.setConfig({{ entity: {plan_entity}, title: {title_json}, view: {view_json} }});
   card.hass = {{
     states: {states_json},
     language: {lang_json},
@@ -481,12 +481,21 @@ import("/card.js").then(() => {{
 
 
 def write_html(
-    path: Path, scenario: Scenario, states: dict, title: str, lang: str, tz: str, now: datetime
+    path: Path,
+    scenario: Scenario,
+    states: dict,
+    title: str,
+    lang: str,
+    tz: str,
+    now: datetime,
+    view: str,
+    caption: str,
 ):
     path.write_text(
         HTML_TEMPLATE.format(
             title=scenario.name,
-            caption=scenario.caption,
+            caption=caption,
+            view_json=json.dumps(view),
             title_json=json.dumps(title),
             plan_entity=json.dumps(PLAN_ENTITY),
             states_json=json.dumps(states, indent=2),
@@ -581,6 +590,32 @@ def render(jobs: list[dict], serve_dir: Path) -> bool:
 
 TITLES = {"en": "Smart Battery Pilot", "de": "Smart Battery Pilot"}
 
+# The three scenarios document what the optimizer does; the two extra shots
+# document the card's other two views on a day that has something to show in
+# both of them (PV against consumption, and a plan worth summarising).
+VIEW_SHOTS = [
+    (
+        summer_export,
+        "balance",
+        "card_view_balance",
+        "Balance view: PV minus consumption, the quantity the optimizer plans against",
+    ),
+    (
+        summer_export,
+        "compact",
+        "card_view_compact",
+        "Compact view: status and figures first, curves as the evidence",
+    ),
+]
+
+
+def _shots():
+    """(scenario factory, view, output name, caption) for every screenshot."""
+    for factory in SCENARIOS:
+        scenario_name = factory().name
+        yield factory, "tracks", scenario_name, factory().caption
+    yield from VIEW_SHOTS
+
 
 def main() -> int:
     parser = argparse.ArgumentParser()
@@ -593,12 +628,12 @@ def main() -> int:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     jobs = []
-    for factory in SCENARIOS:
+    for factory, view, name, caption in _shots():
         scenario = factory()
         plan = scenario.build(scenario.start)
         actions = sorted({s.action for s in plan.slots})
         print(
-            f"{scenario.name}: {len(plan.slots)} slots, actions={actions}, "
+            f"{name}: {len(plan.slots)} slots, actions={actions}, "
             f"grid charge {plan.grid_charge_kwh:.1f} kWh, "
             f"savings {plan.estimated_savings_eur:.2f} EUR"
         )
@@ -613,9 +648,19 @@ def main() -> int:
                 "attributes": {"unit_of_measurement": "W"},
             }
 
-        html = work_dir / f"{scenario.name}.html"
-        write_html(html, scenario, states, TITLES[args.lang], args.lang, args.tz, scenario.now)
-        jobs.append({"html": html.name, "png": str(OUT_DIR / f"{scenario.name}.png")})
+        html = work_dir / f"{name}.html"
+        write_html(
+            html,
+            scenario,
+            states,
+            TITLES[args.lang],
+            args.lang,
+            args.tz,
+            scenario.now,
+            view,
+            caption,
+        )
+        jobs.append({"html": html.name, "png": str(OUT_DIR / f"{name}.png")})
 
     return 0 if render(jobs, work_dir) else 1
 

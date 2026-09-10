@@ -209,6 +209,12 @@ class ChargePlanSensor(SBPEntity, SensorEntity):
             "total_slots": len(data.plan.slots),
             "grid_charge_kwh": round(data.plan.grid_charge_kwh, 2),
             "battery_discharge_kwh": round(data.plan.battery_discharge_kwh, 2),
+            # The operating window the SOC forecast lives in. The card draws
+            # its SOC track against these instead of 0-100 %, so the part of
+            # the scale the battery can never reach does not eat the height
+            # that the discharge depth needs.
+            "min_soc": self.coordinator.conf(CONF_MIN_SOC, DEFAULT_MIN_SOC),
+            "max_soc": self.coordinator.conf(CONF_MAX_SOC, DEFAULT_MAX_SOC),
             "price_adapter": data.adapter_name,
             "updated_at": data.updated_at.isoformat() if data.updated_at else None,
             "error": data.error,
