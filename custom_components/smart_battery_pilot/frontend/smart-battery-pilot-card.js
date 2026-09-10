@@ -1,18 +1,17 @@
 /* Smart Battery Pilot Lovelace card.
  *
- * Price curve with action bands, PV forecast, SOC projection, grid with
- * nice price ticks and a hover tooltip (price / SOC / action / PV).
+ * Three views over the same plan, each giving every unit its own panel and
+ * its own scale:
+ *
+ *   tracks  (default) price / PV + consumption / SOC, stacked
+ *   balance           price / PV minus consumption / SOC - what the optimizer
+ *                     actually plans against
+ *   compact           status, three tiles, SOC and a price sparkline
  *
  * type: custom:smart-battery-pilot-card
  * entity: sensor.<...>_charge_plan   (auto-discovered if omitted/wrong)
+ * view: tracks | balance | compact   (optional, default tracks)
  */
-
-const ACTION_COLORS = {
-  charge: "rgba(67, 160, 71, 0.40)",
-  idle: "rgba(120, 130, 140, 0.28)",
-  export: "rgba(255, 152, 0, 0.40)",
-  auto: "rgba(3, 169, 244, 0.07)",
-};
 
 // Action keys as they arrive in the charge_plan slots; ACTIONS drives the legend
 // order, "auto" is the implicit default and therefore not listed in the legend.
@@ -31,6 +30,12 @@ const TRANSLATIONS = {
     pv: "PV",
     pv_now: "PV now",
     net_demand: "Net demand",
+    energy: "Energy",
+    balance: "Balance",
+    surplus: "Surplus",
+    deficit: "Deficit",
+    next_change: "Next change",
+    from_battery: "From battery",
     charge_power: "Charge power",
     entity_missing: "Entity {entity} not found, and no charge plan entity was detected.",
     no_plan: "No valid charge plan (error: {error})",
@@ -49,6 +54,12 @@ const TRANSLATIONS = {
     pv: "PV",
     pv_now: "PV aktuell",
     net_demand: "Netto-Bedarf",
+    energy: "Energie",
+    balance: "Bilanz",
+    surplus: "Überschuss",
+    deficit: "Defizit",
+    next_change: "Nächster Wechsel",
+    from_battery: "Aus dem Speicher",
     charge_power: "Ladeleistung",
     entity_missing: "Entity {entity} nicht gefunden und keine Ladeplan-Entity erkannt.",
     no_plan: "Kein gültiger Ladeplan (Fehler: {error})",
@@ -67,6 +78,12 @@ const TRANSLATIONS = {
     pv: "PV",
     pv_now: "PV nu",
     net_demand: "Nettobehov",
+    energy: "Energi",
+    balance: "Balance",
+    surplus: "Overskud",
+    deficit: "Underskud",
+    next_change: "Næste skift",
+    from_battery: "Fra batteriet",
     charge_power: "Ladeeffekt",
     entity_missing: "Entiteten {entity} blev ikke fundet, og ingen ladeplan-entitet blev registreret.",
     no_plan: "Ingen gyldig ladeplan (fejl: {error})",
@@ -85,6 +102,12 @@ const TRANSLATIONS = {
     pv: "PV",
     pv_now: "PV praegu",
     net_demand: "Netovajadus",
+    energy: "Energia",
+    balance: "Bilanss",
+    surplus: "Ülejääk",
+    deficit: "Puudujääk",
+    next_change: "Järgmine muutus",
+    from_battery: "Akust",
     charge_power: "Laadimisvõimsus",
     entity_missing: "Olemit {entity} ei leitud ja laadimisplaani olemit ei tuvastatud.",
     no_plan: "Kehtiv laadimisplaan puudub (viga: {error})",
@@ -103,6 +126,12 @@ const TRANSLATIONS = {
     pv: "PV",
     pv_now: "PV nyt",
     net_demand: "Nettotarve",
+    energy: "Energia",
+    balance: "Tase",
+    surplus: "Ylijäämä",
+    deficit: "Vajaus",
+    next_change: "Seuraava muutos",
+    from_battery: "Akusta",
     charge_power: "Latausteho",
     entity_missing: "Entiteettiä {entity} ei löytynyt, eikä lataussuunnitelman entiteettiä havaittu.",
     no_plan: "Ei kelvollista lataussuunnitelmaa (virhe: {error})",
@@ -121,6 +150,12 @@ const TRANSLATIONS = {
     pv: "PV",
     pv_now: "PV dabar",
     net_demand: "Grynasis poreikis",
+    energy: "Energija",
+    balance: "Balansas",
+    surplus: "Perteklius",
+    deficit: "Trūkumas",
+    next_change: "Kitas pokytis",
+    from_battery: "Iš baterijos",
     charge_power: "Įkrovimo galia",
     entity_missing: "Objektas {entity} nerastas, ir įkrovimo plano objektas neaptiktas.",
     no_plan: "Nėra galiojančio įkrovimo plano (klaida: {error})",
@@ -139,6 +174,12 @@ const TRANSLATIONS = {
     pv: "PV",
     pv_now: "PV tagad",
     net_demand: "Neto pieprasījums",
+    energy: "Enerģija",
+    balance: "Bilance",
+    surplus: "Pārpalikums",
+    deficit: "Iztrūkums",
+    next_change: "Nākamā maiņa",
+    from_battery: "No baterijas",
     charge_power: "Uzlādes jauda",
     entity_missing: "Entītija {entity} nav atrasta, un uzlādes plāna entītija netika atklāta.",
     no_plan: "Nav derīga uzlādes plāna (kļūda: {error})",
@@ -157,6 +198,12 @@ const TRANSLATIONS = {
     pv: "PV",
     pv_now: "PV nå",
     net_demand: "Nettobehov",
+    energy: "Energi",
+    balance: "Balanse",
+    surplus: "Overskudd",
+    deficit: "Underskudd",
+    next_change: "Neste endring",
+    from_battery: "Fra batteriet",
     charge_power: "Ladeeffekt",
     entity_missing: "Entiteten {entity} ble ikke funnet, og ingen ladeplan-entitet ble oppdaget.",
     no_plan: "Ingen gyldig ladeplan (feil: {error})",
@@ -175,6 +222,12 @@ const TRANSLATIONS = {
     pv: "PV",
     pv_now: "PV nu",
     net_demand: "Nettovraag",
+    energy: "Energie",
+    balance: "Balans",
+    surplus: "Overschot",
+    deficit: "Tekort",
+    next_change: "Volgende wissel",
+    from_battery: "Uit de accu",
     charge_power: "Laadvermogen",
     entity_missing: "Entiteit {entity} niet gevonden en geen laadplan-entiteit gedetecteerd.",
     no_plan: "Geen geldig laadplan (fout: {error})",
@@ -193,6 +246,12 @@ const TRANSLATIONS = {
     pv: "PV",
     pv_now: "PV nu",
     net_demand: "Nettobehov",
+    energy: "Energi",
+    balance: "Balans",
+    surplus: "Överskott",
+    deficit: "Underskott",
+    next_change: "Nästa byte",
+    from_battery: "Från batteriet",
     charge_power: "Laddeffekt",
     entity_missing: "Entiteten {entity} hittades inte, och ingen laddplansentitet upptäcktes.",
     no_plan: "Ingen giltig laddplan (fel: {error})",
@@ -252,14 +311,55 @@ function esc(value) {
     .replace(/"/g, "&quot;");
 }
 
+// One scale per drawing surface. The card used to stack a price axis, an SOC
+// axis and an unlabeled kWh band on a single plot, which meant PV and
+// consumption were normalized against the PV maximum - on a strong PV day that
+// pressed a perfectly correct consumption curve onto the baseline. Every view
+// below gives each unit its own panel and its own y scale.
 const W = 480;
-const H = 230;
-const PAD_L = 46;
-const PAD_R = 38;
-const PAD_T = 14;
-const PAD_B = 30;
+const PAD_L = 42;
+const PAD_R = 16;
 const PLOT_W = W - PAD_L - PAD_R;
-const PLOT_H = H - PAD_T - PAD_B;
+const AXIS_H = 24; // hour labels, plus the date under a day separator
+
+// clipPath ids have to be unique across every card on the dashboard.
+let clipSeq = 0;
+
+const VIEWS = ["tracks", "balance", "compact"];
+const DEFAULT_VIEW = "tracks";
+
+// y/h of every panel, top to bottom, per view. The action ribbon sits above
+// the first panel; the x-axis labels go under the last one.
+const LAYOUTS = {
+  tracks: {
+    ribbon: { y: 6, h: 13 },
+    panels: [
+      { key: "price", y: 32, h: 60 },
+      { key: "energy", y: 116, h: 58 },
+      { key: "soc", y: 198, h: 58 },
+    ],
+  },
+  balance: {
+    ribbon: { y: 6, h: 13 },
+    panels: [
+      { key: "price", y: 32, h: 60 },
+      { key: "balance", y: 116, h: 58 },
+      { key: "soc", y: 198, h: 58 },
+    ],
+  },
+  compact: {
+    ribbon: { y: 8, h: 17 },
+    panels: [
+      { key: "soc", y: 42, h: 76 },
+      { key: "price", y: 138, h: 30 },
+    ],
+  },
+};
+
+function layoutHeight(layout) {
+  const last = layout.panels[layout.panels.length - 1];
+  return last.y + last.h + AXIS_H;
+}
 
 function niceTickStep(range, maxTicks) {
   const raw = range / maxTicks;
@@ -270,6 +370,18 @@ function niceTickStep(range, maxTicks) {
   return 10 * mag;
 }
 
+// Household consumption for a slot: the optimizer reports demand net of PV,
+// which goes negative whenever the sun covers the house.
+function slotConsumption(slot) {
+  return Math.max(0, (slot.net_demand_kwh || 0) + (slot.pv_kwh || 0));
+}
+
+// PV minus consumption: what the balance view draws, and exactly the quantity
+// the optimizer plans against.
+function slotBalance(slot) {
+  return (slot.pv_kwh || 0) - slotConsumption(slot);
+}
+
 class SmartBatteryPilotCard extends HTMLElement {
   setConfig(config) {
     if (!config || typeof config !== "object") {
@@ -277,6 +389,18 @@ class SmartBatteryPilotCard extends HTMLElement {
     }
     this._config = config;
     this._renderedState = null;
+    // A view chosen in the card editor resets whatever the in-card toggle had
+    // switched to; the config is the authority whenever it is re-applied.
+    this._viewOverride = null;
+  }
+
+  // "tracks" (default), "balance" or "compact". An unknown value in the YAML
+  // draws the default rather than an empty card - a typo in a dashboard should
+  // not cost the user their plan.
+  _view() {
+    if (this._viewOverride && VIEWS.includes(this._viewOverride)) return this._viewOverride;
+    const wanted = this._config && this._config.view;
+    return VIEWS.includes(wanted) ? wanted : DEFAULT_VIEW;
   }
 
   set hass(hass) {
@@ -370,7 +494,7 @@ class SmartBatteryPilotCard extends HTMLElement {
   }
 
   getCardSize() {
-    return 5;
+    return this._view() === "compact" ? 4 : 6;
   }
 
   static _findPlanEntity(hass) {
@@ -442,6 +566,13 @@ class SmartBatteryPilotCard extends HTMLElement {
     }));
     this._slots = slots;
 
+    const view = this._view();
+    const layout = LAYOUTS[view];
+    const first = layout.panels[0];
+    const last = layout.panels[layout.panels.length - 1];
+    const plotBottom = last.y + last.h;
+    const H = layoutHeight(layout);
+
     const t0 = slots[0].startMs;
     const t1 = slots[slots.length - 1].endMs;
     this._t0 = t0;
@@ -449,123 +580,43 @@ class SmartBatteryPilotCard extends HTMLElement {
     const x = (ms) => PAD_L + ((ms - t0) / (t1 - t0)) * PLOT_W;
     this._x = x;
 
-    // --- price scale with nice ticks ---
-    const prices = slots.map((s) => s.price);
-    const step = niceTickStep(Math.max(...prices) - Math.min(0, ...prices) || 0.1, 5);
-    let pMin = Math.floor(Math.min(0, ...prices) / step) * step;
-    let pMax = Math.ceil((Math.max(...prices) + step * 0.15) / step) * step;
-    const yPrice = (p) => PAD_T + (1 - (p - pMin) / (pMax - pMin)) * PLOT_H;
-    const ySoc = (soc) => PAD_T + (1 - soc / 100) * PLOT_H;
-    this._yPrice = yPrice;
+    const scales = this._buildScales(slots, state.attributes, layout);
+    this._yPrice = scales.price ? scales.price.y : null;
+    this._cursorTop = layout.ribbon.y;
+    this._cursorBottom = plotBottom;
+    // The hover dot rides the curve the view leads with.
+    this._dotAt = scales.price
+      ? (slot) => scales.price.y(slot.price)
+      : (slot) => scales.soc.y(slot.soc_forecast);
 
-    // --- grid: horizontal price ticks ---
-    let grid = "";
-    for (let p = pMin; p <= pMax + 1e-9; p += step) {
-      const y = yPrice(p).toFixed(1);
-      grid += `<line x1="${PAD_L}" y1="${y}" x2="${PAD_L + PLOT_W}" y2="${y}" class="grid${
-        Math.abs(p) < 1e-9 ? " zero" : ""
-      }"/>`;
-      grid += `<text x="${PAD_L - 5}" y="${+y + 3}" class="ax pr">${p.toFixed(2)}</text>`;
-    }
-    // vertical: every 3h anchored to midnight in HA's timezone. Each tick is
-    // re-snapped to the full hour so a DST change does not shear the grid.
-    const HOUR = 3600000;
-    const startParts = this._zoned(t0);
-    let tick = t0 - ((startParts.hour % 3) * 60 + startParts.minute) * 60000;
-    while (tick < t0) tick += 3 * HOUR;
-    for (let k = 0; tick <= t1 && k < 64; k++) {
-      const parts = this._zoned(tick);
-      if (parts.minute !== 0) tick -= parts.minute * 60000;
-      const p = this._zoned(tick);
-      const midnight = p.hour === 0;
-      const px = x(tick).toFixed(1);
-      grid += `<line x1="${px}" y1="${PAD_T}" x2="${px}" y2="${
-        PAD_T + PLOT_H
-      }" class="grid${midnight ? " day" : ""}"/>`;
-      grid += `<text x="${px}" y="${H - 16}" class="ax tx">${String(p.hour).padStart(
-        2,
-        "0"
-      )}</text>`;
-      if (midnight) {
-        grid += `<text x="${px}" y="${H - 4}" class="ax tx day">${esc(
-          this._fmtDate(tick)
-        )}</text>`;
-      }
-      tick += 3 * HOUR;
-    }
-    grid += `<text x="${W - 4}" y="${ySoc(100) + 4}" class="ax soc" text-anchor="end">100%</text>`;
-    grid += `<text x="${W - 4}" y="${ySoc(50) + 4}" class="ax soc" text-anchor="end">50%</text>`;
-    grid += `<text x="${W - 4}" y="${ySoc(0) + 4}" class="ax soc" text-anchor="end">0%</text>`;
+    let chrome = "";
+    for (const panel of layout.panels) chrome += this._panelChrome(panel, scales[panel.key]);
+    chrome += this._timeGrid(layout, plotBottom + 11);
 
-    // --- action bands ---
-    let bands = "";
-    for (const s of slots) {
-      const color = ACTION_COLORS[s.action] || "rgba(3, 169, 244, 0.07)";
-      bands += `<rect x="${x(s.startMs).toFixed(1)}" y="${PAD_T}" width="${(
-        x(s.endMs) - x(s.startMs)
-      ).toFixed(1)}" height="${PLOT_H}" fill="${color}"/>`;
-    }
-
-    // --- PV forecast area + consumption forecast line ---
-    // Shared kWh scale (lower 45% of the plot) so both are comparable.
-    const consumption = (s) => Math.max(0, (s.net_demand_kwh || 0) + (s.pv_kwh || 0));
     const pvMax = Math.max(...slots.map((s) => s.pv_kwh || 0));
-    const kwhMax = Math.max(pvMax, ...slots.map(consumption));
-    let pvArea = "";
-    let consPath = "";
-    if (kwhMax > 0) {
-      const yKwh = (kwh) => PAD_T + PLOT_H - (kwh / kwhMax) * PLOT_H * 0.45;
-      if (pvMax > 0) {
-        let d = `M${x(slots[0].startMs).toFixed(1)},${(PAD_T + PLOT_H).toFixed(1)} `;
-        for (const s of slots) {
-          const y = yKwh(s.pv_kwh || 0).toFixed(1);
-          d += `L${x(s.startMs).toFixed(1)},${y} L${x(s.endMs).toFixed(1)},${y} `;
-        }
-        d += `L${x(slots[slots.length - 1].endMs).toFixed(1)},${(PAD_T + PLOT_H).toFixed(1)} Z`;
-        pvArea = `<path d="${d}" class="pvarea"/>`;
-      }
-      for (const s of slots) {
-        const y = yKwh(consumption(s)).toFixed(1);
-        consPath += `${consPath ? "L" : "M"}${x(s.startMs).toFixed(1)},${y} L${x(
-          s.endMs
-        ).toFixed(1)},${y} `;
-      }
+    let marks = "";
+    for (const panel of layout.panels) {
+      marks += this._panelMarks(panel, scales[panel.key], slots, pvMax);
     }
 
-    // --- price step line + SOC line ---
-    let pricePath = "";
-    for (const s of slots) {
-      const y = yPrice(s.price).toFixed(1);
-      pricePath += `${pricePath ? "L" : "M"}${x(s.startMs).toFixed(1)},${y} L${x(
-        s.endMs
-      ).toFixed(1)},${y} `;
-    }
-    let socPath = `M${x(slots[0].startMs).toFixed(1)},${ySoc(slots[0].soc_forecast).toFixed(1)} `;
-    for (const s of slots) {
-      socPath += `L${x(s.endMs).toFixed(1)},${ySoc(s.soc_forecast).toFixed(1)} `;
-    }
-
-    // --- now marker + status line ---
-    const now = Date.now();
+    const nowMs = Date.now();
     let nowLine = "";
-    if (now >= t0 && now <= t1) {
-      nowLine = `<line x1="${x(now).toFixed(1)}" y1="${PAD_T}" x2="${x(now).toFixed(1)}" y2="${
-        PAD_T + PLOT_H
-      }" class="now"/>`;
+    if (nowMs >= t0 && nowMs <= t1) {
+      const nx = x(nowMs).toFixed(1);
+      nowLine = `<line x1="${nx}" y1="${layout.ribbon.y}" x2="${nx}" y2="${plotBottom}" class="now"/>`;
     }
-    const current = slots.find((s) => now >= s.startMs && now < s.endMs);
+
+    const current = slots.find((s) => nowMs >= s.startMs && nowMs < s.endMs);
     this._renderedSlotEnd = current ? current.endMs : null;
-    const next = slots.find((s) => s.startMs > now && current && s.action !== current.action);
+    const next = slots.find((s) => s.startMs > nowMs && current && s.action !== current.action);
+
     const statusBits = [];
     if (current) {
-      const cc = ACTION_COLORS[current.action] || "rgba(3,169,244,0.25)";
       statusBits.push(
-        `<span class="chip" style="background:${cc}">${esc(
-          this._actionLabel(current.action)
-        )}</span>`
+        `<span class="chip ${esc(current.action)}">${esc(this._actionLabel(current.action))}</span>`
       );
     }
-    if (next) {
+    if (next && view !== "compact") {
       statusBits.push(
         `<span class="next">→ ${this._tr("next_at", {
           action: esc(this._actionLabel(next.action)),
@@ -577,51 +628,384 @@ class SmartBatteryPilotCard extends HTMLElement {
     if (pvState && pvState.state !== "unavailable" && pvState.state !== "unknown") {
       const pvNum = Number(pvState.state);
       if (!Number.isNaN(pvNum)) {
-        const unit =
-          (pvState.attributes && pvState.attributes.unit_of_measurement) || "W";
+        const unit = (pvState.attributes && pvState.attributes.unit_of_measurement) || "W";
         statusBits.push(
           `<span class="next">${this._tr("pv_now")}: ${pvNum.toFixed(0)} ${esc(unit)}</span>`
         );
       }
     }
 
-    const legend =
-      ACTIONS.map(
-        (key) =>
-          `<span class="lg"><i style="background:${
-            ACTION_COLORS[key]
-          }"></i>${esc(this._actionLabel(key))}</span>`
-      ).join("") +
-      `<span class="lg"><i class="li price-i"></i>${this._tr("price")}</span>` +
-      `<span class="lg"><i class="li soc-i"></i>${this._tr("soc")}</span>` +
-      `<span class="lg"><i class="li cons-i"></i>${this._tr("consumption")}</span>` +
-      (pvMax > 0 ? `<span class="lg"><i class="pv-i"></i>${this._tr("pv")}</span>` : "");
-
     this._html(
       title,
       `
       <div class="status">${statusBits.join(" ")}</div>
+      ${view === "compact" ? this._tiles(slots, state.attributes, current || slots[0]) : ""}
       <div class="chartwrap">
         <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
-          ${bands}
-          ${pvArea}
-          ${grid}
-          ${consPath ? `<path d="${consPath}" class="consline"/>` : ""}
-          <path d="${pricePath}" class="price"/>
-          <path d="${socPath}" class="socline"/>
+          ${chrome}
+          ${this._ribbon(slots, layout.ribbon)}
+          ${marks}
           ${nowLine}
-          <line id="sbp-cursor" x1="0" y1="${PAD_T}" x2="0" y2="${PAD_T + PLOT_H}" class="cursor" style="display:none"/>
+          <line id="sbp-cursor" x1="0" y1="${layout.ribbon.y}" x2="0" y2="${plotBottom}" class="cursor" style="display:none"/>
           <circle id="sbp-dot" r="3.5" class="dot" style="display:none"/>
-          <rect id="sbp-hit" x="${PAD_L}" y="${PAD_T}" width="${PLOT_W}" height="${PLOT_H}" fill="transparent"/>
+          <rect id="sbp-hit" x="${PAD_L}" y="${first.y}" width="${PLOT_W}" height="${plotBottom - first.y}" fill="transparent"/>
         </svg>
         <div id="sbp-tip" class="tip" style="display:none"></div>
       </div>
-      <div class="legend">${legend}</div>`
+      <div class="legend">${this._legend(view, slots, pvMax)}</div>`
     );
-    this._attachHover();
+    this._attachEvents();
   }
 
-  _attachHover() {
+  // --- scales -------------------------------------------------------------
+
+  _buildScales(slots, attrs, layout) {
+    const out = {};
+    for (const panel of layout.panels) {
+      if (panel.key === "price") {
+        const prices = slots.map((s) => s.price);
+        const lo = Math.min(0, ...prices);
+        const hi = Math.max(...prices);
+        const step = niceTickStep(hi - lo || 0.1, panel.h >= 50 ? 3 : 2);
+        const bot = Math.floor(lo / step) * step;
+        const top = Math.ceil((hi + step * 0.12) / step) * step;
+        const ticks = [];
+        for (let v = bot; v <= top + 1e-9; v += step) ticks.push(v);
+        out.price = {
+          y: (v) => panel.y + (1 - (v - bot) / (top - bot)) * panel.h,
+          ticks,
+          fmt: (v) => v.toFixed(2),
+          label: `${this._tr("price")} €/kWh`,
+        };
+      } else if (panel.key === "energy") {
+        const hi = Math.max(...slots.map((s) => Math.max(s.pv_kwh || 0, slotConsumption(s))));
+        const step = niceTickStep(hi || 0.2, 2);
+        const top = Math.max(step, Math.ceil((hi * 1.06) / step) * step);
+        out.energy = {
+          y: (v) => panel.y + (1 - v / top) * panel.h,
+          ticks: [0, top / 2, top],
+          fmt: (v) => v.toFixed(top < 1 ? 2 : 1),
+          label: `${this._tr("energy")} kWh`,
+        };
+      } else if (panel.key === "balance") {
+        const hi = Math.max(...slots.map((s) => Math.abs(slotBalance(s))));
+        const step = niceTickStep(hi || 0.2, 2);
+        const top = Math.max(step, Math.ceil((hi * 1.08) / step) * step);
+        out.balance = {
+          y: (v) => panel.y + panel.h / 2 - (v / top) * (panel.h / 2),
+          ticks: [top, 0, -top],
+          fmt: (v) => (v > 0 ? "+" : "") + v.toFixed(top < 1 ? 2 : 1),
+          label: `${this._tr("balance")} kWh`,
+        };
+      } else if (panel.key === "soc") {
+        const socs = slots.map((s) => Number(s.soc_forecast)).filter((v) => Number.isFinite(v));
+        // The configured operating window when the plan sensor reports it -
+        // drawing 0-100 % spends most of the panel on a range the battery is
+        // never allowed to enter, which is what flattened the discharge depth
+        // into a line along the top edge.
+        let lo = Number(attrs.min_soc);
+        let hi = Number(attrs.max_soc);
+        if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi <= lo) {
+          lo = socs.length ? Math.min(...socs) : 0;
+          hi = socs.length ? Math.max(...socs) : 100;
+        }
+        if (socs.length) {
+          lo = Math.min(lo, ...socs);
+          hi = Math.max(hi, ...socs);
+        }
+        // A plan that never moves the battery would otherwise magnify rounding
+        // noise into a mountain range.
+        if (hi - lo < 20) {
+          hi = Math.min(100, (hi + lo) / 2 + 10);
+          lo = Math.max(0, hi - 20);
+          hi = Math.min(100, lo + 20);
+        }
+        out.soc = {
+          y: (v) => panel.y + (1 - (v - lo) / (hi - lo)) * panel.h,
+          // A mid tick of 52.5 renders as "53%", which reads like a measured
+          // value; snap it to a round number inside the window instead.
+          ticks: panel.h >= 50 ? [lo, Math.round((lo + hi) / 10) * 5, hi] : [lo, hi],
+          fmt: (v) => `${Math.round(v)}%`,
+          label: this._tr("soc"),
+        };
+      }
+    }
+    return out;
+  }
+
+  // --- chrome -------------------------------------------------------------
+
+  _panelChrome(panel, scale) {
+    let out = `<rect x="${PAD_L}" y="${panel.y}" width="${PLOT_W}" height="${panel.h}" class="panel"/>`;
+    for (const v of scale.ticks) {
+      const y = scale.y(v).toFixed(1);
+      const zero = panel.key === "balance" && Math.abs(v) < 1e-9;
+      out += `<line x1="${PAD_L}" y1="${y}" x2="${PAD_L + PLOT_W}" y2="${y}" class="grid${
+        zero ? " zero" : ""
+      }"/>`;
+      out += `<text x="${PAD_L - 5}" y="${(+y + 3).toFixed(1)}" class="ax pr">${esc(
+        scale.fmt(v)
+      )}</text>`;
+    }
+    return (
+      out + `<text x="${PAD_L}" y="${panel.y - 6}" class="ax pl">${esc(scale.label)}</text>`
+    );
+  }
+
+  // Vertical grid every three hours, anchored to midnight in Home Assistant's
+  // timezone. Each tick is re-snapped to the full hour so a DST change does
+  // not shear the grid.
+  _timeGrid(layout, labelY) {
+    const HOUR = 3600000;
+    let out = "";
+    const startParts = this._zoned(this._t0);
+    let tick = this._t0 - ((startParts.hour % 3) * 60 + startParts.minute) * 60000;
+    while (tick < this._t0) tick += 3 * HOUR;
+    for (let k = 0; tick <= this._t1 && k < 64; k++) {
+      const parts = this._zoned(tick);
+      if (parts.minute !== 0) tick -= parts.minute * 60000;
+      const p = this._zoned(tick);
+      const midnight = p.hour === 0;
+      const px = this._x(tick).toFixed(1);
+      for (const panel of layout.panels) {
+        out += `<line x1="${px}" y1="${panel.y}" x2="${px}" y2="${panel.y + panel.h}" class="grid${
+          midnight ? " day" : ""
+        }"/>`;
+      }
+      out += `<text x="${px}" y="${labelY}" class="ax tx">${String(p.hour).padStart(
+        2,
+        "0"
+      )}</text>`;
+      if (midnight) {
+        out += `<text x="${px}" y="${labelY + 10}" class="ax tx day">${esc(
+          this._fmtDate(tick)
+        )}</text>`;
+      }
+      tick += 3 * HOUR;
+    }
+    return out;
+  }
+
+  // Planned actions as one labeled band above the panels, instead of the pale
+  // washes behind the curves that "auto" and "blocked" were told apart by.
+  _ribbon(slots, ribbon) {
+    let out = "";
+    let runStart = 0;
+    for (let i = 0; i <= slots.length; i++) {
+      if (i < slots.length && slots[i].action === slots[runStart].action) continue;
+      const action = slots[runStart].action;
+      const x0 = this._x(slots[runStart].startMs);
+      const width = this._x(slots[i - 1].endMs) - x0;
+      out += `<rect x="${x0.toFixed(1)}" y="${ribbon.y}" width="${Math.max(
+        0,
+        width - 1
+      ).toFixed(1)}" height="${ribbon.h}" rx="2" class="band ${esc(action)}"/>`;
+      if (width > 46) {
+        out += `<text x="${(x0 + width / 2).toFixed(1)}" y="${(
+          ribbon.y +
+          ribbon.h / 2 +
+          3.4
+        ).toFixed(1)}" class="bandtx ${esc(action)}">${esc(this._actionLabel(action))}</text>`;
+      }
+      runStart = i;
+    }
+    return out;
+  }
+
+  // --- marks --------------------------------------------------------------
+
+  // `first` is the command the very first point gets: "M" for a standalone
+  // line, "L" when the caller has already moved the pen to the baseline for a
+  // filled area. Starting an area's steps with "M" opens a second subpath, and
+  // the closing "Z" then draws a diagonal across the whole panel.
+  _stepPath(slots, value, y, first = "M") {
+    let d = "";
+    slots.forEach((s, i) => {
+      const yy = y(value(s)).toFixed(1);
+      d += `${i ? "L" : first}${this._x(s.startMs).toFixed(1)},${yy} L${this._x(s.endMs).toFixed(
+        1
+      )},${yy} `;
+    });
+    return d;
+  }
+
+  _stepArea(slots, value, y, floor) {
+    return (
+      `M${this._x(slots[0].startMs).toFixed(1)},${floor.toFixed(1)} ` +
+      this._stepPath(slots, value, y, "L") +
+      `L${this._x(slots[slots.length - 1].endMs).toFixed(1)},${floor.toFixed(1)} Z`
+    );
+  }
+
+  _panelMarks(panel, scale, slots, pvMax) {
+    const floor = panel.y + panel.h;
+    if (panel.key === "price") {
+      let out =
+        `<path d="${this._stepArea(slots, (s) => s.price, scale.y, floor)}" class="pricearea"/>` +
+        `<path d="${this._stepPath(slots, (s) => s.price, scale.y)}" class="price"/>`;
+      if (panel.h >= 50) out += this._peakLabel(slots, scale);
+      return out;
+    }
+    if (panel.key === "energy") {
+      let out = "";
+      if (pvMax > 0) {
+        out +=
+          `<path d="${this._stepArea(
+            slots,
+            (s) => s.pv_kwh || 0,
+            scale.y,
+            floor
+          )}" class="pvarea"/>` +
+          `<path d="${this._stepPath(slots, (s) => s.pv_kwh || 0, scale.y)}" class="pvline"/>`;
+      }
+      return (
+        out + `<path d="${this._stepPath(slots, slotConsumption, scale.y)}" class="consline"/>`
+      );
+    }
+    if (panel.key === "balance") {
+      const zero = scale.y(0);
+      const id = `sbp-clip-${(clipSeq += 1)}`;
+      return (
+        `<defs>` +
+        `<clipPath id="${id}-p"><rect x="0" y="${panel.y}" width="${W}" height="${(
+          zero - panel.y
+        ).toFixed(1)}"/></clipPath>` +
+        `<clipPath id="${id}-n"><rect x="0" y="${zero.toFixed(1)}" width="${W}" height="${(
+          floor - zero
+        ).toFixed(1)}"/></clipPath>` +
+        `</defs>` +
+        `<path d="${this._stepArea(
+          slots,
+          (s) => Math.max(0, slotBalance(s)),
+          scale.y,
+          zero
+        )}" class="balarea pos"/>` +
+        `<path d="${this._stepArea(
+          slots,
+          (s) => Math.min(0, slotBalance(s)),
+          scale.y,
+          zero
+        )}" class="balarea neg"/>` +
+        `<path d="${this._stepPath(slots, slotBalance, scale.y)}" class="balline pos" clip-path="url(#${id}-p)"/>` +
+        `<path d="${this._stepPath(slots, slotBalance, scale.y)}" class="balline neg" clip-path="url(#${id}-n)"/>` +
+        `<text x="${PAD_L + 5}" y="${(zero - 5).toFixed(1)}" class="dirlbl pos">${esc(
+          this._tr("surplus")
+        )}</text>` +
+        `<text x="${PAD_L + 5}" y="${(zero + 12).toFixed(1)}" class="dirlbl neg">${esc(
+          this._tr("deficit")
+        )}</text>`
+      );
+    }
+    // soc
+    const end = slots[slots.length - 1];
+    const ex = this._x(end.endMs);
+    const ey = scale.y(end.soc_forecast);
+    return (
+      `<path d="${this._stepArea(
+        slots,
+        (s) => s.soc_forecast,
+        scale.y,
+        floor
+      )}" class="socarea"/>` +
+      `<path d="${this._stepPath(slots, (s) => s.soc_forecast, scale.y)}" class="socline"/>` +
+      `<circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="2.6" class="socdot"/>` +
+      `<text x="${(ex - 4).toFixed(1)}" y="${(ey - 6).toFixed(1)}" class="dirlbl soc" text-anchor="end">${Math.round(
+        end.soc_forecast
+      )}%</text>`
+    );
+  }
+
+  // The most expensive slot is the one the whole plan is built around, so it
+  // gets the only number printed on the price curve.
+  _peakLabel(slots, scale) {
+    const peak = slots.reduce((best, s) => (s.price > best.price ? s : best), slots[0]);
+    const px = (this._x(peak.startMs) + this._x(peak.endMs)) / 2;
+    const py = scale.y(peak.price);
+    const toTheRight = px > PAD_L + PLOT_W * 0.72;
+    return (
+      `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="2.6" class="pricedot"/>` +
+      `<text x="${(px + (toTheRight ? -5 : 5)).toFixed(1)}" y="${(py - 6).toFixed(
+        1
+      )}" class="dirlbl price" text-anchor="${toTheRight ? "end" : "start"}">${peak.price.toFixed(
+        2
+      )}</text>`
+    );
+  }
+
+  // --- compact extras -----------------------------------------------------
+
+  _tiles(slots, attrs, current) {
+    const last = slots[slots.length - 1];
+    const now = Date.now();
+    const next = slots.find((s) => s.startMs > now && s.action !== current.action);
+    const discharge = Number(attrs.battery_discharge_kwh);
+    const gridCharge = Number(attrs.grid_charge_kwh);
+    const cells = [
+      {
+        label: this._tr("soc"),
+        value: `${Math.round(current.soc_forecast)}%`,
+        sub: `→ ${Math.round(last.soc_forecast)}% ${this._fmtTime(last.endMs)}`,
+      },
+      {
+        label: this._tr("next_change"),
+        value: next ? this._fmtTime(next.startMs) : "—",
+        sub: this._actionLabel(next ? next.action : current.action),
+      },
+      {
+        label: this._tr("from_battery"),
+        value: Number.isFinite(discharge) ? `${discharge.toFixed(1)} kWh` : "—",
+        sub: Number.isFinite(gridCharge)
+          ? `${this._actionLabel("charge")} ${gridCharge.toFixed(1)} kWh`
+          : "",
+      },
+    ];
+    return (
+      `<div class="tiles">` +
+      cells
+        .map(
+          (c) =>
+            `<div class="tile"><div class="tl">${esc(c.label)}</div>` +
+            `<div class="tv">${esc(c.value)}</div>` +
+            `<div class="ts">${esc(c.sub)}</div></div>`
+        )
+        .join("") +
+      `</div>`
+    );
+  }
+
+  // --- legend -------------------------------------------------------------
+
+  _legend(view, slots, pvMax) {
+    const present = ACTIONS.filter((a) => slots.some((s) => s.action === a));
+    let out = present
+      .map((key) => `<span class="lg"><i class="band-i ${key}"></i>${esc(this._actionLabel(key))}</span>`)
+      .join("");
+    out += `<span class="lg"><i class="li price-i"></i>${this._tr("price")}</span>`;
+    if (view === "tracks") {
+      out += `<span class="lg"><i class="li cons-i"></i>${this._tr("consumption")}</span>`;
+      if (pvMax > 0) out += `<span class="lg"><i class="pv-i"></i>${this._tr("pv")}</span>`;
+    }
+    out += `<span class="lg"><i class="li soc-i"></i>${this._tr("soc")}</span>`;
+    if (view !== "compact") {
+      const other = view === "tracks" ? "balance" : "tracks";
+      out += `<button type="button" class="viewtog" data-view="${other}">${esc(
+        this._tr(other === "balance" ? "balance" : "energy")
+      )}</button>`;
+    }
+    return out;
+  }
+
+  _attachEvents() {
+    // The energy panel and the balance panel are two readings of the same
+    // slots, so switching between them is a click rather than a config edit.
+    const toggle = this.querySelector(".viewtog");
+    if (toggle) {
+      toggle.addEventListener("click", () => {
+        this._viewOverride = toggle.dataset.view;
+        this._render(this._renderedState);
+      });
+    }
+
     const svg = this.querySelector("svg");
     const tip = this.querySelector("#sbp-tip");
     const cursor = this.querySelector("#sbp-cursor");
@@ -666,7 +1050,7 @@ class SmartBatteryPilotCard extends HTMLElement {
       cursor.setAttribute("x2", slotMidX);
       cursor.style.display = "";
       dot.setAttribute("cx", slotMidX);
-      dot.setAttribute("cy", this._yPrice(slot.price));
+      dot.setAttribute("cy", this._dotAt(slot));
       dot.style.display = "";
 
       // position tooltip near pointer, keep inside the card
@@ -697,40 +1081,92 @@ class SmartBatteryPilotCard extends HTMLElement {
           .chartwrap { position: relative; }
           svg { width: 100%; display: block; touch-action: pan-y; }
           .empty { padding: 16px; color: var(--secondary-text-color); }
-          .status { padding: 0 16px 4px; font-size: 14px; }
-          .chip { padding: 2px 10px; border-radius: 10px; font-weight: 500; }
+          .status { padding: 0 16px 6px; font-size: 14px; }
+          .chip { padding: 2px 10px; border-radius: 10px; font-weight: 500; color: #fff; }
+          .chip.auto { background: var(--divider-color, #e0e0e0); color: var(--primary-text-color); }
+          .chip.charge { background: #22a04a; }
+          .chip.idle { background: #7166d9; }
+          .chip.export { background: #e05252; }
           .next { color: var(--secondary-text-color); margin-left: 6px; }
+
+          /* Compact view: the answer before the evidence. */
+          .tiles { display: grid; grid-template-columns: repeat(3, 1fr);
+                   gap: 1px; background: var(--divider-color, #e0e0e0);
+                   border-top: 1px solid var(--divider-color, #e0e0e0);
+                   border-bottom: 1px solid var(--divider-color, #e0e0e0);
+                   margin: 0 0 8px; }
+          .tile { background: var(--card-background-color, #fff); padding: 6px 16px 7px; }
+          .tl { font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase;
+                color: var(--secondary-text-color); }
+          .tv { font-size: 19px; font-weight: 500; line-height: 1.3;
+                color: var(--primary-text-color); font-variant-numeric: tabular-nums; }
+          .ts { font-size: 11px; color: var(--secondary-text-color); }
+
+          .panel { fill: var(--divider-color, #e0e0e0); opacity: 0.22; }
           .ax { font-size: 9px; fill: var(--secondary-text-color); }
           .ax.pr { text-anchor: end; }
+          .ax.pl { font-size: 8.5px; letter-spacing: 0.04em; opacity: 0.9; }
           .ax.tx { text-anchor: middle; }
           .ax.tx.day { font-weight: 600; }
-          .ax.soc { fill: #7e57c2; }
           .grid { stroke: var(--divider-color, #e0e0e0); stroke-width: 0.5; }
           .grid.day { stroke: var(--secondary-text-color, #999); stroke-width: 1; opacity: 0.55; }
-          .grid.zero { stroke: var(--primary-text-color, #444); stroke-width: 0.8; opacity: 0.5; }
-          .price { fill: none; stroke: #ffb300; stroke-width: 2; }
-          .socline { fill: none; stroke: #7e57c2; stroke-width: 1.5; stroke-dasharray: 4 3; }
-          .consline { fill: none; stroke: #26a69a; stroke-width: 1.3; opacity: 0.85; }
-          .cons-i { background: #26a69a; }
-          .pvarea { fill: rgba(255, 213, 79, 0.25); stroke: rgba(251, 192, 45, 0.6); stroke-width: 1; }
+          .grid.zero { stroke: var(--secondary-text-color, #666); stroke-width: 1; opacity: 0.8; }
+
+          .band.auto { fill: var(--divider-color, #e0e0e0); }
+          .band.charge { fill: #22a04a; }
+          .band.idle { fill: #7166d9; }
+          .band.export { fill: #e05252; }
+          .bandtx { font-size: 10px; font-weight: 500; text-anchor: middle; fill: #fff; }
+          .bandtx.auto { fill: var(--secondary-text-color); }
+
+          .price { fill: none; stroke: #eb6834; stroke-width: 2; stroke-linejoin: round; }
+          .pricearea { fill: rgba(235, 104, 52, 0.12); stroke: none; }
+          .pricedot { fill: #eb6834; stroke: var(--card-background-color, #fff); stroke-width: 1.5; }
+          .consline { fill: none; stroke: #1baf7a; stroke-width: 2; stroke-linejoin: round; }
+          .pvarea { fill: rgba(237, 161, 0, 0.25); stroke: none; }
+          .pvline { fill: none; stroke: rgba(237, 161, 0, 0.95); stroke-width: 1.3; stroke-linejoin: round; }
+          .socline { fill: none; stroke: #2a78d6; stroke-width: 2; stroke-linejoin: round; }
+          .socarea { fill: rgba(42, 120, 214, 0.16); stroke: none; }
+          .socdot { fill: #2a78d6; stroke: var(--card-background-color, #fff); stroke-width: 1.5; }
+          .balarea.pos { fill: rgba(42, 120, 214, 0.20); stroke: none; }
+          .balarea.neg { fill: rgba(208, 59, 59, 0.20); stroke: none; }
+          .balline { fill: none; stroke-width: 1.6; stroke-linejoin: round; }
+          .balline.pos { stroke: #2a78d6; }
+          .balline.neg { stroke: #d03b3b; }
+          .dirlbl { font-size: 10px; font-weight: 500; }
+          .dirlbl.pos { fill: #2a78d6; }
+          .dirlbl.neg { fill: #d03b3b; }
+          .dirlbl.soc { fill: #2a78d6; }
+          .dirlbl.price { fill: #eb6834; }
+
           .now { stroke: var(--error-color, #f44336); stroke-width: 1.5; }
           .cursor { stroke: var(--primary-text-color, #555); stroke-width: 0.8; stroke-dasharray: 2 2; }
-          .dot { fill: #ffb300; stroke: var(--card-background-color, #fff); stroke-width: 1.5; }
+          .dot { fill: #eb6834; stroke: var(--card-background-color, #fff); stroke-width: 1.5; }
           .tip { position: absolute; z-index: 5; pointer-events: none;
                  background: var(--card-background-color, #fff);
                  color: var(--primary-text-color, #222);
                  border: 1px solid var(--divider-color, #ddd); border-radius: 6px;
                  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
                  padding: 6px 9px; font-size: 12px; line-height: 1.5; white-space: nowrap; }
-          .legend { padding: 4px 16px 0; font-size: 11px; color: var(--secondary-text-color);
-                    display: flex; gap: 10px; flex-wrap: wrap; }
+
+          .legend { padding: 6px 16px 0; font-size: 11px; color: var(--secondary-text-color);
+                    display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
           .lg { display: inline-flex; align-items: center; gap: 4px; }
           .lg i { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
           .lg .li { height: 3px; border-radius: 1px; }
-          .price-i { background: #ffb300; }
-          .soc-i { background: #7e57c2; }
-          .pv-i { width: 12px; height: 12px; border-radius: 2px; display: inline-block;
-                  background: rgba(255, 213, 79, 0.45); border: 1px solid rgba(251, 192, 45, 0.9); }
+          .band-i.charge { background: #22a04a; }
+          .band-i.idle { background: #7166d9; }
+          .band-i.export { background: #e05252; }
+          .price-i { background: #eb6834; }
+          .soc-i { background: #2a78d6; }
+          .cons-i { background: #1baf7a; }
+          .pv-i { background: rgba(237, 161, 0, 0.35);
+                  border: 1px solid rgba(237, 161, 0, 0.9); }
+          .viewtog { margin-left: auto; font: inherit; font-size: 11px; cursor: pointer;
+                     color: var(--primary-color, #03a9f4); background: none;
+                     border: 1px solid var(--divider-color, #e0e0e0); border-radius: 10px;
+                     padding: 1px 9px; }
+          .viewtog:hover { border-color: var(--primary-color, #03a9f4); }
         </style>
         ${body}
       </ha-card>`;

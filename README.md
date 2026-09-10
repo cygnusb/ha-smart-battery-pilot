@@ -124,12 +124,16 @@ frontend module and lovelace resource):
 ```yaml
 type: custom:smart-battery-pilot-card
 entity: sensor.smart_battery_pilot_charge_plan   # optional - auto-discovered
+view: tracks                                     # optional - tracks | balance | compact
 ```
 
-It shows the price curve with a labeled price grid, the planned actions as
-colored bands, the PV forecast, live PV power (if configured), the projected
-SOC, day separators and a hover tooltip with price/SOC/action/PV per slot.
-If `entity` is omitted or wrong, the card finds the plan sensor automatically.
+Every quantity gets its own panel and its own scale: the price curve over a
+labeled price grid, PV against household consumption in kWh, and the SOC
+projection drawn against the battery's configured min/max window rather than
+0-100 %. Planned actions run as a labeled band across the top, with day
+separators, live PV power (if configured) and a hover tooltip carrying
+price/SOC/action/PV per slot. If `entity` is omitted or wrong, the card finds
+the plan sensor automatically.
 See [docs/configuration.md](docs/configuration.md#dashboard).
 
 Click any of them to open the full-resolution image.
@@ -138,7 +142,15 @@ Click any of them to open the full-resolution image.
 |:---:|:---:|:---:|
 | <a href="assets/screenshots/card_winter_arbitrage.png"><img src="assets/screenshots/card_winter_arbitrage.png" alt="Winter arbitrage: charging through the cheap night, battery held for the evening peak" width="300"></a> | <a href="assets/screenshots/card_summer_export.png"><img src="assets/screenshots/card_summer_export.png" alt="Summer PV export: PV fills the battery, the evening peak is sold to the grid" width="300"></a> | <a href="assets/screenshots/card_dunkelflaute.png"><img src="assets/screenshots/card_dunkelflaute.png" alt="Dunkelflaute: an eightfold price spread makes grid charging pay for itself" width="300"></a> |
 
-All three are real plans: [`tools/gen_card_screenshots.py`](tools/gen_card_screenshots.py)
+Two further views over the same plan, switchable in the card config (the
+energy panel also flips to the balance with the button in the legend):
+
+| `view: balance` | `view: compact` |
+|:---:|:---:|
+| <a href="assets/screenshots/card_view_balance.png"><img src="assets/screenshots/card_view_balance.png" alt="Balance view: PV minus consumption as a diverging area around zero" width="300"></a> | <a href="assets/screenshots/card_view_compact.png"><img src="assets/screenshots/card_view_compact.png" alt="Compact view: status line, three figures and a smaller chart" width="300"></a> |
+| PV **minus** consumption - the quantity the optimizer plans against. A day the battery sits out is a day the surplus never runs out, and that is now something you can see. | Status, next change and planned discharge as figures, curves underneath. For overview dashboards and phones. |
+
+All five are real plans: [`tools/gen_card_screenshots.py`](tools/gen_card_screenshots.py)
 describes a day of prices, consumption and PV, runs it through the actual
 optimizer and renders the card against the result.
 

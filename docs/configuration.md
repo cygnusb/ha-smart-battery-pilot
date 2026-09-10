@@ -119,15 +119,39 @@ resource, no manual resource setup needed):
 type: custom:smart-battery-pilot-card
 entity: sensor.smart_battery_pilot_charge_plan  # optional - auto-discovered
 title: Smart Battery Pilot                      # optional
+view: tracks                                    # optional - tracks | balance | compact
 ```
 
-Features: price step curve with labeled grid, action bands
-(charge/idle/export), PV forecast area, live PV power (if a current-PV
-entity is configured), projected SOC, local-midnight day
-separators with date, "now" marker and a hover tooltip showing time slot,
-action, price, SOC forecast, PV and net demand. `entity` may be omitted —
-the card auto-discovers the plan sensor (entity IDs are localized, e.g.
-`…_ladeplan` on German installations).
+`entity` may be omitted — the card auto-discovers the plan sensor (entity IDs
+are localized, e.g. `…_ladeplan` on German installations).
+
+### Views
+
+One scale per drawing surface. Price in €/kWh, energy in kWh and SOC in
+percent are three different units, and stacking them on a single plot means
+two of them have to be squeezed into whatever space the third leaves — which
+is how a correct consumption forecast ends up drawn along the baseline on a
+strong PV day.
+
+| `view` | What it draws |
+|---|---|
+| `tracks` *(default)* | Three panels sharing one time axis: price, PV against consumption, SOC. |
+| `balance` | Same three panels, but the middle one shows PV **minus** consumption as an area diverging around zero — the quantity the optimizer plans against. |
+| `compact` | Status line, three figures (SOC now → at horizon end, next change, planned discharge) and a smaller SOC + price chart. Roughly two thirds the height. |
+
+An unrecognised value falls back to `tracks`. The button at the right of the
+legend flips between `tracks` and `balance` without editing the dashboard;
+it resets to the configured view whenever the card config is re-applied.
+
+Common to every view: planned actions as a labeled band across the top
+(charge/blocked/export/auto), local-midnight day separators with the date,
+a "now" marker, the most expensive slot labeled on the price curve, the SOC
+endpoint labeled, and a hover tooltip showing time slot, action, price, SOC
+forecast, PV and net demand.
+
+The SOC panel is drawn against the battery's configured window (`min_soc` to
+`max_soc`, published on the plan sensor) instead of 0–100 %, so the discharge
+depth uses the panel's full height rather than a sliver along the top edge.
 
 The card's labels, tooltip and date/time formatting follow the Home Assistant
 user's language (`hass.locale.language`, falling back to the browser language
