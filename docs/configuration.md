@@ -61,6 +61,9 @@ The forecast model:
 * **After ~14 days of history**: ridge regression with cyclic hour-of-day,
   weekend and temperature features (pure Python, no extra dependencies).
 * Retrained automatically every 24 h; the model is persisted across restarts.
+* Pointing the integration at a different consumption sensor starts the history
+  over, so the forecast falls back to the profile until the new sensor has ~14
+  days of its own — the regression is never carried over from the old one.
 
 ### 5. PV forecast (optional)
 

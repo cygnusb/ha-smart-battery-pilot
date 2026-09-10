@@ -148,6 +148,13 @@ class ConsumptionForecaster:
         self._mean_kwh = sum(s.kwh for s in samples) / len(samples)
         self._train_profile(samples)
 
+        # Cleared first, not only replaced: pointing the integration at a
+        # different consumption entity restarts the history at zero, and a
+        # ridge left over from the previous entity would keep answering every
+        # prediction while the refitted profile sat unused.
+        self._weights = None
+        self._uses_temperature = False
+
         if len(samples) >= MIN_REGRESSION_SAMPLES:
             n_temp = sum(1 for s in samples if s.temperature is not None)
             use_temp = n_temp > 0 if require_temperature else n_temp >= len(samples) / 2
@@ -212,18 +219,24 @@ class ConsumptionForecaster:
     def from_dict(cls, data: dict[str, Any]) -> ConsumptionForecaster:
         forecaster = cls()
         forecaster._uses_temperature = data.get("uses_temperature", False)
+        forecaster._sample_count = data.get("sample_count", 0)
         weights = data.get("weights")
-        # A model stored under an older feature layout would silently be
-        # truncated at prediction time; drop it and fall back to the profile
-        # until the next nightly training run replaces it.
+        # Two ways a stored ridge is unusable, both ending in the profile until
+        # the next training run: an older feature layout, which would silently
+        # be truncated at prediction time, and a sample count too small to have
+        # produced those weights - the mark of a model fitted to a history that
+        # is no longer the one being forecast.
         expected = len(_features(datetime(2024, 1, 1), None, forecaster._uses_temperature))
         forecaster._weights = (
-            list(weights) if isinstance(weights, list) and len(weights) == expected else None
+            list(weights)
+            if isinstance(weights, list)
+            and len(weights) == expected
+            and forecaster._sample_count >= MIN_REGRESSION_SAMPLES
+            else None
         )
         forecaster._profile = {
             (int(k.split("_")[0]), int(k.split("_")[1])): v
             for k, v in (data.get("profile") or {}).items()
         }
         forecaster._mean_kwh = data.get("mean_kwh", 0.5)
-        forecaster._sample_count = data.get("sample_count", 0)
         return forecaster
