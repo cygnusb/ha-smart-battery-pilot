@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from smart_battery_pilot.forecast.consumption import (
+    MIN_REGRESSION_SAMPLES,
     ConsumptionForecaster,
     TrainingSample,
 )
@@ -169,3 +170,35 @@ def test_all_zero_history_falls_back_to_default():
     forecaster.train([TrainingSample(s.start, 0.0, None) for s in _synthetic_samples(5)])
     assert forecaster.model_type == "default"
     assert forecaster.predict_kwh(datetime(2026, 6, 8, 12, 0, tzinfo=TZ), 1.0) > 0
+
+
+def test_retraining_on_a_shorter_history_drops_the_ridge_model():
+    """A ridge fitted on an earlier history must not survive a smaller one.
+
+    Pointing the integration at a different consumption entity restarts the
+    history at zero. The profile is refitted from the new entity, but the
+    ridge was kept because it is only ever *replaced*, never cleared - so
+    prediction kept answering from a model fitted to the old sensor.
+    """
+    forecaster = ConsumptionForecaster()
+    forecaster.train(_synthetic_samples(days=30))
+    assert forecaster.model_type == "ridge_regression"
+
+    # New entity: five days of a household drawing twice as much.
+    fresh = [TrainingSample(s.start, s.kwh * 2, s.temperature) for s in _synthetic_samples(days=5)]
+    forecaster.train(fresh)
+
+    assert forecaster.model_type == "hourly_profile"
+    evening = datetime(2026, 6, 8, 19, 0, tzinfo=TZ)
+    assert forecaster.predict_kwh(evening, 1.0) == pytest.approx(2.2, abs=0.1)
+
+
+def test_restored_model_ignores_weights_that_its_sample_count_cannot_justify():
+    """Stored weights below the regression threshold are stale by definition."""
+    forecaster = ConsumptionForecaster()
+    forecaster.train(_synthetic_samples(days=30))
+    stored = forecaster.to_dict()
+    stored["sample_count"] = MIN_REGRESSION_SAMPLES - 1
+
+    restored = ConsumptionForecaster.from_dict(stored)
+    assert restored.model_type == "hourly_profile"
