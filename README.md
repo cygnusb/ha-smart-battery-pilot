@@ -125,6 +125,7 @@ frontend module and lovelace resource):
 type: custom:smart-battery-pilot-card
 entity: sensor.smart_battery_pilot_charge_plan   # optional - auto-discovered
 view: tracks                                     # optional - tracks | balance | compact
+height: auto                                     # optional - auto | <pixels> | <percent>
 ```
 
 Every quantity gets its own panel and its own scale: the price curve over a
@@ -134,6 +135,12 @@ projection drawn against the battery's configured min/max window rather than
 separators, live PV power (if configured) and a hover tooltip carrying
 price/SOC/action/PV per slot. If `entity` is omitted or wrong, the card finds
 the plan sensor automatically.
+
+The chart is drawn at the size the dashboard gives the card rather than
+scaled to it, so it stays legible from a 300 px phone column to a full-width
+panel view: more width buys a denser hour grid, more height buys taller
+panels. `height` overrides the automatic sizing, and in a sections view
+`grid_options: {columns: full}` lets the card use the whole section.
 See [docs/configuration.md](docs/configuration.md#dashboard).
 
 Click any of them to open the full-resolution image.

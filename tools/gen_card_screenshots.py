@@ -440,14 +440,14 @@ HTML_TEMPLATE = textwrap.dedent("""\
     background: #1f2937;
     border-radius: 12px;
     overflow: hidden;
-    width: 520px;
+    width: {width}px;
     --card-background-color: #1f2937;
     --primary-text-color: #f3f4f6;
     --secondary-text-color: #9ca3af;
     --divider-color: #374151;
     --error-color: #f87171;
   }}
-  .wrap {{ width: 520px; }}
+  .wrap {{ width: {width}px; }}
   .caption {{ color: #6b7280; font-size: 11px; text-align: center; padding: 6px 0 0; }}
 </style>
 </head>
@@ -490,11 +490,13 @@ def write_html(
     now: datetime,
     view: str,
     caption: str,
+    width: int = 520,
 ):
     path.write_text(
         HTML_TEMPLATE.format(
             title=scenario.name,
             caption=caption,
+            width=width,
             view_json=json.dumps(view),
             title_json=json.dumps(title),
             plan_entity=json.dumps(PLAN_ENTITY),
@@ -538,8 +540,8 @@ const srv = http.createServer((req, res) => {{
   await new Promise(r => srv.listen({port}, '127.0.0.1', r));
   const browser = await chromium.launch();
   const page = await browser.newPage({{ deviceScaleFactor: 2 }});
-  await page.setViewportSize({{ width: 600, height: 460 }});
   for (const job of jobs) {{
+    await page.setViewportSize({{ width: (job.width || 520) + 80, height: 700 }});
     await page.goto(`http://127.0.0.1:{port}/${{job.html}}`);
     await page.waitForSelector('.chartwrap svg', {{ timeout: 10000 }});
     await page.waitForTimeout(400);
@@ -609,6 +611,13 @@ VIEW_SHOTS = [
 ]
 
 
+# Widths the card is expected to survive: a phone column, the size it was
+# designed at, a `column_span: 2` section and a full-width panel view. These
+# are a verification aid rather than documentation, so they are written to the
+# work directory instead of into assets/.
+SIZE_WIDTHS = [300, 380, 520, 900, 1400]
+
+
 def _shots():
     """(scenario factory, view, output name, caption) for every screenshot."""
     for factory in SCENARIOS:
@@ -621,6 +630,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--lang", default="en", choices=["en", "de"])
     parser.add_argument("--tz", default="Europe/Berlin")
+    parser.add_argument(
+        "--sizes",
+        action="store_true",
+        help="render one scenario at several card widths, for eyeballing the layout",
+    )
     args = parser.parse_args()
 
     work_dir = Path(os.environ.get("TMPDIR", "/tmp")) / "sbp_card_shots"
@@ -661,6 +675,31 @@ def main() -> int:
             caption,
         )
         jobs.append({"html": html.name, "png": str(OUT_DIR / f"{name}.png")})
+
+    if args.sizes:
+        jobs = []
+        scenario = winter_arbitrage()
+        plan = scenario.build(scenario.start)
+        states = {PLAN_ENTITY: plan_state(scenario, plan, scenario.now)}
+        for view in ("tracks", "compact"):
+            for width in SIZE_WIDTHS:
+                name = f"size_{view}_{width}"
+                html = work_dir / f"{name}.html"
+                write_html(
+                    html,
+                    scenario,
+                    states,
+                    TITLES[args.lang],
+                    args.lang,
+                    args.tz,
+                    scenario.now,
+                    view,
+                    f"{view}, {width}px",
+                    width,
+                )
+                jobs.append(
+                    {"html": html.name, "png": str(work_dir / f"{name}.png"), "width": width}
+                )
 
     return 0 if render(jobs, work_dir) else 1
 

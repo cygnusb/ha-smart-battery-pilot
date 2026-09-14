@@ -316,11 +316,28 @@ function esc(value) {
 // consumption were normalized against the PV maximum - on a strong PV day that
 // pressed a perfectly correct consumption curve onto the baseline. Every view
 // below gives each unit its own panel and its own y scale.
-const W = 480;
-const PAD_L = 42;
+//
+// Everything here is measured in CSS pixels of the card as the dashboard
+// actually lays it out. The chart used to be drawn into a fixed 480-unit
+// viewBox stretched to 100 % width, which made it an image rather than a
+// layout: a card twice as wide got twice the font size, twice the stroke
+// width and twice the height whether or not any of that was wanted, and the
+// height could not be chosen at all. Measuring first and rendering at a scale
+// of exactly 1 keeps the type at the size it was designed at, and lets extra
+// width and extra height buy resolution instead of magnification.
 const PAD_R = 16;
-const PLOT_W = W - PAD_L - PAD_R;
 const AXIS_H = 24; // hour labels, plus the date under a day separator
+const PANEL_LABEL_H = 13; // the unit caption sitting above each panel
+const PANEL_GAP = 11; // clear air between one panel and the next caption
+const MIN_PANEL_H = 30; // below this a panel has no room left for its curve
+const MIN_CHART_H = 120; // an explicit `height:` under this is not a chart
+const FALLBACK_W = 480; // nothing to measure yet: first paint, or a test shim
+const MIN_W = 220; // and a card narrower than this is drawn as if it were
+const NARROW_W = 360; // below this the y-axis gutter gives back some width
+const TILES_NARROW_W = 420; // and below this the compact view's figures shrink
+const MIN_TICK_PX = 30; // horizontal room one hour label needs to stand alone
+const DATE_LABEL_PX = 48; // and what the date under a day separator needs
+const TICK_STEPS_H = [1, 2, 3, 6, 12];
 
 // clipPath ids have to be unique across every card on the dashboard.
 let clipSeq = 0;
@@ -328,37 +345,99 @@ let clipSeq = 0;
 const VIEWS = ["tracks", "balance", "compact"];
 const DEFAULT_VIEW = "tracks";
 
-// y/h of every panel, top to bottom, per view. The action ribbon sits above
-// the first panel; the x-axis labels go under the last one.
+// Panels top to bottom per view, with the share of the free vertical space
+// each one claims. The action ribbon sits above the first panel; the x-axis
+// labels go under the last one. `height` is the automatic sizing curve: a
+// gentle growth with width between two hard stops, so a full-width panel card
+// becomes a wide chart rather than a wall of one.
 const LAYOUTS = {
   tracks: {
-    ribbon: { y: 6, h: 13 },
+    ribbon: 13,
     panels: [
-      { key: "price", y: 32, h: 60 },
-      { key: "energy", y: 116, h: 58 },
-      { key: "soc", y: 198, h: 58 },
+      { key: "price", weight: 60 },
+      { key: "energy", weight: 58 },
+      { key: "soc", weight: 58 },
     ],
+    height: { base: 184, perPx: 0.2, min: 236, max: 440 },
   },
   balance: {
-    ribbon: { y: 6, h: 13 },
+    ribbon: 13,
     panels: [
-      { key: "price", y: 32, h: 60 },
-      { key: "balance", y: 116, h: 58 },
-      { key: "soc", y: 198, h: 58 },
+      { key: "price", weight: 60 },
+      { key: "balance", weight: 58 },
+      { key: "soc", weight: 58 },
     ],
+    height: { base: 184, perPx: 0.2, min: 236, max: 440 },
   },
   compact: {
-    ribbon: { y: 8, h: 17 },
+    ribbon: 17,
     panels: [
-      { key: "soc", y: 42, h: 76 },
-      { key: "price", y: 138, h: 30 },
+      { key: "soc", weight: 76 },
+      { key: "price", weight: 30 },
     ],
+    height: { base: 120, perPx: 0.15, min: 158, max: 300 },
   },
 };
 
-function layoutHeight(layout) {
-  const last = layout.panels[layout.panels.length - 1];
-  return last.y + last.h + AXIS_H;
+// Turn a view spec into concrete pixel geometry at one size. The ribbon, the
+// caption above each panel and the hour-label strip cost a fixed number of
+// pixels whatever the card size; the remainder is shared out by weight, so a
+// taller card draws taller curves rather than more white space.
+function buildLayout(spec, width, height) {
+  const padL = width < NARROW_W ? 34 : 42;
+  const plotW = Math.max(60, width - padL - PAD_R);
+  const n = spec.panels.length;
+  const top = 6 + spec.ribbon;
+  const chrome = top + n * PANEL_LABEL_H + (n - 1) * PANEL_GAP + AXIS_H;
+  const budget = Math.max(n * MIN_PANEL_H, height - chrome);
+  const weights = spec.panels.reduce((sum, panel) => sum + panel.weight, 0);
+  const heights = spec.panels.map((panel) =>
+    Math.max(MIN_PANEL_H, Math.round((budget * panel.weight) / weights))
+  );
+  // Rounding each panel independently loses up to a pixel per panel, which is
+  // enough to make `height: 300` render 302. The last panel absorbs the drift.
+  const drift = budget - heights.reduce((sum, h) => sum + h, 0);
+  heights[heights.length - 1] = Math.max(MIN_PANEL_H, heights[heights.length - 1] + drift);
+  const panels = [];
+  let y = top + PANEL_LABEL_H;
+  spec.panels.forEach((panel, i) => {
+    panels.push({ key: panel.key, y, h: heights[i] });
+    y += heights[i] + PANEL_GAP + PANEL_LABEL_H;
+  });
+  const last = panels[panels.length - 1];
+  return {
+    width,
+    padL,
+    plotW,
+    ribbon: { y: 6, h: spec.ribbon },
+    panels,
+    // Rounding and the per-panel minimum can both push the stack past the
+    // height that was asked for. The viewBox follows the panels rather than
+    // the other way round, so nothing is ever clipped.
+    height: last.y + last.h + AXIS_H,
+  };
+}
+
+// `height:` accepts a number of pixels, a "320px" string, or a percentage of
+// the box the dashboard gives the card - Home Assistant's sections view hands
+// out a fixed row height that the chart should grow into. Anything else, and
+// anything that would leave no room to draw, falls back to automatic sizing.
+function parseHeight(value, available) {
+  if (value === undefined || value === null || value === "") return null;
+  const num = parseFloat(value);
+  if (!Number.isFinite(num) || num <= 0) return null;
+  if (typeof value === "string" && value.trim().endsWith("%")) {
+    const px = Math.round((available * num) / 100);
+    return px >= MIN_CHART_H ? px : null;
+  }
+  return Math.max(MIN_CHART_H, Math.round(num));
+}
+
+// One tick roughly every 29px, so a panel that was made taller gains
+// resolution. At the sizes the card drew before this returns the counts it
+// always had: three on a 58px panel, two on a 30px one.
+function tickCount(h) {
+  return Math.max(2, Math.min(7, 1 + Math.round(h / 29)));
 }
 
 function niceTickStep(range, maxTicks) {
@@ -401,6 +480,84 @@ class SmartBatteryPilotCard extends HTMLElement {
     if (this._viewOverride && VIEWS.includes(this._viewOverride)) return this._viewOverride;
     const wanted = this._config && this._config.view;
     return VIEWS.includes(wanted) ? wanted : DEFAULT_VIEW;
+  }
+
+  // --- sizing -------------------------------------------------------------
+
+  connectedCallback() {
+    // Home Assistant never tells a card how wide it ended up, and the same
+    // card is asked to fill a 300px phone column and a 1600px panel view, so
+    // the only way to draw at a scale of 1 is to watch the box we are given.
+    // Rendering rewrites the very element being observed, hence the frame of
+    // debounce and the "did the box actually move" test in _onResize.
+    if (this._resizeObserver || typeof ResizeObserver === "undefined") return;
+    this._resizeObserver = new ResizeObserver(() => {
+      if (this._resizeFrame) return;
+      this._resizeFrame = requestAnimationFrame(() => {
+        this._resizeFrame = 0;
+        this._onResize();
+      });
+    });
+    this._resizeObserver.observe(this);
+    // The card's own height is its content height, so it only ever confirms
+    // what we just drew. The box the dashboard actually offers is the
+    // parent's, and that is what a percentage height has to follow.
+    if (this.parentElement) this._resizeObserver.observe(this.parentElement);
+  }
+
+  disconnectedCallback() {
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+    }
+    if (this._resizeFrame) {
+      cancelAnimationFrame(this._resizeFrame);
+      this._resizeFrame = 0;
+    }
+  }
+
+  _onResize() {
+    if (!this._renderedState) return;
+    const moved = Math.abs(this._measure() - (this._renderedWidth || 0)) >= 3;
+    // A height in per cent is the one setting that reads the card's own box,
+    // so it is also the only one that has to redraw when that box changes.
+    const grew =
+      this._fillsHeight() && Math.abs(this._offeredHeight() - (this._renderedHostH || 0)) >= 3;
+    if (!moved && !grew) return;
+    this._render(this._renderedState);
+  }
+
+  // The plot area, or the card itself before the first paint has produced
+  // one. clientWidth is 0 while the card is off-DOM and undefined in the Node
+  // test harness; either way the fallback draws at the size the card was
+  // designed at, and the observer corrects it on the next frame.
+  _measure() {
+    const wrap = this.querySelector(".chartwrap");
+    const w = (wrap && wrap.clientWidth) || this.clientWidth || 0;
+    return w > 0 ? Math.max(MIN_W, Math.round(w)) : FALLBACK_W;
+  }
+
+  // The height the dashboard has set aside for the card, or 0 when it has set
+  // none - in a masonry column or a plain div the card is as tall as it draws
+  // itself, and "100 %" of that is whatever it already is.
+  _offeredHeight() {
+    const parent = this.parentElement;
+    return (parent && parent.clientHeight) || 0;
+  }
+
+  _fillsHeight() {
+    const h = this._config && this._config.height;
+    return typeof h === "string" && h.trim().endsWith("%");
+  }
+
+  // Automatic height grows with width, but far more slowly than the fixed
+  // aspect ratio did, and stops at the view's cap.
+  _chartHeight(spec, width) {
+    const available = this._offeredHeight() - (this._nonChartH || 0);
+    const configured = parseHeight(this._config && this._config.height, available);
+    if (configured) return configured;
+    const auto = spec.height.base + spec.height.perPx * width;
+    return Math.round(Math.min(spec.height.max, Math.max(spec.height.min, auto)));
   }
 
   set hass(hass) {
@@ -484,17 +641,36 @@ class SmartBatteryPilotCard extends HTMLElement {
     });
   }
 
-  _fmtDate(ms) {
+  // The weekday is the first thing to go when the grid tightens up: on a
+  // narrow card "Thu 15/1" is wider than the space between two day separators
+  // and would print over its neighbours.
+  _fmtDate(ms, short = false) {
     return new Date(ms).toLocaleDateString(this._lang, {
       timeZone: this._tz,
-      weekday: "short",
+      ...(short ? {} : { weekday: "short" }),
       day: "numeric",
       month: "numeric",
     });
   }
 
+  // Sections view. A card that declares nothing lands on the generic
+  // 12-sub-column default, and a section is 12 sub-columns per macro column
+  // it spans - so in a `column_span: 3` section the default fills a third of
+  // it. The card is happy at any width now, so let it be dragged down to half
+  // a column, and let its own height decide the row count. Users who want it
+  // edge to edge set `grid_options: { columns: full }`.
+  getGridOptions() {
+    return { rows: "auto", min_columns: 6, min_rows: 3 };
+  }
+
   getCardSize() {
-    return this._view() === "compact" ? 4 : 6;
+    const view = this._view();
+    const spec = LAYOUTS[view];
+    const chart = this._chartHeight(spec, this._renderedWidth || FALLBACK_W);
+    // Status line and legend either side of the chart, plus the tile strip
+    // the compact view leads with. Home Assistant counts in 50px rows.
+    const around = view === "compact" ? 96 : 48;
+    return Math.max(3, Math.round((chart + around) / 50));
   }
 
   static _findPlanEntity(hass) {
@@ -567,17 +743,26 @@ class SmartBatteryPilotCard extends HTMLElement {
     this._slots = slots;
 
     const view = this._view();
-    const layout = LAYOUTS[view];
+    const spec = LAYOUTS[view];
+    const width = this._measure();
+    // What the status line, tiles and legend were assumed to cost; measured
+    // for real at the end of the pass, which is why a percentage height can
+    // need one correcting redraw.
+    this._assumedNonChartH = this._nonChartH || 0;
+    const layout = buildLayout(spec, width, this._chartHeight(spec, width));
+    this._geo = layout;
+    this._renderedWidth = width;
+    this._renderedHostH = this._offeredHeight();
     const first = layout.panels[0];
     const last = layout.panels[layout.panels.length - 1];
     const plotBottom = last.y + last.h;
-    const H = layoutHeight(layout);
+    const H = layout.height;
 
     const t0 = slots[0].startMs;
     const t1 = slots[slots.length - 1].endMs;
     this._t0 = t0;
     this._t1 = t1;
-    const x = (ms) => PAD_L + ((ms - t0) / (t1 - t0)) * PLOT_W;
+    const x = (ms) => layout.padL + ((ms - t0) / (t1 - t0)) * layout.plotW;
     this._x = x;
 
     const scales = this._buildScales(slots, state.attributes, layout);
@@ -639,16 +824,16 @@ class SmartBatteryPilotCard extends HTMLElement {
       title,
       `
       <div class="status">${statusBits.join(" ")}</div>
-      ${view === "compact" ? this._tiles(slots, state.attributes, current || slots[0]) : ""}
+      ${view === "compact" ? this._tiles(slots, state.attributes, current || slots[0], width) : ""}
       <div class="chartwrap">
-        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+        <svg viewBox="0 0 ${layout.width} ${H}" width="${layout.width}" height="${H}" preserveAspectRatio="xMidYMid meet">
           ${chrome}
           ${this._ribbon(slots, layout.ribbon)}
           ${marks}
           ${nowLine}
           <line id="sbp-cursor" x1="0" y1="${layout.ribbon.y}" x2="0" y2="${plotBottom}" class="cursor" style="display:none"/>
           <circle id="sbp-dot" r="3.5" class="dot" style="display:none"/>
-          <rect id="sbp-hit" x="${PAD_L}" y="${first.y}" width="${PLOT_W}" height="${plotBottom - first.y}" fill="transparent"/>
+          <rect id="sbp-hit" x="${layout.padL}" y="${first.y}" width="${layout.plotW}" height="${plotBottom - first.y}" fill="transparent"/>
         </svg>
         <div id="sbp-tip" class="tip" style="display:none"></div>
       </div>
@@ -666,7 +851,7 @@ class SmartBatteryPilotCard extends HTMLElement {
         const prices = slots.map((s) => s.price);
         const lo = Math.min(0, ...prices);
         const hi = Math.max(...prices);
-        const step = niceTickStep(hi - lo || 0.1, panel.h >= 50 ? 3 : 2);
+        const step = niceTickStep(hi - lo || 0.1, tickCount(panel.h));
         const bot = Math.floor(lo / step) * step;
         const top = Math.ceil((hi + step * 0.12) / step) * step;
         const ticks = [];
@@ -679,11 +864,13 @@ class SmartBatteryPilotCard extends HTMLElement {
         };
       } else if (panel.key === "energy") {
         const hi = Math.max(...slots.map((s) => Math.max(s.pv_kwh || 0, slotConsumption(s))));
-        const step = niceTickStep(hi || 0.2, 2);
+        const step = niceTickStep(hi || 0.2, tickCount(panel.h) - 1);
         const top = Math.max(step, Math.ceil((hi * 1.06) / step) * step);
+        const ticks = [];
+        for (let v = 0; v <= top + 1e-9; v += step) ticks.push(v);
         out.energy = {
           y: (v) => panel.y + (1 - v / top) * panel.h,
-          ticks: [0, top / 2, top],
+          ticks,
           fmt: (v) => v.toFixed(top < 1 ? 2 : 1),
           label: `${this._tr("energy")} kWh`,
         };
@@ -691,9 +878,13 @@ class SmartBatteryPilotCard extends HTMLElement {
         const hi = Math.max(...slots.map((s) => Math.abs(slotBalance(s))));
         const step = niceTickStep(hi || 0.2, 2);
         const top = Math.max(step, Math.ceil((hi * 1.08) / step) * step);
+        // Symmetric about zero, so the tick count is odd by construction.
+        const arms = Math.max(1, Math.floor((tickCount(panel.h) - 1) / 2));
+        const ticks = [];
+        for (let i = arms; i >= -arms; i--) ticks.push((top * i) / arms);
         out.balance = {
           y: (v) => panel.y + panel.h / 2 - (v / top) * (panel.h / 2),
-          ticks: [top, 0, -top],
+          ticks,
           fmt: (v) => (v > 0 ? "+" : "") + v.toFixed(top < 1 ? 2 : 1),
           label: `${this._tr("balance")} kWh`,
         };
@@ -720,11 +911,23 @@ class SmartBatteryPilotCard extends HTMLElement {
           lo = Math.max(0, hi - 20);
           hi = Math.min(100, lo + 20);
         }
+        // A mid tick of 52.5 renders as "53%", which reads like a measured
+        // value; snap the inner ones to round numbers inside the window and
+        // drop any that collide after rounding.
+        const n = tickCount(panel.h);
+        const seen = new Set();
+        const ticks = [];
+        for (let i = 0; i < n; i++) {
+          const raw = lo + ((hi - lo) * i) / (n - 1);
+          const v = i === 0 || i === n - 1 ? raw : Math.round(raw / 5) * 5;
+          const key = Math.round(v);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          ticks.push(v);
+        }
         out.soc = {
           y: (v) => panel.y + (1 - (v - lo) / (hi - lo)) * panel.h,
-          // A mid tick of 52.5 renders as "53%", which reads like a measured
-          // value; snap it to a round number inside the window instead.
-          ticks: panel.h >= 50 ? [lo, Math.round((lo + hi) / 10) * 5, hi] : [lo, hi],
+          ticks,
           fmt: (v) => `${Math.round(v)}%`,
           label: this._tr("soc"),
         };
@@ -736,32 +939,58 @@ class SmartBatteryPilotCard extends HTMLElement {
   // --- chrome -------------------------------------------------------------
 
   _panelChrome(panel, scale) {
-    let out = `<rect x="${PAD_L}" y="${panel.y}" width="${PLOT_W}" height="${panel.h}" class="panel"/>`;
+    const { padL, plotW } = this._geo;
+    let out = `<rect x="${padL}" y="${panel.y}" width="${plotW}" height="${panel.h}" class="panel"/>`;
     for (const v of scale.ticks) {
       const y = scale.y(v).toFixed(1);
       const zero = panel.key === "balance" && Math.abs(v) < 1e-9;
-      out += `<line x1="${PAD_L}" y1="${y}" x2="${PAD_L + PLOT_W}" y2="${y}" class="grid${
+      out += `<line x1="${padL}" y1="${y}" x2="${padL + plotW}" y2="${y}" class="grid${
         zero ? " zero" : ""
       }"/>`;
-      out += `<text x="${PAD_L - 5}" y="${(+y + 3).toFixed(1)}" class="ax pr">${esc(
+      out += `<text x="${padL - 5}" y="${(+y + 3).toFixed(1)}" class="ax pr">${esc(
         scale.fmt(v)
       )}</text>`;
     }
     return (
-      out + `<text x="${PAD_L}" y="${panel.y - 6}" class="ax pl">${esc(scale.label)}</text>`
+      out + `<text x="${padL}" y="${panel.y - 6}" class="ax pl">${esc(scale.label)}</text>`
     );
   }
 
-  // Vertical grid every three hours, anchored to midnight in Home Assistant's
-  // timezone. Each tick is re-snapped to the full hour so a DST change does
-  // not shear the grid.
+  // How many hours apart the vertical grid lines stand: the closest spacing
+  // that still leaves every hour label room to itself. A fixed three hours
+  // collided at phone widths and left a 1400px panel card looking empty.
+  _tickStepHours() {
+    const hours = (this._t1 - this._t0) / 3600000;
+    if (!(hours > 0)) return TICK_STEPS_H[0];
+    for (const step of TICK_STEPS_H) {
+      if (this._geo.plotW / (hours / step) >= MIN_TICK_PX) return step;
+    }
+    return TICK_STEPS_H[TICK_STEPS_H.length - 1];
+  }
+
+  // A label centred on the first or last tick hangs over the edge of the
+  // card - "Thu, 1/15" under the closing midnight lost half its characters.
+  // Pin those to the boundary instead of centring them.
+  _edge(px, halfWidth) {
+    const x = Number(px);
+    if (x - halfWidth < 1) return " s";
+    if (x + halfWidth > this._geo.width - 1) return " e";
+    return "";
+  }
+
+  // Vertical grid anchored to midnight in Home Assistant's timezone. Each
+  // tick is re-snapped to the full hour so a DST change does not shear the
+  // grid.
   _timeGrid(layout, labelY) {
     const HOUR = 3600000;
+    const step = this._tickStepHours();
+    const span = this._t1 - this._t0;
+    const shortDate = this._geo.plotW / (span / (24 * HOUR)) < DATE_LABEL_PX;
     let out = "";
     const startParts = this._zoned(this._t0);
-    let tick = this._t0 - ((startParts.hour % 3) * 60 + startParts.minute) * 60000;
-    while (tick < this._t0) tick += 3 * HOUR;
-    for (let k = 0; tick <= this._t1 && k < 64; k++) {
+    let tick = this._t0 - ((startParts.hour % step) * 60 + startParts.minute) * 60000;
+    while (tick < this._t0) tick += step * HOUR;
+    for (let k = 0; tick <= this._t1 && k < 256; k++) {
       const parts = this._zoned(tick);
       if (parts.minute !== 0) tick -= parts.minute * 60000;
       const p = this._zoned(tick);
@@ -772,16 +1001,17 @@ class SmartBatteryPilotCard extends HTMLElement {
           midnight ? " day" : ""
         }"/>`;
       }
-      out += `<text x="${px}" y="${labelY}" class="ax tx">${String(p.hour).padStart(
-        2,
-        "0"
-      )}</text>`;
+      out += `<text x="${px}" y="${labelY}" class="ax tx${this._edge(px, 7)}">${String(
+        p.hour
+      ).padStart(2, "0")}</text>`;
       if (midnight) {
-        out += `<text x="${px}" y="${labelY + 10}" class="ax tx day">${esc(
-          this._fmtDate(tick)
-        )}</text>`;
+        const date = this._fmtDate(tick, shortDate);
+        out += `<text x="${px}" y="${labelY + 10}" class="ax tx day${this._edge(
+          px,
+          date.length * 2.7
+        )}">${esc(date)}</text>`;
       }
-      tick += 3 * HOUR;
+      tick += step * HOUR;
     }
     return out;
   }
@@ -867,12 +1097,12 @@ class SmartBatteryPilotCard extends HTMLElement {
       const id = `sbp-clip-${(clipSeq += 1)}`;
       return (
         `<defs>` +
-        `<clipPath id="${id}-p"><rect x="0" y="${panel.y}" width="${W}" height="${(
+        `<clipPath id="${id}-p"><rect x="0" y="${panel.y}" width="${this._geo.width}" height="${(
           zero - panel.y
         ).toFixed(1)}"/></clipPath>` +
-        `<clipPath id="${id}-n"><rect x="0" y="${zero.toFixed(1)}" width="${W}" height="${(
-          floor - zero
-        ).toFixed(1)}"/></clipPath>` +
+        `<clipPath id="${id}-n"><rect x="0" y="${zero.toFixed(1)}" width="${
+          this._geo.width
+        }" height="${(floor - zero).toFixed(1)}"/></clipPath>` +
         `</defs>` +
         `<path d="${this._stepArea(
           slots,
@@ -888,10 +1118,10 @@ class SmartBatteryPilotCard extends HTMLElement {
         )}" class="balarea neg"/>` +
         `<path d="${this._stepPath(slots, slotBalance, scale.y)}" class="balline pos" clip-path="url(#${id}-p)"/>` +
         `<path d="${this._stepPath(slots, slotBalance, scale.y)}" class="balline neg" clip-path="url(#${id}-n)"/>` +
-        `<text x="${PAD_L + 5}" y="${(zero - 5).toFixed(1)}" class="dirlbl pos">${esc(
+        `<text x="${this._geo.padL + 5}" y="${(zero - 5).toFixed(1)}" class="dirlbl pos">${esc(
           this._tr("surplus")
         )}</text>` +
-        `<text x="${PAD_L + 5}" y="${(zero + 12).toFixed(1)}" class="dirlbl neg">${esc(
+        `<text x="${this._geo.padL + 5}" y="${(zero + 12).toFixed(1)}" class="dirlbl neg">${esc(
           this._tr("deficit")
         )}</text>`
       );
@@ -921,7 +1151,7 @@ class SmartBatteryPilotCard extends HTMLElement {
     const peak = slots.reduce((best, s) => (s.price > best.price ? s : best), slots[0]);
     const px = (this._x(peak.startMs) + this._x(peak.endMs)) / 2;
     const py = scale.y(peak.price);
-    const toTheRight = px > PAD_L + PLOT_W * 0.72;
+    const toTheRight = px > this._geo.padL + this._geo.plotW * 0.72;
     return (
       `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="2.6" class="pricedot"/>` +
       `<text x="${(px + (toTheRight ? -5 : 5)).toFixed(1)}" y="${(py - 6).toFixed(
@@ -934,7 +1164,10 @@ class SmartBatteryPilotCard extends HTMLElement {
 
   // --- compact extras -----------------------------------------------------
 
-  _tiles(slots, attrs, current) {
+  // `width` is the card's, not the tiles': three 19px figures side by side
+  // need about 420px between them, and below that "01:00 PM" wraps onto two
+  // lines and the strip grows taller than the chart under it.
+  _tiles(slots, attrs, current, width) {
     const last = slots[slots.length - 1];
     const now = Date.now();
     const next = slots.find((s) => s.startMs > now && s.action !== current.action);
@@ -960,7 +1193,7 @@ class SmartBatteryPilotCard extends HTMLElement {
       },
     ];
     return (
-      `<div class="tiles">` +
+      `<div class="tiles${width < TILES_NARROW_W ? " narrow" : ""}">` +
       cells
         .map(
           (c) =>
@@ -1013,14 +1246,37 @@ class SmartBatteryPilotCard extends HTMLElement {
     const wrap = this.querySelector(".chartwrap");
     if (!svg || !tip) return;
 
+    // What the status line, tiles and legend cost, so a percentage height can
+    // be turned into a height for the chart alone on the next pass.
+    const cardH = this.getBoundingClientRect().height;
+    const chartH = svg.getBoundingClientRect().height;
+    if (cardH <= 0 || chartH <= 0) return;
+    this._nonChartH = Math.max(0, Math.round(cardH - chartH));
+    // The very first pass had to guess, so a percentage height comes out one
+    // legend too tall. Redraw once - the flag stops the recursion, and a
+    // second pass always measures the same legend, so once is enough.
+    if (
+      this._fillsHeight() &&
+      !this._settling &&
+      Math.abs(this._nonChartH - this._assumedNonChartH) >= 2
+    ) {
+      this._settling = true;
+      try {
+        this._render(this._renderedState);
+      } finally {
+        this._settling = false;
+      }
+    }
+
     const onMove = (ev) => {
+      const { width: geoW, padL, plotW } = this._geo;
       const rect = svg.getBoundingClientRect();
-      const xSvg = ((ev.clientX - rect.left) / rect.width) * W;
-      if (xSvg < PAD_L || xSvg > PAD_L + PLOT_W) {
+      const xSvg = ((ev.clientX - rect.left) / rect.width) * geoW;
+      if (xSvg < padL || xSvg > padL + plotW) {
         onLeave();
         return;
       }
-      const ms = this._t0 + ((xSvg - PAD_L) / PLOT_W) * (this._t1 - this._t0);
+      const ms = this._t0 + ((xSvg - padL) / plotW) * (this._t1 - this._t0);
       const slot = this._slots.find((s) => ms >= s.startMs && ms < s.endMs);
       if (!slot) {
         onLeave();
@@ -1079,7 +1335,9 @@ class SmartBatteryPilotCard extends HTMLElement {
         <style>
           ha-card { padding-bottom: 8px; }
           .chartwrap { position: relative; }
-          svg { width: 100%; display: block; touch-action: pan-y; }
+          /* The viewBox carries the measured pixel width, so this is a scale
+             of exactly 1 and the type below keeps the size it is given. */
+          svg { width: 100%; height: auto; display: block; touch-action: pan-y; }
           .empty { padding: 16px; color: var(--secondary-text-color); }
           .status { padding: 0 16px 6px; font-size: 14px; }
           .chip { padding: 2px 10px; border-radius: 10px; font-weight: 500; color: #fff; }
@@ -1101,12 +1359,18 @@ class SmartBatteryPilotCard extends HTMLElement {
           .tv { font-size: 19px; font-weight: 500; line-height: 1.3;
                 color: var(--primary-text-color); font-variant-numeric: tabular-nums; }
           .ts { font-size: 11px; color: var(--secondary-text-color); }
+          .tiles.narrow .tile { padding: 5px 10px 6px; }
+          .tiles.narrow .tl { font-size: 9px; letter-spacing: 0.02em; }
+          .tiles.narrow .tv { font-size: 15px; }
+          .tiles.narrow .ts { font-size: 10px; }
 
           .panel { fill: var(--divider-color, #e0e0e0); opacity: 0.22; }
           .ax { font-size: 9px; fill: var(--secondary-text-color); }
           .ax.pr { text-anchor: end; }
           .ax.pl { font-size: 8.5px; letter-spacing: 0.04em; opacity: 0.9; }
           .ax.tx { text-anchor: middle; }
+          .ax.tx.s { text-anchor: start; }
+          .ax.tx.e { text-anchor: end; }
           .ax.tx.day { font-weight: 600; }
           .grid { stroke: var(--divider-color, #e0e0e0); stroke-width: 0.5; }
           .grid.day { stroke: var(--secondary-text-color, #999); stroke-width: 1; opacity: 0.55; }
