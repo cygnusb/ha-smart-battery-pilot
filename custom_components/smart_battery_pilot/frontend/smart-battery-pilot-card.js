@@ -1139,7 +1139,7 @@ class SmartBatteryPilotCard extends HTMLElement {
       )}" class="socarea"/>` +
       `<path d="${this._stepPath(slots, (s) => s.soc_forecast, scale.y)}" class="socline"/>` +
       `<circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="2.6" class="socdot"/>` +
-      `<text x="${(ex - 4).toFixed(1)}" y="${(ey - 6).toFixed(1)}" class="dirlbl soc" text-anchor="end">${Math.round(
+      `<text x="${(ex - 6).toFixed(1)}" y="${(ey - 9).toFixed(1)}" class="dirlbl soc" text-anchor="end">${Math.round(
         end.soc_forecast
       )}%</text>`
     );
@@ -1154,7 +1154,7 @@ class SmartBatteryPilotCard extends HTMLElement {
     const toTheRight = px > this._geo.padL + this._geo.plotW * 0.72;
     return (
       `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="2.6" class="pricedot"/>` +
-      `<text x="${(px + (toTheRight ? -5 : 5)).toFixed(1)}" y="${(py - 6).toFixed(
+      `<text x="${(px + (toTheRight ? -8 : 8)).toFixed(1)}" y="${(py - 9).toFixed(
         1
       )}" class="dirlbl price" text-anchor="${toTheRight ? "end" : "start"}">${peak.price.toFixed(
         2
@@ -1246,31 +1246,15 @@ class SmartBatteryPilotCard extends HTMLElement {
     const wrap = this.querySelector(".chartwrap");
     if (!svg || !tip) return;
 
-    // What the status line, tiles and legend cost, so a percentage height can
-    // be turned into a height for the chart alone on the next pass.
-    const cardH = this.getBoundingClientRect().height;
-    const chartH = svg.getBoundingClientRect().height;
-    if (cardH <= 0 || chartH <= 0) return;
-    this._nonChartH = Math.max(0, Math.round(cardH - chartH));
-    // The very first pass had to guess, so a percentage height comes out one
-    // legend too tall. Redraw once - the flag stops the recursion, and a
-    // second pass always measures the same legend, so once is enough.
-    if (
-      this._fillsHeight() &&
-      !this._settling &&
-      Math.abs(this._nonChartH - this._assumedNonChartH) >= 2
-    ) {
-      this._settling = true;
-      try {
-        this._render(this._renderedState);
-      } finally {
-        this._settling = false;
-      }
-    }
-
     const onMove = (ev) => {
       const { width: geoW, padL, plotW } = this._geo;
       const rect = svg.getBoundingClientRect();
+      // No layout yet (a hidden tab, a collapsed section): there is no
+      // position to map the pointer onto, so show nothing rather than NaN.
+      if (!rect.width) {
+        onLeave();
+        return;
+      }
       const xSvg = ((ev.clientX - rect.left) / rect.width) * geoW;
       if (xSvg < padL || xSvg > padL + plotW) {
         onLeave();
@@ -1327,6 +1311,38 @@ class SmartBatteryPilotCard extends HTMLElement {
     };
     svg.addEventListener("pointermove", onMove);
     svg.addEventListener("pointerleave", onLeave);
+
+    this._measureChrome(svg);
+  }
+
+  // What the status line, tiles and legend cost, so that a percentage height
+  // can be turned into a height for the chart alone.
+  //
+  // This runs last and returns quietly, because it is a measurement and
+  // nothing else depends on it. It used to sit at the top of _attachEvents
+  // and bail out early when the card had no layout to measure - which also
+  // skipped the two lines above it, leaving a card that had first been drawn
+  // off-screen with no hover for the rest of its life.
+  _measureChrome(svg) {
+    const cardH = this.getBoundingClientRect().height;
+    const chartH = svg.getBoundingClientRect().height;
+    if (cardH <= 0 || chartH <= 0) return;
+    this._nonChartH = Math.max(0, Math.round(cardH - chartH));
+    // The very first pass had to guess, so a percentage height comes out one
+    // legend too tall. Redraw once - the flag stops the recursion, and a
+    // second pass always measures the same legend, so once is enough.
+    if (
+      this._fillsHeight() &&
+      !this._settling &&
+      Math.abs(this._nonChartH - this._assumedNonChartH) >= 2
+    ) {
+      this._settling = true;
+      try {
+        this._render(this._renderedState);
+      } finally {
+        this._settling = false;
+      }
+    }
   }
 
   _html(title, body) {
@@ -1397,7 +1413,15 @@ class SmartBatteryPilotCard extends HTMLElement {
           .balline { fill: none; stroke-width: 1.6; stroke-linejoin: round; }
           .balline.pos { stroke: #2a78d6; }
           .balline.neg { stroke: #d03b3b; }
-          .dirlbl { font-size: 10px; font-weight: 500; }
+          /* These four numbers are printed on top of the curves they label.
+             Stroking the glyphs in the card's own background colour first
+             (paint-order puts the stroke behind the fill) knocks a halo out
+             of whatever runs underneath, instead of letting the line cross
+             the digits. */
+          .dirlbl { font-size: 10px; font-weight: 500;
+                    paint-order: stroke fill;
+                    stroke: var(--card-background-color, #fff); stroke-width: 3px;
+                    stroke-linejoin: round; }
           .dirlbl.pos { fill: #2a78d6; }
           .dirlbl.neg { fill: #d03b3b; }
           .dirlbl.soc { fill: #2a78d6; }
