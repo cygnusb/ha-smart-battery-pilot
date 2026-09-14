@@ -120,10 +120,37 @@ type: custom:smart-battery-pilot-card
 entity: sensor.smart_battery_pilot_charge_plan  # optional - auto-discovered
 title: Smart Battery Pilot                      # optional
 view: tracks                                    # optional - tracks | balance | compact
+height: auto                                    # optional - auto | <pixels> | <percent>
 ```
 
 `entity` may be omitted — the card auto-discovers the plan sensor (entity IDs
 are localized, e.g. `…_ladeplan` on German installations).
+
+### Size
+
+The card measures the box the dashboard gives it and draws at that size: one
+SVG unit is one CSS pixel, so axis labels stay 9 px and strokes stay 2 px
+whether the card is 300 px wide in a phone column or 1600 px wide in a panel
+view. Extra width buys a denser hour grid (down to one label per hour) and
+extra height buys taller panels with more y-axis ticks, rather than magnifying
+everything.
+
+| `height` | Effect |
+|---|---|
+| omitted, or `auto` *(default)* | Grows gently with width and then stops: roughly 236–440 px in `tracks` and `balance`, 158–300 px in `compact`. |
+| a number, e.g. `height: 320` | Exactly that many pixels for the chart. Accepts `"320px"` too. Panels shrink to a 30 px floor, below which the card grows back. |
+| a percentage, e.g. `height: "100%"` | Fills the box the dashboard offers, minus the status line and legend. Only useful where that box has a height of its own — a sections-view card with `grid_options.rows` set, or a `card_mod` wrapper. Elsewhere it falls back to `auto`. |
+
+In a **sections** view a card occupies 12 of the section's sub-columns by
+default, and a section has 12 sub-columns per macro column it spans — so in a
+`column_span: 3` section the default fills one third of it. To use the whole
+section:
+
+```yaml
+type: custom:smart-battery-pilot-card
+grid_options:
+  columns: full
+```
 
 ### Views
 
@@ -137,7 +164,7 @@ strong PV day.
 |---|---|
 | `tracks` *(default)* | Three panels sharing one time axis: price, PV against consumption, SOC. |
 | `balance` | Same three panels, but the middle one shows PV **minus** consumption as an area diverging around zero — the quantity the optimizer plans against. |
-| `compact` | Status line, three figures (SOC now → at horizon end, next change, planned discharge) and a smaller SOC + price chart. Roughly two thirds the height. |
+| `compact` | Status line, three figures (SOC now → at horizon end, next change, planned discharge) and a smaller SOC + price chart. Roughly two thirds the height; below 420 px the three figures are set smaller so they stay on one line. |
 
 An unrecognised value falls back to `tracks`. The button at the right of the
 legend flips between `tracks` and `balance` without editing the dashboard;
