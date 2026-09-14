@@ -456,3 +456,86 @@ def test_an_unmeasurable_card_still_draws(sizes):
     """Off-DOM, or under a shim with no layout: fall back, do not divide by zero."""
     assert sizes["unmeasured"]["width"] == 480
     assert sizes["unmeasured"]["height"] == 280
+
+
+# A fourth harness, for the one thing the string-rendering shims above cannot
+# see: which listeners actually get attached. The shim reports no layout at
+# all - every box is zero, as it is for a card first drawn on a dashboard tab
+# that is not in front - and the card still has to end up interactive.
+EVENT_HARNESS = """
+const listeners = [];
+class FakeEl {
+  constructor() { this.innerHTML = ""; this.style = {}; this.dataset = {}; }
+  querySelector(sel) {
+    // Everything the card looks for exists; nothing has been laid out.
+    const el = new FakeEl();
+    el.selector = sel;
+    return el;
+  }
+  addEventListener(type) { listeners.push(`${this.selector || "host"}:${type}`); }
+  setAttribute() {}
+  getBoundingClientRect() { return { left: 0, top: 0, width: 0, height: 0 }; }
+}
+globalThis.HTMLElement = FakeEl;
+globalThis.customElements = { get: () => undefined, define: () => {} };
+globalThis.window = globalThis;
+
+const Card = new Function(CARD_SOURCE + "\\nreturn SmartBatteryPilotCard;")();
+
+const T0 = Date.parse("2026-01-15T00:00:00Z");
+const HOUR = 3600000;
+const slots = Array.from({ length: 24 }, (_, i) => ({
+  start: new Date(T0 + i * HOUR).toISOString(),
+  end: new Date(T0 + (i + 1) * HOUR).toISOString(),
+  action: "auto", price: 0.1 + i * 0.01, net_demand_kwh: 0.4, pv_kwh: 0,
+  power_w: 0, discharge_kwh: 0, soc_forecast: 40 + i,
+}));
+const hass = {
+  states: { "sensor.plan": { state: "4", attributes: {
+    slots, price_adapter: "nordpool", error: null, warnings: [],
+    min_soc: 10, max_soc: 95,
+  } } },
+  config: { time_zone: "UTC" },
+  locale: { language: "en" },
+  language: "en",
+};
+Date.now = () => T0 + 30 * 60000;
+
+const card = new Card();
+card.setConfig({ entity: "sensor.plan" });
+card.hass = hass;
+console.log(JSON.stringify(listeners));
+"""
+
+
+@pytest.fixture(scope="module")
+def listeners() -> list[str]:
+    """Which listeners the card attaches when nothing has a layout yet."""
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not installed")
+    script = (
+        f"const CARD_SOURCE = {json.dumps(CARD.read_text(encoding='utf-8'))};\n" + EVENT_HARNESS
+    )
+    result = subprocess.run(
+        [node, "--input-type=module", "-e", script],
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    assert result.returncode == 0, f"card event harness failed:\n{result.stderr}"
+    return json.loads(result.stdout.strip().splitlines()[-1])
+
+
+def test_the_tooltip_is_wired_up_even_with_nothing_to_measure(listeners):
+    """A card first drawn off-screen must still be interactive once it is shown.
+
+    The chrome measurement that a percentage height needs used to sit *above*
+    the listener registration and return early when the card had no layout —
+    so a card rendered on a background tab never got a pointermove handler,
+    and the tooltip stayed dead for the rest of its life.
+    """
+    assert "svg:pointermove" in listeners
+    assert "svg:pointerleave" in listeners
+    assert ".viewtog:click" in listeners
