@@ -202,6 +202,7 @@
           "consumption": "Forbruk & temperatur",
           "pv": "Solstrømprognose",
           "derating": "Lading i kulde",
+          "reserve": "Nødstrømsreserve",
           "apply": "💾 Lagre & lukk"
         },
         "description": "Endringer i seksjonene nedenfor samles opp og lagres først via «Lagre & lukk»."
@@ -225,6 +226,21 @@
           "derating_10c": "Prosent av maksimal ladeeffekt som batteriet tar imot ved 10 °C.",
           "derating_15c": "Prosent av maksimal ladeeffekt som batteriet tar imot ved 15 °C.",
           "derating_20c": "Prosent av maksimal ladeeffekt ved 20 °C og varmere. Vanligvis 100 %."
+        }
+      },
+      "reserve": {
+        "title": "Nødstrømsreserve",
+        "data": {
+          "backup_reserve": "Nødstrømsreserve (SOC for strømbrudd)",
+          "backup_reserve_entity": "Reserve-entitet (valgfri, overstyrer verdien)",
+          "reserve_refill_hours": "Frist for påfylling",
+          "reserve_block_discharge": "Sperr utlading ved reserven (reserveløsning)"
+        },
+        "data_description": {
+          "backup_reserve": "Arbitrasje bruker aldri batteriet under denne SOC-en, og en SOC under den fylles opp igjen innen fristen. Ved eller under minimum-SOC er innstillingen av. Hvert styreskript får verdien som reserve_soc – ved et reelt strømbrudd bør vekselretteren holde den.",
+          "backup_reserve_entity": "Et tall eller en sensor i prosent, f.eks. en input_number som en automasjon hever ved farevarsel. Så lenge den gir et tall, erstatter den den faste verdien.",
+          "reserve_refill_hours": "Timer der en SOC under reserven bringes opp igjen: først med solstrøm, resten i de billigste nettperiodene.",
+          "reserve_block_discharge": "Bare for vekselrettere uten egen reserveinnstilling: piloten bytter til 'sperr utlading' når SOC når reserven. Virker bare mens Home Assistant kjører."
         }
       }
     },

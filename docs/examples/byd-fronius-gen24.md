@@ -103,8 +103,9 @@ sbp_block_discharge:
       data: { hub: gen24, slave: 1, address: 40356, value: 0 }
     - service: modbus.write_register
       data: { hub: gen24, slave: 1, address: 40355, value: 10000 }
+    # Backup reserve from Smart Battery Pilot (minimum SOC while none is set)
     - service: modbus.write_register
-      data: { hub: gen24, slave: 1, address: 40350, value: 500 }   # 5% reserve
+      data: { hub: gen24, slave: 1, address: 40350, value: "{{ ((reserve_soc | default(5)) * 100) | int }}" }
 
 sbp_auto_mode:
   alias: "SBP: Auto-Modus"
@@ -113,8 +114,10 @@ sbp_auto_mode:
       data: { hub: gen24, slave: 1, address: 40348, value: 0 }
     - service: modbus.write_register
       data: { hub: gen24, slave: 1, address: 40355, value: 10000 }
+    # Backup reserve from Smart Battery Pilot (minimum SOC while none is set);
+    # the inverter keeps it even while Home Assistant is down.
     - service: modbus.write_register
-      data: { hub: gen24, slave: 1, address: 40350, value: 500 }   # 5% reserve
+      data: { hub: gen24, slave: 1, address: 40350, value: "{{ ((reserve_soc | default(5)) * 100) | int }}" }
     - service: modbus.write_register
       data: { hub: gen24, slave: 1, address: 40356, value: 10000 }
 
@@ -162,7 +165,7 @@ Watch these while testing (dry-run first!):
 | Entity | Forced charge | Idle |
 |---|---|---|
 | `sensor.byd_storctl_mod` | `1` | `0` |
-| `sensor.byd_…` MinRsvPct (40350) | `9900` (99 %) | `500` (5 %) |
+| `sensor.byd_…` MinRsvPct (40350) | `9900` (99 %) | `reserve_soc` × 100 (e.g. `3000` for a 30 % backup reserve) |
 | `sensor.solarnet_ladeleistung` | ≈ planned `power_w` | 0 from grid |
 | `sensor.byd_battery_box_premium_hv_stromstarke_dc` | negative (charging) | ~0 discharge |
 

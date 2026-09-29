@@ -9,7 +9,10 @@ import logging
 from typing import Any
 
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.event import async_track_point_in_time
+from homeassistant.helpers.event import (
+    async_track_point_in_time,
+    async_track_state_change_event,
+)
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -21,12 +24,17 @@ from .const import (
     CONF_SCRIPT_CHARGE,
     CONF_SCRIPT_EXPORT,
     CONF_SCRIPT_IDLE,
+    CONF_SOC_ENTITY,
     SCRIPT_CALL_TIMEOUT_SECONDS,
 )
 from .coordinator import ChargeReading, SBPCoordinator
 from .optimizer import PlanSlot
 
 _LOGGER = logging.getLogger(__name__)
+
+# The discharge block releases this many SOC points above the reserve, so a
+# battery hovering at the reserve does not flip the inverter every minute.
+RESERVE_RELEASE_MARGIN = 2.0
 
 # Decisions kept for the diagnostics dump. Identical consecutive ones collapse
 # into a single entry, so this covers many hours of steady operation.
@@ -54,6 +62,11 @@ class PlanExecutor:
         # scheduled and would otherwise re-arm the timer and re-apply a forced
         # mode behind an entry that is gone.
         self._stopped = False
+        # Discharge block at the backup reserve currently in force (fallback
+        # for inverters without a reserve of their own), and the SOC listener
+        # that engages it between coordinator refreshes.
+        self._reserve_blocking = False
+        self._unsub_soc = None
         # What the executor decided and why, newest last. A support report
         # rarely comes with debug logging switched on; the diagnostics dump
         # carries this instead.
@@ -121,6 +134,11 @@ class PlanExecutor:
         self._unsub_coordinator = self.coordinator.async_add_listener(
             self._handle_coordinator_update
         )
+        soc_entity = self.coordinator.conf(CONF_SOC_ENTITY)
+        if self.coordinator.reserve_block_enabled() and soc_entity:
+            self._unsub_soc = async_track_state_change_event(
+                self.hass, [soc_entity], self._handle_soc_event
+            )
         await self.async_apply_current()
 
     async def async_stop(self, restore_auto: bool = True) -> None:
@@ -131,6 +149,9 @@ class PlanExecutor:
         if self._unsub_coordinator:
             self._unsub_coordinator()
             self._unsub_coordinator = None
+        if self._unsub_soc:
+            self._unsub_soc()
+            self._unsub_soc = None
         async with self._lock:
             self._stopped = True
             self.coordinator.charge_observation(None)
@@ -151,6 +172,50 @@ class PlanExecutor:
             return
         self._apply_queued = True
         self.hass.async_create_task(self.async_apply_current())
+
+    @callback
+    def _handle_soc_event(self, event) -> None:
+        new_state = event.data.get("new_state")
+        try:
+            soc = float(new_state.state) if new_state is not None else None
+        except (TypeError, ValueError):
+            soc = None
+        self._handle_soc_change(soc)
+
+    @callback
+    def _handle_soc_change(self, soc: float | None) -> None:
+        """Re-apply as soon as the discharge block would engage or release.
+
+        Waiting for the next refresh could let the battery run up to 30
+        minutes below the reserve.
+        """
+        # Only an auto slot the pilot really drives can be blocked; in charge,
+        # idle or export slots - a refill slot starts below the reserve by
+        # definition - SOC ticks must not re-run the script.
+        coordinator = self.coordinator
+        slot = self.current_slot()
+        if (
+            slot is None
+            or slot.action != ACTION_AUTO
+            or not coordinator.enabled
+            or coordinator.dry_run
+        ):
+            return
+        if self._block_wanted(soc, self._reserve_blocking) != self._reserve_blocking:
+            _LOGGER.debug("SOC %s crosses the reserve block threshold - re-applying", soc)
+            self._queue_apply()
+
+    def _block_wanted(self, soc: float | None, blocking: bool) -> bool:
+        """Whether the fallback block should be in force at `soc`, given whether
+        it is in force now (hysteresis)."""
+        if not self.coordinator.reserve_block_enabled():
+            return False
+        reserve, _, _ = self.coordinator.reserve_state()
+        if reserve is None or soc is None:
+            return False
+        if blocking:
+            return soc < reserve + RESERVE_RELEASE_MARGIN
+        return soc <= reserve
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -209,6 +274,9 @@ class PlanExecutor:
 
     async def _apply_locked(self) -> None:
         coordinator = self.coordinator
+        # Re-established below for an auto slot only; any other outcome ends
+        # the block, so a stale flag cannot drive the SOC listener.
+        was_blocking, self._reserve_blocking = self._reserve_blocking, False
         slot = self.current_slot()
         if slot is None or not self._plan_is_live():
             reason = self._why_no_live_plan()
@@ -250,21 +318,42 @@ class PlanExecutor:
             self._record("dry_run", slot)
             return
 
+        blocked = False
+        if action == ACTION_AUTO:
+            self._reserve_blocking = self._block_wanted(coordinator.live_soc(), was_blocking)
+            if self._reserve_blocking:
+                _LOGGER.debug("SOC at the backup reserve - blocking discharge instead of auto")
+                action = ACTION_IDLE
+                blocked = True
+
         if action == self._last_applied and action not in (
             ACTION_CHARGE,
             ACTION_EXPORT,
         ):
+            if coordinator.reserve_for_scripts() != coordinator.last_reserve_sent:
+                # Same mode, new reserve: the inverter only learns it from the
+                # script, so the script runs again.
+                _LOGGER.debug(
+                    "Reserve changed to %s %% - re-sending action '%s'",
+                    coordinator.reserve_for_scripts(),
+                    action,
+                )
+                if await self._call_script(action, slot.power_w):
+                    self._record("reserve_updated", slot)
+                else:
+                    self._record("failed", slot)
+                return
             _LOGGER.debug(
                 "Action '%s' already applied - no script call for slot %s",
                 action,
                 slot.start.isoformat(),
             )
-            self._record("unchanged", slot)
+            self._record("reserve_block" if blocked else "unchanged", slot)
             return
 
         if await self._call_script(action, slot.power_w):
             await self._remember(action)
-            self._record("applied", slot)
+            self._record("reserve_block" if blocked else "applied", slot)
             return
         if action != ACTION_AUTO and await self._call_script(ACTION_AUTO, 0.0):
             await self._remember(ACTION_AUTO)
@@ -327,10 +416,18 @@ class PlanExecutor:
             return False
 
         object_id = entity_id.split(".", 1)[-1]
+        reserve = self.coordinator.reserve_for_scripts()
         _LOGGER.info(
-            "Applying action '%s' via script.%s (power_w=%.0f)", action, object_id, power_w
+            "Applying action '%s' via script.%s (power_w=%.0f, reserve_soc=%d)",
+            action,
+            object_id,
+            power_w,
+            reserve,
         )
-        payload = {"power_w": round(power_w)} if action in (ACTION_CHARGE, ACTION_EXPORT) else {}
+        payload: dict[str, Any] = (
+            {"power_w": round(power_w)} if action in (ACTION_CHARGE, ACTION_EXPORT) else {}
+        )
+        payload["reserve_soc"] = reserve
         try:
             async with asyncio.timeout(SCRIPT_CALL_TIMEOUT_SECONDS):
                 await self.hass.services.async_call(
@@ -356,4 +453,7 @@ class PlanExecutor:
             _LOGGER.exception("Calling script.%s failed", object_id)
             return False
         _LOGGER.debug("script.%s returned for action '%s'", object_id, action)
+        if self.coordinator.last_reserve_sent != reserve:
+            self.coordinator.last_reserve_sent = reserve
+            await self.coordinator.async_persist()
         return True

@@ -202,6 +202,7 @@
           "consumption": "Tarbimine & temperatuur",
           "pv": "Päikeseenergia prognoos",
           "derating": "Laadimine külmaga",
+          "reserve": "Varutoite reserv",
           "apply": "💾 Salvesta & sulge"
         },
         "description": "Allolevate jaotiste muudatused kogutakse kokku ja salvestatakse alles nupuga „Salvesta & sulge”."
@@ -225,6 +226,21 @@
           "derating_10c": "Protsent maksimaalsest laadimisvõimsusest, mida aku 10 °C juures vastu võtab.",
           "derating_15c": "Protsent maksimaalsest laadimisvõimsusest, mida aku 15 °C juures vastu võtab.",
           "derating_20c": "Protsent maksimaalsest laadimisvõimsusest 20 °C ja soojemal. Tavaliselt 100 %."
+        }
+      },
+      "reserve": {
+        "title": "Varutoite reserv",
+        "data": {
+          "backup_reserve": "Varutoite reserv (SOC elektrikatkestuseks)",
+          "backup_reserve_entity": "Reservi olem (valikuline, asendab väärtuse)",
+          "reserve_refill_hours": "Taastäitmise tähtaeg",
+          "reserve_block_discharge": "Keela tühjendamine reservi juures (varuvariant)"
+        },
+        "data_description": {
+          "backup_reserve": "Arbitraaž ei kasuta akut kunagi alla selle SOC-i ja sellest madalam SOC täidetakse tähtajaks uuesti. Minimaalsel SOC-il või sellest madalamal on valik välja lülitatud. Iga juhtskript saab väärtuse muutujana reserve_soc – tegeliku katkestuse jaoks peaks inverter seda hoidma.",
+          "backup_reserve_entity": "Arv või andur protsentides, nt input_number, mida automatiseering tormihoiatuse korral tõstab. Kuni see annab arvu, asendab see fikseeritud väärtuse.",
+          "reserve_refill_hours": "Tunnid, mille jooksul reservist madalam SOC taastatakse: esmalt päikeseenergiaga, ülejäänu odavaimates võrguperioodides.",
+          "reserve_block_discharge": "Ainult ilma oma reservi seadeta inverteritele: piloot lülitub 'keela tühjendamine' režiimile, kui SOC jõuab reservini. Toimib ainult siis, kui Home Assistant töötab."
         }
       }
     },

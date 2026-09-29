@@ -20,6 +20,14 @@ same inputs always produce the same plan.
   caps it. A slot that needs less asks for its planned power: a cold BMS caps
   the current rather than taking a share of the request, so asking for more
   would overshoot the plan and max SOC.
+* Backup reserve (off by default): the planner counts stored energy above the
+  reserve instead of above the minimum SOC, so no discharge or export slot ever
+  takes the SOC below it. A SOC under the reserve starts as a deficit. Before
+  any arbitrage, a refill pass covers it by the deadline: forecast PV surplus
+  first, the rest in the cheapest grid slots up to the deadline, regardless of
+  the spread. The refill is mandatory, so its cost is excluded from the savings
+  estimate, and the do-nothing baseline gets the same refill — both sides
+  compare arbitrage against arbitrage.
 
 ## Algorithm
 

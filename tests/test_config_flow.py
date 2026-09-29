@@ -17,6 +17,8 @@ import pytest
 
 from smart_battery_pilot import config_flow as cf
 from smart_battery_pilot.const import (
+    CONF_BACKUP_RESERVE,
+    CONF_BACKUP_RESERVE_ENTITY,
     CONF_BATTERY_TEMPERATURE_ENTITY,
     CONF_CAPACITY_KWH,
     CONF_CHARGE_DERATING,
@@ -33,6 +35,8 @@ from smart_battery_pilot.const import (
     CONF_PRICE_ENTITY,
     CONF_PRICE_OFFSET,
     CONF_PV_FORECAST_TODAY,
+    CONF_RESERVE_BLOCK_DISCHARGE,
+    CONF_RESERVE_REFILL_HOURS,
     CONF_SCRIPT_AUTO,
     CONF_SCRIPT_CHARGE,
     CONF_SCRIPT_EXPORT,
@@ -553,3 +557,43 @@ def test_a_battery_temperature_without_device_class_can_be_picked():
     ]
     assert "device_class" not in selector.config
     assert selector.config["domain"] == "sensor"
+
+
+# --- backup reserve -------------------------------------------------------------
+
+
+def test_the_reserve_section_sits_between_derating_and_apply():
+    menu = _run(_options_flow(_FakeHass(), _entry()).async_step_init())
+    options = menu["menu_options"]
+    assert options.index("reserve") == options.index("derating") + 1
+    assert options[-1] == "apply"
+
+
+def test_the_reserve_defaults_are_off():
+    defaults = {
+        str(m): m.default()
+        for m in cf.schema_reserve({}).schema
+        if callable(getattr(m, "default", None))
+    }
+    assert defaults[CONF_BACKUP_RESERVE] == 0
+    assert defaults[CONF_RESERVE_REFILL_HOURS] == 12
+    assert defaults[CONF_RESERVE_BLOCK_DISCHARGE] is False
+
+
+def test_a_reserve_section_is_saved_on_apply():
+    flow = _options_flow(_FakeHass(), _entry())
+    result = _run(
+        flow.async_step_reserve(
+            {
+                CONF_BACKUP_RESERVE: 30,
+                CONF_BACKUP_RESERVE_ENTITY: "input_number.reserve",
+                CONF_RESERVE_REFILL_HOURS: 8,
+                CONF_RESERVE_BLOCK_DISCHARGE: True,
+            }
+        )
+    )
+    assert result["type"] == "menu"
+    data = _run(flow.async_step_apply())["data"]
+    assert data[CONF_BACKUP_RESERVE] == 30
+    assert data[CONF_BACKUP_RESERVE_ENTITY] == "input_number.reserve"
+    assert data[CONF_RESERVE_BLOCK_DISCHARGE] is True

@@ -16,6 +16,8 @@ from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
 from .const import (
+    CONF_BACKUP_RESERVE,
+    CONF_BACKUP_RESERVE_ENTITY,
     CONF_BATTERY_CHARGE_ENERGY_ENTITY,
     CONF_BATTERY_DISCHARGE_ENERGY_ENTITY,
     CONF_BATTERY_TEMPERATURE_ENTITY,
@@ -36,6 +38,8 @@ from .const import (
     CONF_PV_FORECAST_TODAY,
     CONF_PV_FORECAST_TOMORROW,
     CONF_PV_POWER_ENTITY,
+    CONF_RESERVE_BLOCK_DISCHARGE,
+    CONF_RESERVE_REFILL_HOURS,
     CONF_SCRIPT_AUTO,
     CONF_SCRIPT_CHARGE,
     CONF_SCRIPT_EXPORT,
@@ -44,6 +48,7 @@ from .const import (
     CONF_SPREAD_THRESHOLD,
     CONF_TEMPERATURE_ENTITY,
     CONF_TRAINING_DAYS,
+    DEFAULT_BACKUP_RESERVE,
     DEFAULT_CHARGE_DERATING,
     DEFAULT_DERATING_CURVE,
     DEFAULT_DISCHARGE_MODE,
@@ -53,6 +58,8 @@ from .const import (
     DEFAULT_MAX_SOC,
     DEFAULT_MIN_SOC,
     DEFAULT_PRICE_OFFSET,
+    DEFAULT_RESERVE_BLOCK_DISCHARGE,
+    DEFAULT_RESERVE_REFILL_HOURS,
     DEFAULT_SPREAD_THRESHOLD,
     DEFAULT_TRAINING_DAYS,
     DERATING_CURVE_KEYS,
@@ -238,6 +245,32 @@ def schema_derating(d: dict[str, Any]) -> vol.Schema:
     return vol.Schema(fields)
 
 
+def schema_reserve(d: dict[str, Any]) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_BACKUP_RESERVE, default=d.get(CONF_BACKUP_RESERVE, DEFAULT_BACKUP_RESERVE)
+            ): _percent_slider(),
+            vol.Optional(
+                CONF_BACKUP_RESERVE_ENTITY,
+                description=_sugg(d.get(CONF_BACKUP_RESERVE_ENTITY)),
+            ): _ENTITY,
+            vol.Required(
+                CONF_RESERVE_REFILL_HOURS,
+                default=d.get(CONF_RESERVE_REFILL_HOURS, DEFAULT_RESERVE_REFILL_HOURS),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=1, max=48, step=1, unit_of_measurement="h", mode="box"
+                )
+            ),
+            vol.Required(
+                CONF_RESERVE_BLOCK_DISCHARGE,
+                default=d.get(CONF_RESERVE_BLOCK_DISCHARGE, DEFAULT_RESERVE_BLOCK_DISCHARGE),
+            ): selector.BooleanSelector(),
+        }
+    )
+
+
 STEP_FIELDS: dict[str, list[str]] = {
     "prices": [CONF_PRICE_ENTITY, CONF_PRICE_OFFSET, CONF_FEED_IN_TARIFF],
     "battery": [
@@ -256,6 +289,12 @@ STEP_FIELDS: dict[str, list[str]] = {
     "pv": [CONF_PV_FORECAST_TODAY, CONF_PV_FORECAST_TOMORROW, CONF_PV_POWER_ENTITY],
     "tuning": [CONF_SPREAD_THRESHOLD, CONF_DISCHARGE_MODE, CONF_TRAINING_DAYS],
     "derating": [CONF_CHARGE_DERATING, CONF_BATTERY_TEMPERATURE_ENTITY, *DERATING_CURVE_KEYS],
+    "reserve": [
+        CONF_BACKUP_RESERVE,
+        CONF_BACKUP_RESERVE_ENTITY,
+        CONF_RESERVE_REFILL_HOURS,
+        CONF_RESERVE_BLOCK_DISCHARGE,
+    ],
 }
 
 
@@ -425,6 +464,7 @@ class SBPOptionsFlow(OptionsFlow):
                 "consumption",
                 "pv",
                 "derating",
+                "reserve",
                 "apply",
             ],
         )
@@ -518,6 +558,13 @@ class SBPOptionsFlow(OptionsFlow):
         return self.async_show_form(
             step_id="derating", data_schema=schema_derating(self._merged), errors=errors
         )
+
+    async def async_step_reserve(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            return await self._save_step("reserve", user_input)
+        return self.async_show_form(step_id="reserve", data_schema=schema_reserve(self._merged))
 
     async def async_step_tuning(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}

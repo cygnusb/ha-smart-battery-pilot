@@ -12,8 +12,10 @@ from datetime import datetime, timedelta
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import event as event_helper
+from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import MockConfigEntry, async_capture_events
 
 from custom_components.smart_battery_pilot.const import (
     CONF_CAPACITY_KWH,
@@ -187,6 +189,80 @@ async def test_the_derating_options_step_renders_and_saves(sbp_hass: HomeAssista
     assert done["type"] == "create_entry"
     assert entry.options["derating_5c"] == 30
     assert entry.options["charge_derating"] is True
+
+
+async def test_the_reserve_options_step_renders_and_saves(sbp_hass: HomeAssistant) -> None:
+    entry = await _setup(sbp_hass)
+    options = sbp_hass.config_entries.options
+
+    menu = await options.async_init(entry.entry_id)
+    assert "reserve" in menu["menu_options"]
+    form = await options.async_configure(menu["flow_id"], {"next_step_id": "reserve"})
+    assert form["step_id"] == "reserve"
+    for selector in form["data_schema"].schema.values():
+        assert "selector" in cv.custom_serializer(selector)
+
+    saved = await options.async_configure(
+        form["flow_id"],
+        {
+            "backup_reserve": 30,
+            "reserve_refill_hours": 8,
+            "reserve_block_discharge": True,
+        },
+    )
+    assert saved["type"] == "menu"
+    done = await options.async_configure(saved["flow_id"], {"next_step_id": "apply"})
+    await sbp_hass.async_block_till_done()
+    assert done["type"] == "create_entry"
+    assert entry.options["backup_reserve"] == 30
+    assert entry.runtime_data.coordinator.data.inputs["reserve"]["soc"] == 30.0
+
+
+async def test_a_real_script_receives_reserve_soc(sbp_hass: HomeAssistant) -> None:
+    """HA scripts accept variables they do not declare; the reserve must arrive."""
+    assert await async_setup_component(
+        sbp_hass,
+        "script",
+        {
+            "script": {
+                "sbp_auto": {
+                    "sequence": [
+                        {"event": "sbp_test", "event_data": {"reserve": "{{ reserve_soc }}"}}
+                    ]
+                }
+            }
+        },
+    )
+    events = async_capture_events(sbp_hass, "sbp_test")
+    entry = await _setup(sbp_hass, options={"backup_reserve": 30})
+
+    assert await entry.runtime_data.executor._call_script("auto", 0.0)
+    await sbp_hass.async_block_till_done()
+    assert [str(e.data["reserve"]) for e in events] == ["30"]
+
+
+def _state_listeners(hass: HomeAssistant, entity_id: str) -> int:
+    """How many state-change callbacks HA holds for one entity."""
+    data = hass.data.get(event_helper._TRACK_STATE_CHANGE_DATA)
+    return len(data.callbacks.get(entity_id, [])) if data else 0
+
+
+async def test_a_setup_that_is_not_ready_leaves_no_listeners(sbp_hass: HomeAssistant) -> None:
+    """Every setup retry built a coordinator that subscribed to the price and
+    reserve entities and was never shut down - listeners piled up per retry."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data=ENTRY_DATA,
+        options={"backup_reserve_entity": "input_number.reserve"},
+        unique_id="sensor.battery_soc",
+    )
+    entry.add_to_hass(sbp_hass)
+    assert not await sbp_hass.config_entries.async_setup(entry.entry_id)  # no price entity
+    await sbp_hass.async_block_till_done()
+
+    assert entry.state is entry.state.SETUP_RETRY
+    assert _state_listeners(sbp_hass, "sensor.electricity_price") == 0
+    assert _state_listeners(sbp_hass, "input_number.reserve") == 0
 
 
 async def test_the_entry_unloads_cleanly(sbp_hass: HomeAssistant) -> None:

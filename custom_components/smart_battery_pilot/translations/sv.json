@@ -202,6 +202,7 @@
           "consumption": "Förbrukning & temperatur",
           "pv": "Solelprognos",
           "derating": "Laddning i kyla",
+          "reserve": "Reservkraft",
           "apply": "💾 Spara & stäng"
         },
         "description": "Ändringar i avsnitten nedan samlas ihop och sparas först via ”Spara & stäng”."
@@ -225,6 +226,21 @@
           "derating_10c": "Procent av den maximala laddeffekten som batteriet tar emot vid 10 °C.",
           "derating_15c": "Procent av den maximala laddeffekten som batteriet tar emot vid 15 °C.",
           "derating_20c": "Procent av den maximala laddeffekten vid 20 °C och varmare. Vanligtvis 100 %."
+        }
+      },
+      "reserve": {
+        "title": "Reservkraft",
+        "data": {
+          "backup_reserve": "Reserv (SOC för strömavbrott)",
+          "backup_reserve_entity": "Reserventitet (valfri, ersätter värdet)",
+          "reserve_refill_hours": "Tidsgräns för påfyllning",
+          "reserve_block_discharge": "Spärra urladdning vid reserven (reservlösning)"
+        },
+        "data_description": {
+          "backup_reserve": "Arbitrage använder aldrig batteriet under denna SOC, och en SOC under den fylls på igen inom tidsgränsen. Vid eller under minsta SOC är alternativet av. Varje styrskript får värdet som reserve_soc – vid ett verkligt avbrott bör växelriktaren hålla det.",
+          "backup_reserve_entity": "Ett tal eller en sensor i procent, t.ex. en input_number som en automation höjer vid stormvarning. Så länge den ger ett tal ersätter den det fasta värdet.",
+          "reserve_refill_hours": "Timmar inom vilka en SOC under reserven fylls på igen: först med solel, resten i de billigaste nätperioderna.",
+          "reserve_block_discharge": "Endast för växelriktare utan egen reservinställning: piloten växlar till 'spärra urladdning' när SOC når reserven. Fungerar bara medan Home Assistant körs."
         }
       }
     },

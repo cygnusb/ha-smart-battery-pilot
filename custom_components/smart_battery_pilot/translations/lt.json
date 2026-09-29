@@ -202,6 +202,7 @@
           "consumption": "Suvartojimas & temperatūra",
           "pv": "Saulės energijos prognozė",
           "derating": "Įkrovimas šaltyje",
+          "reserve": "Avarinio maitinimo rezervas",
           "apply": "💾 Įrašyti & uždaryti"
         },
         "description": "Toliau esančiuose skyriuose atlikti pakeitimai kaupiami ir įrašomi tik paspaudus „Įrašyti & uždaryti“."
@@ -225,6 +226,21 @@
           "derating_10c": "Didžiausios įkrovimo galios procentas, kurį baterija priima esant 10 °C.",
           "derating_15c": "Didžiausios įkrovimo galios procentas, kurį baterija priima esant 15 °C.",
           "derating_20c": "Didžiausios įkrovimo galios procentas esant 20 °C ir šilčiau. Paprastai 100 %."
+        }
+      },
+      "reserve": {
+        "title": "Avarinio maitinimo rezervas",
+        "data": {
+          "backup_reserve": "Avarinio maitinimo rezervas (SOC elektros tiekimo sutrikimui)",
+          "backup_reserve_entity": "Rezervo objektas (neprivalomas, pakeičia reikšmę)",
+          "reserve_refill_hours": "Papildymo terminas",
+          "reserve_block_discharge": "Blokuoti iškrovimą ties rezervu (atsarginis)"
+        },
+        "data_description": {
+          "backup_reserve": "Arbitražas niekada nenaudoja baterijos žemiau šio SOC, o žemesnis SOC papildomas iki termino. Ties minimaliu SOC arba žemiau parinktis išjungta. Kiekvienas valdymo scenarijus gauna reikšmę kaip reserve_soc – tikram sutrikimui ją turėtų išlaikyti inverteris.",
+          "backup_reserve_entity": "Skaičius arba jutiklis procentais, pvz., input_number, kurį automatizacija padidina gavus audros įspėjimą. Kol jis pateikia skaičių, jis pakeičia fiksuotą reikšmę.",
+          "reserve_refill_hours": "Valandos, per kurias žemiau rezervo esantis SOC vėl pakeliamas: pirmiausia saulės energija, likusi dalis pigiausiais tinklo intervalais.",
+          "reserve_block_discharge": "Tik inverteriams be savo rezervo nustatymo: pilotas perjungia į „blokuoti iškrovimą“, kai SOC pasiekia rezervą. Veikia tik tol, kol veikia Home Assistant."
         }
       }
     },

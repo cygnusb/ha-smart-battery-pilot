@@ -31,10 +31,15 @@ Assistant scripts that you provide. This is what makes it vendor neutral.
 
 | Script | Called when | Receives |
 |---|---|---|
-| Force charge | a `charge` slot starts | variable `power_w` (planned grid charge power) |
-| Block discharge (idle) | an `idle` slot starts | – |
-| Auto mode | an `auto` slot starts; also when the integration is disabled, unloaded, the plan becomes invalid, or dry-run is turned on after a live script was applied | – |
-| Force discharge to grid | an `export` slot starts | variable `power_w` (planned discharge power) |
+| Force charge | a `charge` slot starts | variables `power_w` (planned grid charge power), `reserve_soc` |
+| Block discharge (idle) | an `idle` slot starts | variable `reserve_soc` |
+| Auto mode | an `auto` slot starts; also when the integration is disabled, unloaded, the plan becomes invalid, or dry-run is turned on after a live script was applied | variable `reserve_soc` |
+| Force discharge to grid | an `export` slot starts | variables `power_w` (planned discharge power), `reserve_soc` |
+
+`reserve_soc` (whole percent) is the [backup reserve](#backup-reserve), or the
+minimum SOC while no reserve is set. A script that writes it into the
+inverter's own reserve setting keeps the reserve even when Home Assistant is
+down. Scripts that ignore it keep working.
 
 Only the force-discharge script is optional — and only while the discharge
 mode is *self-consumption*. Selecting **export** mode without it is refused,
@@ -88,6 +93,7 @@ configured entities/values pre-filled:
 * **Consumption & temperature** — consumption sensor, temperature, heat pump
 * **PV forecast** — daily forecast entities and optional live PV power
 * **Cold-weather charging** — only here, not in the initial setup; see below
+* **Backup reserve** — only here; see below
 
 Sections return to the menu after submitting; changes are collected and only
 persisted via **“💾 Save & close”** (closing the dialog otherwise discards
@@ -127,6 +133,37 @@ The configuration sensor shows `charge_factor`, its source (`curve`,
 `learned`, `no_temperature`), whether learning is `active` or has
 `no_charge_meter`, and the number of learned bands. The diagnostics dump lists
 every band with its sample count, learned value and curve value.
+
+### Backup reserve
+
+Off by default. Keeps enough energy in the battery for a grid outage.
+
+| Setting | Default | Meaning |
+|---|---|---|
+| Backup reserve | 0 % | SOC that arbitrage never spends. At or below the minimum SOC the option is off. |
+| Reserve entity | – | Optional `input_number`, `number` or `sensor` in percent. While it reads a number it replaces the fixed value — let an automation raise it on a storm warning, in winter, or before a holiday. If it becomes unavailable, the fixed value applies and one warning is logged. |
+| Refill deadline | 12 h | If the SOC is below the reserve, it is brought back up within this many hours: forecast PV first, the rest in the cheapest grid slots, whether or not the price spread pays for it. |
+| Block discharging at the reserve | off | Fallback for inverters without a reserve setting of their own: when the SOC reaches the reserve, the pilot runs the *block discharge* script instead of *auto*, and releases it 2 percentage points above the reserve. It reacts to SOC changes immediately, not only at the next re-plan. |
+
+The effective reserve is the entity value (or the fixed value), clamped to the
+SOC window.
+
+> **For a real outage, the reserve has to live in the inverter.** The pilot can
+> only enforce it while Home Assistant runs, and a grid outage may be exactly
+> when it does not. Have your `auto` and `idle` scripts write `reserve_soc`
+> into the inverter's minimum reserve (for the Fronius GEN24 see the
+> [example](examples/byd-fronius-gen24.md)). When the reserve changes, the
+> pilot runs the current action's script again, so the new value reaches the
+> inverter without waiting for the next action change.
+
+Refilling costs money, and that cost is **not** counted against the estimated
+savings — it is reported separately as `reserve_refill_kwh` and
+`reserve_refill_cost_eur` on the plan sensor. The *actual* savings sensors
+count what the meters measured, so the energy bought for a refill does show
+up there — estimated and actual savings drift apart by the refill cost. A deadline too short for the
+charge power shows the plan warning `reserve_refill_incomplete`. The
+configuration sensor shows `reserve_soc`, its source (`fixed`, `entity`,
+`off`) and whether the discharge block is on.
 
 ## Going live
 

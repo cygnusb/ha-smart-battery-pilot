@@ -50,6 +50,8 @@ class _Coordinator:
         self.dry_run = False
         self.last_update_success = True
         self.last_applied = last_applied
+        # Matches reserve_for_scripts(): these restart tests are not about the reserve.
+        self.last_reserve_sent = 10
         self.persist_calls = 0
         self.delayed_persist = 0
         self.immediate_persist = 0
@@ -76,6 +78,18 @@ class _Coordinator:
         pass
 
     def charge_reading(self):
+        return None
+
+    def reserve_for_scripts(self):
+        return 10
+
+    def reserve_block_enabled(self):
+        return False
+
+    def reserve_state(self):
+        return None, "off", None
+
+    def live_soc(self):
         return None
 
     def charge_observation(self, requested_w, now=None, closing=None):

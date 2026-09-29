@@ -220,6 +220,8 @@ class ChargePlanSensor(SBPEntity, SensorEntity):
             "updated_at": data.updated_at.isoformat() if data.updated_at else None,
             "error": data.error,
             "warnings": list(data.plan.warnings),
+            "reserve_refill_kwh": data.plan.reserve_refill_kwh,
+            "reserve_refill_cost_eur": data.plan.reserve_refill_cost_eur,
             "pv_power_entity": data.pv_power_entity,
             "pv_power_w": data.pv_power_w,
         }
@@ -350,6 +352,9 @@ class ConfigSensor(SBPEntity, SensorEntity):
             "charge_factor_source": self._derating().get("source"),
             "charge_rate_learning": self._learning_state(),
             "learned_bands": self.coordinator.charge_model.learned_band_count,
+            "reserve_soc": self._reserve().get("soc"),
+            "reserve_source": self._reserve().get("source", "off"),
+            "reserve_block_discharge": self.coordinator.reserve_block_enabled(),
             "dry_run": self.coordinator.dry_run,
         }
 
@@ -360,6 +365,12 @@ class ConfigSensor(SBPEntity, SensorEntity):
         if self.coordinator.conf(CONF_BATTERY_CHARGE_ENERGY_ENTITY):
             return "active"
         return "no_charge_meter"
+
+    def _reserve(self) -> dict[str, Any]:
+        data = self.coordinator.data
+        if data is None or not data.inputs:
+            return {}
+        return data.inputs.get("reserve", {})
 
     def _derating(self) -> dict[str, Any]:
         data = self.coordinator.data

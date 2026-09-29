@@ -42,6 +42,7 @@ OPTIONS_STEPS = {
     "pv": config_flow.schema_pv,
     "tuning": config_flow.schema_tuning,
     "derating": config_flow.schema_derating,
+    "reserve": config_flow.schema_reserve,
 }
 
 

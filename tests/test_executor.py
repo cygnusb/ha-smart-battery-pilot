@@ -55,6 +55,10 @@ class _FakeCoordinator:
         self.listener_updates = 0
         self.charge_requests: list = []
         self.closings: list = []
+        self.reserve = 10
+        self.block = False
+        self.soc = None
+        self.last_reserve_sent = None
         self._conf = {
             CONF_SCRIPT_CHARGE: "script.sbp_charge",
             CONF_SCRIPT_IDLE: "script.sbp_idle",
@@ -79,6 +83,20 @@ class _FakeCoordinator:
 
     def charge_reading(self):
         return None
+
+    def reserve_for_scripts(self):
+        return self.reserve
+
+    def reserve_block_enabled(self):
+        return self.block
+
+    def reserve_state(self):
+        if self.reserve > 10:
+            return float(self.reserve), "fixed", None
+        return None, "off", None
+
+    def live_soc(self):
+        return self.soc
 
     def charge_observation(self, requested_w, now=None, closing=None):
         self.charge_requests.append(requested_w)
@@ -198,7 +216,7 @@ def test_export_passes_power_w():
     _run(executor.async_apply_current())
     domain, service, data, blocking = hass.services.calls[0]
     assert (domain, service, blocking) == ("script", "sbp_export", True)
-    assert data == {"power_w": 2500}
+    assert data == {"power_w": 2500, "reserve_soc": 10}
 
 
 def test_consecutive_export_slots_reapply_new_power():
@@ -208,7 +226,7 @@ def test_consecutive_export_slots_reapply_new_power():
     _run(executor.async_apply_current())
     coord.data = SBPData(plan=Plan(slots=[_slot(ACTION_EXPORT, power=1200.0)]), valid=True)
     _run(executor.async_apply_current())
-    assert hass.services.calls[-1][2] == {"power_w": 1200}
+    assert hass.services.calls[-1][2] == {"power_w": 1200, "reserve_soc": 10}
 
 
 def test_failed_refresh_with_stale_valid_plan_restores_auto():

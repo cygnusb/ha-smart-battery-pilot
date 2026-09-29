@@ -202,6 +202,7 @@
           "consumption": "Kulutus & lämpötila",
           "pv": "Aurinkoennuste",
           "derating": "Lataus kylmällä",
+          "reserve": "Varavoimareservi",
           "apply": "💾 Tallenna & sulje"
         },
         "description": "Alla olevien osioiden muutokset kerätään ja tallennetaan vasta painikkeella ”Tallenna & sulje”."
@@ -225,6 +226,21 @@
           "derating_10c": "Prosentti suurimmasta lataustehosta, jonka akku ottaa vastaan 10 °C:ssa.",
           "derating_15c": "Prosentti suurimmasta lataustehosta, jonka akku ottaa vastaan 15 °C:ssa.",
           "derating_20c": "Prosentti suurimmasta lataustehosta 20 °C:ssa ja lämpimämmässä. Yleensä 100 %."
+        }
+      },
+      "reserve": {
+        "title": "Varavoimareservi",
+        "data": {
+          "backup_reserve": "Varavoimareservi (SOC sähkökatkoa varten)",
+          "backup_reserve_entity": "Reservin entiteetti (valinnainen, korvaa arvon)",
+          "reserve_refill_hours": "Täyttämisen määräaika",
+          "reserve_block_discharge": "Estä purku reservin kohdalla (varakeino)"
+        },
+        "data_description": {
+          "backup_reserve": "Arbitraasi ei koskaan käytä akkua tämän SOC:n alle, ja sen alle jäävä SOC täytetään määräaikaan mennessä. Minimi-SOC:n kohdalla tai alle asetus on pois päältä. Jokainen ohjausskripti saa arvon muuttujana reserve_soc – todellista katkoa varten invertterin kannattaa pitää se.",
+          "backup_reserve_entity": "Luku tai anturi prosentteina, esim. input_number, jota automaatio nostaa myrskyvaroituksen aikana. Niin kauan kuin se antaa luvun, se korvaa kiinteän arvon.",
+          "reserve_refill_hours": "Tunnit, joiden kuluessa reservin alle jäänyt SOC nostetaan takaisin: ensin aurinkosähköllä, loput halvimmilla verkkojaksoilla.",
+          "reserve_block_discharge": "Vain inverttereille, joissa ei ole omaa reserviasetusta: pilotti vaihtaa tilaan 'estä purku', kun SOC saavuttaa reservin. Toimii vain Home Assistantin ollessa käynnissä."
         }
       }
     },

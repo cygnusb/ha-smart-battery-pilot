@@ -55,6 +55,12 @@ DERATING_CURVE_KEYS = (
     CONF_DERATING_20C,
 )
 
+# Options section: backup reserve (not part of the initial setup)
+CONF_BACKUP_RESERVE = "backup_reserve"
+CONF_BACKUP_RESERVE_ENTITY = "backup_reserve_entity"
+CONF_RESERVE_REFILL_HOURS = "reserve_refill_hours"
+CONF_RESERVE_BLOCK_DISCHARGE = "reserve_block_discharge"
+
 # Options
 CONF_SPREAD_THRESHOLD = "spread_threshold"  # EUR/kWh min price spread
 CONF_DISCHARGE_MODE = "discharge_mode"
@@ -77,6 +83,9 @@ DEFAULT_TRAINING_DAYS = 60
 DEFAULT_CHARGE_DERATING = False
 # Conservative generic LFP: many BMS still allow a trickle charge at 0 °C.
 DEFAULT_DERATING_CURVE = (10, 20, 50, 80, 100)
+DEFAULT_BACKUP_RESERVE = 0  # at or below min_soc: inactive
+DEFAULT_RESERVE_REFILL_HOURS = 12
+DEFAULT_RESERVE_BLOCK_DISCHARGE = False
 
 # --- Plan actions ---
 ACTION_CHARGE = "charge"
