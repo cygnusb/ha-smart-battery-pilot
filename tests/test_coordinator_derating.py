@@ -375,3 +375,14 @@ def test_a_mangled_charge_rate_store_entry_does_not_break_setup(caplog):
     _run(coord.async_setup())
     assert coord.charge_model.samples == ()
     assert "charge rate" in caplog.text
+
+
+def test_the_planning_inputs_line_carries_the_charge_factor(caplog):
+    hass = _hass_with_prices(temp=2.5)
+    coord = _coordinator(hass, **DERATING)
+    caplog.set_level(logging.DEBUG, logger="smart_battery_pilot.coordinator")
+    _run(coord._async_update_data())
+    [line] = [
+        r.getMessage() for r in caplog.records if r.getMessage().startswith("Planning inputs")
+    ]
+    assert "charge factor 0.150 (curve) at battery 2.5 °C" in line

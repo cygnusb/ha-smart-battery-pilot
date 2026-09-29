@@ -340,10 +340,12 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         pv_tomorrow = self._read_float_state(self.conf(CONF_PV_FORECAST_TOMORROW))
 
         sunrise_hour, sunset_hour = self._daylight_window()
+        factor, factor_source, battery_temperature = self.charge_factor()
         _LOGGER.debug(
             "Planning inputs: %d price slots %s .. %s via '%s', SOC %.1f%%, "
             "temperature %s, PV forecast today %s / tomorrow %s kWh, "
-            "daylight %.2f-%.2f h, model %s (%d samples)",
+            "daylight %.2f-%.2f h, model %s (%d samples), "
+            "charge factor %.3f (%s) at battery %s °C",
             len(slots),
             slots[0].start.isoformat(),
             slots[-1].end.isoformat(),
@@ -356,6 +358,9 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             sunset_hour,
             self.forecaster.model_type,
             self.forecaster.sample_count,
+            factor,
+            factor_source,
+            battery_temperature,
         )
 
         input_slots: list[InputSlot] = []
@@ -379,13 +384,6 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 InputSlot(price_slot=slot, net_demand_kwh=consumption - pv, pv_kwh=pv)
             )
 
-        factor, factor_source, battery_temperature = self.charge_factor()
-        _LOGGER.debug(
-            "Charge factor %.3f (%s) at battery temperature %s",
-            factor,
-            factor_source,
-            battery_temperature,
-        )
         battery = BatteryState(
             capacity_kwh=float(self.conf(CONF_CAPACITY_KWH, 10.0)),
             soc=soc,
