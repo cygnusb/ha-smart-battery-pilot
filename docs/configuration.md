@@ -87,6 +87,7 @@ configured entities/values pre-filled:
 * **Control scripts** — the four action scripts
 * **Consumption & temperature** — consumption sensor, temperature, heat pump
 * **PV forecast** — daily forecast entities and optional live PV power
+* **Cold-weather charging** — only here, not in the initial setup; see below
 
 Sections return to the menu after submitting; changes are collected and only
 persisted via **“💾 Save & close”** (closing the dialog otherwise discards
@@ -98,6 +99,33 @@ them). Saving reloads the integration and recomputes the plan.
 | Discharge mode | Self-consumption | `Self-consumption`: the battery only ever covers the house load. `Export`: additionally force-discharge into the grid during extreme price peaks — requires the force-discharge script. **Check your tariff/regulatory situation before enabling export.** |
 | Price offset / feed-in tariff | – | Same as in the config flow. Feed-in `0` uses the market price for export. A fixed tariff at or below the spread (default 0.20 EUR/kWh) could never schedule export, so the options flow refuses that combination instead of letting the setting look active while doing nothing. |
 | Training days | 60 | History window for the consumption model. |
+
+### Cold-weather charging
+
+Off by default. A cold LFP battery accepts far less than its nominal charge
+power — the BMS throttles below roughly 15 °C and nearly stops near 0 °C. With
+this option on, the planner knows that and books more (or longer) cheap charge
+slots instead of counting on energy the battery will not take.
+
+| Setting | Default | Meaning |
+|---|---|---|
+| Plan with reduced charge power in the cold | off | The planner expects a cold battery to take less than the maximum charge power. The charge script is **still asked for full power** — the battery's BMS does the throttling, never the pilot. |
+| Battery temperature entity | – | Cell or module temperature of the battery (not the outdoor sensor). Required when the option is on. °F is converted. If it becomes unavailable, the planner falls back to full charge power and logs one warning. |
+| Charge power at 0 / 5 / 10 / 15 / 20 °C | 10 / 20 / 50 / 80 / 100 % | Percent of the maximum charge power the battery accepts. Linear in between; below 0 °C the 0 °C value applies, above 20 °C the 20 °C value. The values must not fall as the temperature rises. The defaults are a conservative generic LFP curve — check your battery's datasheet. |
+
+**Learning.** With a battery charge energy meter configured (battery step),
+every forced charge slot the pilot really runs is measured: how much went
+into the battery compared with what was asked for. Per 5 °C band, once six
+slots have shown the battery taking clearly less than requested, the measured
+value replaces the slider curve for that band. Slots near max SOC (the battery
+tapers because it is full), shorter than 10 minutes, or with requests below
+20 % of the max charge power are ignored. Dry-run learns nothing, because no
+charge actually happens.
+
+The configuration sensor shows `charge_factor`, its source (`curve`,
+`learned`, `no_temperature`), whether learning is `active` or has
+`no_charge_meter`, and the number of learned bands. The diagnostics dump lists
+every band with its sample count, learned value and curve value.
 
 ## Going live
 

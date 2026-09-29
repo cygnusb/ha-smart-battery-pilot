@@ -47,7 +47,7 @@ ENTRY_DATA = {
 }
 
 
-async def _setup(hass: HomeAssistant) -> MockConfigEntry:
+async def _setup(hass: HomeAssistant, options: dict | None = None) -> MockConfigEntry:
     """Publish a 24 h EPEX-style curve and set the integration up on it."""
     start = dt_util.now().replace(minute=0, second=0, microsecond=0)
     hass.states.async_set(
@@ -66,7 +66,9 @@ async def _setup(hass: HomeAssistant) -> MockConfigEntry:
     )
     hass.states.async_set("sensor.battery_soc", "55", {"unit_of_measurement": "%"})
 
-    entry = MockConfigEntry(domain=DOMAIN, data=ENTRY_DATA, unique_id="sensor.battery_soc")
+    entry = MockConfigEntry(
+        domain=DOMAIN, data=ENTRY_DATA, options=options or {}, unique_id="sensor.battery_soc"
+    )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
@@ -117,6 +119,23 @@ async def test_the_replan_service_refreshes_the_plan(sbp_hass: HomeAssistant) ->
     await sbp_hass.async_block_till_done()
 
     assert entry.runtime_data.coordinator.data.updated_at >= before
+
+
+async def test_setup_with_cold_weather_charging_on(sbp_hass: HomeAssistant) -> None:
+    """The new options section must not break setup on a real Home Assistant."""
+    sbp_hass.states.async_set("sensor.battery_temp", "3.0", {"unit_of_measurement": "°C"})
+    entry = await _setup(
+        sbp_hass,
+        options={
+            "charge_derating": True,
+            "battery_temperature_entity": "sensor.battery_temp",
+        },
+    )
+
+    assert entry.state is entry.state.LOADED
+    derating = entry.runtime_data.coordinator.data.inputs["charge_derating"]
+    assert derating["source"] == "curve"
+    assert derating["factor"] < 1.0
 
 
 async def test_the_entry_unloads_cleanly(sbp_hass: HomeAssistant) -> None:

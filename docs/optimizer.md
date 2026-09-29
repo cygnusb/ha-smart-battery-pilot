@@ -12,6 +12,12 @@ same inputs always produce the same plan.
 * Battery state: SOC, capacity, min/max SOC, charge/discharge power limits,
   roundtrip efficiency.
 * Options: minimum price spread, discharge mode, feed-in tariff.
+* Charge factor (cold-weather charging, off by default): the share of the max
+  charge power the battery is expected to accept at its current temperature.
+  It scales the per-slot charge cap, so a cold battery is charged over more
+  slots. The power requested from the charge script is scaled back up
+  (`planned / factor`, at most the max), so the pilot never throttles the
+  battery itself.
 
 ## Algorithm
 

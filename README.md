@@ -72,6 +72,10 @@ The config flow guides you through five steps: price source, battery
 parameters, control scripts, consumption sensor and (optional) PV forecast.
 Details and the full option reference: [docs/configuration.md](docs/configuration.md).
 
+Optional, in the options menu: **cold-weather charging**. The planner accounts
+for the reduced charge power of a cold battery. It starts from a slider curve
+and learns the real limit from the charge slots the pilot runs.
+
 > **Safety first:** the integration starts **disabled** and in **dry-run**
 > mode. Watch the planned actions in the log and the plan sensor for a day or
 > two, then turn **on** the master switch (still dry-run) and only afterwards
