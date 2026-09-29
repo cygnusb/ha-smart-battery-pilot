@@ -76,6 +76,11 @@ Optional, in the options menu: **cold-weather charging**. The planner accounts
 for the reduced charge power of a cold battery. It starts from a slider curve
 and learns the real limit from the charge slots the pilot runs.
 
+Also optional: a **backup reserve** for grid outages. Arbitrage never spends
+it, a SOC below it is refilled by a deadline, every control script receives it
+as `reserve_soc`, and an entity can raise it at runtime (e.g. on a storm
+warning).
+
 > **Safety first:** the integration starts **disabled** and in **dry-run**
 > mode. Watch the planned actions in the log and the plan sensor for a day or
 > two, then turn **on** the master switch (still dry-run) and only afterwards
