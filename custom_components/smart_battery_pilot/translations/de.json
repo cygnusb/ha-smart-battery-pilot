@@ -218,7 +218,7 @@
           "derating_20c": "Ladeleistung bei 20 °C und wärmer"
         },
         "data_description": {
-          "charge_derating": "Der Planer rechnet damit, dass eine kalte Batterie weniger als die maximale Ladeleistung aufnimmt, und plant mehr günstige Ladeslots ein. Das Lade-Skript bekommt weiterhin die volle Leistung; die Drosselung übernimmt das BMS der Batterie.",
+          "charge_derating": "Der Planer rechnet damit, dass eine kalte Batterie weniger als die maximale Ladeleistung aufnimmt, und plant mehr günstige Ladeslots ein. Ein bis an die Kältegrenze geplanter Slot fordert beim Lade-Skript weiterhin die volle Leistung an; die Drosselung übernimmt das BMS der Batterie, nicht der Pilot.",
           "battery_temperature_entity": "Zellen- oder Modultemperatur der Batterie, nicht die Außentemperatur. Pflicht, wenn die Option aktiv ist.",
           "derating_0c": "Prozent der maximalen Ladeleistung, die die Batterie bei 0 °C und kälter aufnimmt. Werte stehen im Datenblatt der Batterie.",
           "derating_5c": "Prozent der maximalen Ladeleistung, die die Batterie bei 5 °C aufnimmt.",

@@ -218,7 +218,7 @@
           "derating_20c": "Laadvermogen bij 20 °C en hoger"
         },
         "data_description": {
-          "charge_derating": "De planner gaat ervan uit dat een koude batterij minder dan het maximale laadvermogen opneemt en plant meer goedkope laadperiodes in. Het laadscript vraagt nog steeds het volle vermogen; het BMS van de batterij regelt de begrenzing.",
+          "charge_derating": "De planner gaat ervan uit dat een koude batterij minder dan het maximale laadvermogen opneemt en plant meer goedkope laadperiodes in. Een periode die tot de koudegrens is gepland, vraagt het laadscript nog steeds om het volle vermogen; het BMS van de batterij begrenst, niet de piloot.",
           "battery_temperature_entity": "Cel- of moduletemperatuur van de batterij, niet de buitentemperatuur. Verplicht als de optie aan staat.",
           "derating_0c": "Percentage van het maximale laadvermogen dat de batterij opneemt bij 0 °C en kouder. Zie het gegevensblad van de batterij.",
           "derating_5c": "Percentage van het maximale laadvermogen dat de batterij opneemt bij 5 °C.",

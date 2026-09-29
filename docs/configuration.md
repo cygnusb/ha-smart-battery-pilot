@@ -109,7 +109,7 @@ slots instead of counting on energy the battery will not take.
 
 | Setting | Default | Meaning |
 |---|---|---|
-| Plan with reduced charge power in the cold | off | The planner expects a cold battery to take less than the maximum charge power. The charge script is **still asked for full power** — the battery's BMS does the throttling, never the pilot. |
+| Plan with reduced charge power in the cold | off | The planner expects a cold battery to take less than the maximum charge power. A slot planned up to that cold limit **still asks the charge script for full power** — the battery's BMS does the throttling, never the pilot. A slot that only needs part of it asks for exactly what it needs, as it would without the option. |
 | Battery temperature entity | – | Cell or module temperature of the battery (not the outdoor sensor). Required when the option is on. °F is converted. If it becomes unavailable, the planner falls back to full charge power and logs one warning. |
 | Charge power at 0 / 5 / 10 / 15 / 20 °C | 10 / 20 / 50 / 80 / 100 % | Percent of the maximum charge power the battery accepts. Linear in between; below 0 °C the 0 °C value applies, above 20 °C the 20 °C value. The values must not fall as the temperature rises. The defaults are a conservative generic LFP curve — check your battery's datasheet. |
 

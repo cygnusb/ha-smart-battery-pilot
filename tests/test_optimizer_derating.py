@@ -58,21 +58,41 @@ def test_the_script_is_asked_for_full_power_not_the_derated_one():
     assert any(abs(p - BATTERY.max_charge_power_w) < 1.0 for p in powers)
 
 
-def test_requested_power_is_the_planned_grid_power_scaled_up():
+def test_only_a_slot_filled_to_the_cold_limit_asks_for_full_power():
+    """A cold BMS caps the current; it does not take a share of the request.
+
+    Asking for more than planned in a partial slot would store up to 1/factor
+    times the planned energy. Only a slot the planner fills to its derated cap
+    asks for the maximum - which the BMS then limits to exactly that cap.
+    """
     factor = 0.5
     cold = build_plan(
         make_slots(PRICES, demand_kwh=0.5), replace(BATTERY, charge_factor=factor), CONFIG
     )
+    cap_kwh = BATTERY.max_charge_power_w / 1000.0 * factor * ETA_ONE_WAY
     previous = BATTERY.soc
     for slot in cold.slots:
         if slot.action == ACTION_CHARGE:
             stored = (slot.soc_forecast - previous) / 100.0 * BATTERY.capacity_kwh
             planned_grid_w = stored / ETA_ONE_WAY * 1000.0  # 1 h slots
-            expected = min(BATTERY.max_charge_power_w, planned_grid_w / factor)
-            # soc_forecast is rounded to 0.1 %, i.e. ~13 Wh on 12.8 kWh.
-            assert abs(slot.power_w - expected) < 40.0
-            assert slot.power_w >= planned_grid_w
+            if stored >= cap_kwh - 0.013:
+                assert slot.power_w == BATTERY.max_charge_power_w
+            else:
+                # soc_forecast is rounded to 0.1 %, i.e. ~13 Wh on 12.8 kWh.
+                assert abs(slot.power_w - planned_grid_w) < 20.0
         previous = slot.soc_forecast
+
+
+def test_a_top_up_to_max_soc_does_not_overshoot():
+    """85 % -> 95 % needs 1.28 kWh; the cold cap per slot is larger. Asking for
+    planned/factor would have the battery take its full cold limit and end
+    above max SOC."""
+    factor = 0.3
+    battery = replace(BATTERY, soc=85.0, charge_factor=factor)
+    plan = build_plan(make_slots(PRICES, demand_kwh=3.0), battery, CONFIG)
+    [first] = _charge_slots(plan)[:1]
+    cold_limit_w = BATTERY.max_charge_power_w * factor
+    assert first.power_w < cold_limit_w
 
 
 def test_factor_zero_plans_no_grid_charging():

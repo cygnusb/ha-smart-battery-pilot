@@ -218,7 +218,7 @@
           "derating_20c": "Laadimisvõimsus 20 °C ja üle selle"
         },
         "data_description": {
-          "charge_derating": "Planeerija eeldab, et külm aku võtab vastu vähem kui maksimaalse laadimisvõimsuse, ja planeerib rohkem odavaid laadimisperioode. Laadimisskript küsib endiselt täit võimsust; piiramise teeb aku BMS.",
+          "charge_derating": "Planeerija eeldab, et külm aku võtab vastu vähem kui maksimaalse laadimisvõimsuse, ja planeerib rohkem odavaid laadimisperioode. Külmapiirini planeeritud periood küsib laadimisskriptilt endiselt täit võimsust; piiramise teeb aku BMS, mitte piloot.",
           "battery_temperature_entity": "Aku elemendi või mooduli temperatuur, mitte välistemperatuur. Kohustuslik, kui valik on sisse lülitatud.",
           "derating_0c": "Protsent maksimaalsest laadimisvõimsusest, mida aku 0 °C ja külmemal vastu võtab. Vaata aku andmelehte.",
           "derating_5c": "Protsent maksimaalsest laadimisvõimsusest, mida aku 5 °C juures vastu võtab.",

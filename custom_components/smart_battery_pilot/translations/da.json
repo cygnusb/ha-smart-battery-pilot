@@ -218,7 +218,7 @@
           "derating_20c": "Ladeeffekt ved 20 °C og derover"
         },
         "data_description": {
-          "charge_derating": "Planlæggeren regner med, at et koldt batteri modtager mindre end den maksimale ladeeffekt, og planlægger flere billige ladeperioder. Ladescriptet beder stadig om fuld effekt; batteriets BMS står for begrænsningen.",
+          "charge_derating": "Planlæggeren regner med, at et koldt batteri modtager mindre end den maksimale ladeeffekt, og planlægger flere billige ladeperioder. En periode, der er planlagt op til kuldegrænsen, beder stadig ladescriptet om fuld effekt; batteriets BMS står for begrænsningen, ikke piloten.",
           "battery_temperature_entity": "Celle- eller modultemperatur for batteriet, ikke udetemperaturen. Påkrævet, når indstillingen er slået til.",
           "derating_0c": "Procent af den maksimale ladeeffekt, som batteriet modtager ved 0 °C og koldere. Se batteriets datablad.",
           "derating_5c": "Procent af den maksimale ladeeffekt, som batteriet modtager ved 5 °C.",

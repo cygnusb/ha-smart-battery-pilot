@@ -15,9 +15,11 @@ same inputs always produce the same plan.
 * Charge factor (cold-weather charging, off by default): the share of the max
   charge power the battery is expected to accept at its current temperature.
   It scales the per-slot charge cap, so a cold battery is charged over more
-  slots. The power requested from the charge script is scaled back up
-  (`planned / factor`, at most the max), so the pilot never throttles the
-  battery itself.
+  slots. A slot planned up to its cold limit asks the charge script for the
+  maximum power, so the pilot never throttles the battery itself — the BMS
+  caps it. A slot that needs less asks for its planned power: a cold BMS caps
+  the current rather than taking a share of the request, so asking for more
+  would overshoot the plan and max SOC.
 
 ## Algorithm
 

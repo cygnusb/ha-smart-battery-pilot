@@ -218,7 +218,7 @@
           "derating_20c": "Charge power at 20 °C and above"
         },
         "data_description": {
-          "charge_derating": "The planner expects a cold battery to accept less than the maximum charge power and schedules more cheap charge slots. The charge script is still asked for full power; the battery's BMS does the throttling.",
+          "charge_derating": "The planner expects a cold battery to accept less than the maximum charge power and schedules more cheap charge slots. A slot planned up to the cold limit still asks the charge script for full power, so the battery's BMS does the throttling, not the pilot.",
           "battery_temperature_entity": "Cell or module temperature of the battery, not the outdoor temperature. Required when the option is on.",
           "derating_0c": "Percent of the maximum charge power the battery accepts at 0 °C and colder. Check your battery's datasheet.",
           "derating_5c": "Percent of the maximum charge power the battery accepts at 5 °C.",

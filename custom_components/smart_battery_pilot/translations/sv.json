@@ -218,7 +218,7 @@
           "derating_20c": "Laddeffekt vid 20 °C och högre"
         },
         "data_description": {
-          "charge_derating": "Planeraren räknar med att ett kallt batteri tar emot mindre än den maximala laddeffekten och planerar fler billiga laddperioder. Laddskriptet begär fortfarande full effekt; batteriets BMS sköter begränsningen.",
+          "charge_derating": "Planeraren räknar med att ett kallt batteri tar emot mindre än den maximala laddeffekten och planerar fler billiga laddperioder. En period som planerats upp till köldgränsen begär fortfarande full effekt av laddskriptet; batteriets BMS sköter begränsningen, inte piloten.",
           "battery_temperature_entity": "Cell- eller modultemperatur för batteriet, inte utomhustemperaturen. Krävs när alternativet är på.",
           "derating_0c": "Procent av den maximala laddeffekten som batteriet tar emot vid 0 °C och kallare. Se batteriets datablad.",
           "derating_5c": "Procent av den maximala laddeffekten som batteriet tar emot vid 5 °C.",

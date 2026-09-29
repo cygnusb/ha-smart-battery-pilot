@@ -218,7 +218,7 @@
           "derating_20c": "Uzlādes jauda pie 20 °C un augstāk"
         },
         "data_description": {
-          "charge_derating": "Plānotājs pieņem, ka auksts akumulators pieņem mazāk nekā maksimālo uzlādes jaudu, un ieplāno vairāk lētu uzlādes periodu. Uzlādes skripts joprojām pieprasa pilnu jaudu; ierobežošanu veic akumulatora BMS.",
+          "charge_derating": "Plānotājs pieņem, ka auksts akumulators pieņem mazāk nekā maksimālo uzlādes jaudu, un ieplāno vairāk lētu uzlādes periodu. Līdz aukstuma robežai ieplānots periods joprojām pieprasa uzlādes skriptam pilnu jaudu; ierobežošanu veic akumulatora BMS, nevis pilots.",
           "battery_temperature_entity": "Akumulatora šūnas vai moduļa temperatūra, nevis āra temperatūra. Obligāta, ja opcija ir ieslēgta.",
           "derating_0c": "Procenti no maksimālās uzlādes jaudas, ko akumulators pieņem pie 0 °C un aukstākā laikā. Skatiet akumulatora datu lapu.",
           "derating_5c": "Procenti no maksimālās uzlādes jaudas, ko akumulators pieņem pie 5 °C.",

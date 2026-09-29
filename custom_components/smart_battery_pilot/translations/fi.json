@@ -218,7 +218,7 @@
           "derating_20c": "Latausteho 20 °C:ssa ja yli"
         },
         "data_description": {
-          "charge_derating": "Suunnittelija olettaa, että kylmä akku ottaa vastaan vähemmän kuin suurimman lataustehon, ja suunnittelee enemmän edullisia latausjaksoja. Latausskripti pyytää edelleen täyttä tehoa; rajoituksen hoitaa akun BMS.",
+          "charge_derating": "Suunnittelija olettaa, että kylmä akku ottaa vastaan vähemmän kuin suurimman lataustehon, ja suunnittelee enemmän edullisia latausjaksoja. Kylmärajaan asti suunniteltu jakso pyytää latausskriptiltä edelleen täyttä tehoa; rajoituksen hoitaa akun BMS, ei pilotti.",
           "battery_temperature_entity": "Akun kennon tai moduulin lämpötila, ei ulkolämpötila. Pakollinen, kun asetus on päällä.",
           "derating_0c": "Prosentti suurimmasta lataustehosta, jonka akku ottaa vastaan 0 °C:ssa ja kylmemmässä. Katso akun tuotetiedot.",
           "derating_5c": "Prosentti suurimmasta lataustehosta, jonka akku ottaa vastaan 5 °C:ssa.",

@@ -157,11 +157,16 @@ that number already has the cold limit baked in, so passing it on would make
 the pilot request 30 % and throttle the battery itself. Instead:
 
 ```python
-power_w = min(max_charge_power_w, planned_power_w / charge_factor)   # factor > 0
+power_w = max_charge_power_w if slot_is_at_its_derated_cap else planned_power_w
 ```
 
-The script asks for the power that, at the expected acceptance, stores the
-planned energy. If the battery is warmer than modelled, it charges faster, the
+A slot filled to its derated cap plans exactly the cold limit, so it asks for
+the maximum and the BMS caps it. A slot that needs less keeps its planned
+power, as it would without derating. A cold BMS caps the *current*. It does
+not take a share of the request, so asking such a slot for
+`planned / factor` would store up to `1 / factor` times the plan and could
+overshoot max SOC (found in the final review; the first version did exactly
+that). If the battery is warmer than modelled, capped slots charge faster, the
 SOC runs ahead of the forecast, and the next re-plan (≤ 30 min) accounts for
 it. The default curve never reaches 0. A user can still set a slider to 0 %;
 then no charge slots are planned at all, so the division never happens.

@@ -372,12 +372,17 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
             action = ACTION_CHARGE
             grid_kwh = charge_stored[i] / eta_one_way
             charge_power = grid_kwh / hours[i] * 1000.0
-            if 0.0 < charge_factor < 1.0:
-                # The planned power already has the cold limit in it. Passing
-                # it on would make the pilot throttle the battery itself;
-                # request what stores the planned energy at the expected
-                # acceptance instead, and leave the limiting to the BMS.
-                charge_power = min(battery.max_charge_power_w, charge_power / charge_factor)
+            if (
+                0.0 < charge_factor < 1.0
+                and charge_stored[i] + pv_surplus_stored[i] >= charge_cap[i] - 1e-9
+            ):
+                # Filled to the cold limit: the planned power is that limit, and
+                # passing it on would make the pilot throttle the battery
+                # itself. Ask for the maximum and let the BMS cap it. A slot
+                # that needs less keeps its planned power - a cold BMS caps the
+                # current, it does not take a share of the request, so asking
+                # for more there would overshoot the plan (and max SOC).
+                charge_power = battery.max_charge_power_w
             plan.grid_charge_kwh += grid_kwh
         elif export_stored[i] > 1e-9:
             action = ACTION_EXPORT

@@ -218,7 +218,7 @@
           "derating_20c": "Įkrovimo galia esant 20 °C ir daugiau"
         },
         "data_description": {
-          "charge_derating": "Planuoklis tikisi, kad šalta baterija priims mažiau nei didžiausią įkrovimo galią, ir suplanuoja daugiau pigių įkrovimo intervalų. Įkrovimo scenarijus vis tiek prašo visos galios; ribojimą atlieka baterijos BMS.",
+          "charge_derating": "Planuoklis tikisi, kad šalta baterija priims mažiau nei didžiausią įkrovimo galią, ir suplanuoja daugiau pigių įkrovimo intervalų. Iki šalčio ribos suplanuotas intervalas vis tiek prašo įkrovimo scenarijaus visos galios; ribojimą atlieka baterijos BMS, ne pilotas.",
           "battery_temperature_entity": "Baterijos elemento ar modulio temperatūra, ne lauko temperatūra. Privaloma, kai parinktis įjungta.",
           "derating_0c": "Didžiausios įkrovimo galios procentas, kurį baterija priima esant 0 °C ir šalčiau. Žr. baterijos duomenų lapą.",
           "derating_5c": "Didžiausios įkrovimo galios procentas, kurį baterija priima esant 5 °C.",
