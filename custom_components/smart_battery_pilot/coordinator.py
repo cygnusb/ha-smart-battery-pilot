@@ -105,6 +105,11 @@ MIN_OBSERVATION = timedelta(minutes=10)
 # The battery warms while it charges; cut long charges into hour-long samples
 # so each is filed under a temperature close to the one it ran at.
 MAX_OBSERVATION = timedelta(hours=1)
+# Inverter energy meters often count in 0.1 kWh steps. A sample needs either
+# enough energy for that step not to dominate, or enough time that "nothing
+# went in" is a finding rather than a rounding artefact.
+MIN_OBSERVATION_KWH = 0.2
+RESOLUTION_EXEMPT_AFTER = timedelta(minutes=30)
 TAPER_MARGIN_SOC = 5.0  # above max_soc - this, the BMS tapers because it is full
 MIN_REQUEST_SHARE = 0.2  # smaller requests say nothing about the limit
 SATURATION_SHARE = 0.85  # took less than this share of the request -> limited
@@ -821,6 +826,8 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             reason = "charge meter unavailable"
         elif kwh < opened.kwh:
             reason = "charge meter went backwards"
+        elif kwh - opened.kwh < MIN_OBSERVATION_KWH and elapsed < RESOLUTION_EXEMPT_AFTER:
+            reason = f"only {kwh - opened.kwh:.2f} kWh - below meter resolution"
         elif soc is None or soc >= max_soc - TAPER_MARGIN_SOC:
             reason = f"SOC {soc} too close to max SOC {max_soc:.0f}"
         if reason:

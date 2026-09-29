@@ -118,8 +118,9 @@ every forced charge slot the pilot really runs is measured: how much went
 into the battery compared with what was asked for. Per 5 °C band, once six
 slots have shown the battery taking clearly less than requested, the measured
 value replaces the slider curve for that band. Slots near max SOC (the battery
-tapers because it is full), shorter than 10 minutes, or with requests below
-20 % of the max charge power are ignored. Dry-run learns nothing, because no
+tapers because it is full), shorter than 10 minutes, with requests below
+20 % of the max charge power, or with less than 0.2 kWh in under 30 minutes
+(too close to the resolution of typical energy meters) are ignored. Dry-run learns nothing, because no
 charge actually happens.
 
 The configuration sensor shows `charge_factor`, its source (`curve`,

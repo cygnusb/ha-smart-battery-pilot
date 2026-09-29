@@ -349,3 +349,19 @@ def test_the_close_reading_can_be_taken_before_the_next_script():
     coord.charge_observation(None, now=T0 + timedelta(minutes=62), closing=reading)
     [sample] = coord.charge_model.samples
     assert round(sample.ratio, 3) == 0.3
+
+
+def test_a_short_sample_below_meter_resolution_is_discarded():
+    """Many inverter meters count in 0.1 kWh steps; 0.1 kWh in 15 minutes can
+    be anything from 0.0 to 0.2 kWh - a ratio off by a factor of two."""
+    hass = _hass_with_prices(temp=3.0)
+    coord = _coordinator(hass, **LEARNING)
+    assert _observed(hass, coord, kwh_end=100.1, minutes=15) == ()
+
+
+def test_a_battery_taking_nothing_for_half_an_hour_is_a_real_sample():
+    hass = _hass_with_prices(temp=-2.0)
+    coord = _coordinator(hass, **LEARNING)
+    [sample] = _observed(hass, coord, kwh_end=100.0, minutes=30)
+    assert sample.ratio == 0.0
+    assert sample.saturated is True
