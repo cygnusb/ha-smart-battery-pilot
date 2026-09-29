@@ -194,3 +194,4 @@ def test_diagnostics_carry_decisions_and_inputs():
     dump = _run(async_get_config_entry_diagnostics(hass, entry))
     assert dump["decisions"][-1]["outcome"] == "dry_run"
     assert dump["state"]["inputs"]["soc"] == 50.0
+    assert dump["runtime"]["charge_rate_bands"] == []
