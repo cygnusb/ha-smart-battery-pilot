@@ -38,19 +38,35 @@ cheap slots. It never makes the pilot throttle the battery itself.
 
 ## Configuration
 
-Added to the **battery** step (setup and options):
+A new section **Cold-weather charging** (`derating`) in the options menu, next
+to battery, consumption, PV and so on. It is not part of the initial setup:
+the feature is off by default and is switched on later, once the installation
+runs.
 
-| Key | Type | Default | Meaning |
+| Key | Selector | Default | Meaning |
 |---|---|---|---|
-| `charge_derating` | bool | `false` | Master switch for the feature. |
-| `battery_temperature_entity` | entity (sensor, °C) | — | Cell/pack temperature, e.g. the BMS module temperature. **Required** when derating is on. Separate from the outdoor temperature used by the consumption model. |
-| `charge_derating_curve` | text | `0:0, 5:20, 10:50, 15:80, 20:100` | Support points `temperature °C : percent of max charge power`. |
+| `charge_derating` | boolean | `false` | Master switch for the feature. |
+| `battery_temperature_entity` | entity (sensor, device class temperature) | — | Cell/pack temperature, e.g. the BMS module temperature. **Required** when derating is on. Separate from the outdoor temperature used by the consumption model. |
+| `derating_0c` | slider 0–100 %, step 5 | `10` | Charge power at **0 °C and below**, percent of max charge power |
+| `derating_5c` | slider 0–100 %, step 5 | `20` | … at 5 °C |
+| `derating_10c` | slider 0–100 %, step 5 | `50` | … at 10 °C |
+| `derating_15c` | slider 0–100 %, step 5 | `80` | … at 15 °C |
+| `derating_20c` | slider 0–100 %, step 5 | `100` | … at **20 °C and above** |
 
-Curve rules, enforced in the config flow (`invalid_derating_curve` error):
-at least two points, temperatures strictly increasing, percentages 0–100.
-Between points the factor is linear; below the first / above the last point it
-is clamped to that point's value. The default is a conservative generic LFP
-curve; the documentation tells users to check their battery's datasheet.
+The support temperatures are fixed, and the user only moves five sliders.
+The labels carry the temperature, so no format has to be learned and nothing
+can be mistyped. Between the points the factor is linear. Below 0 °C it stays
+at the 0 °C value, above 20 °C at the 20 °C value.
+
+Validation in the flow:
+* The values must not fall with rising temperature (error
+  `derating_not_monotonic`), since a warmer battery never takes less.
+* The temperature entity is required when the switch is on (error
+  `derating_needs_temperature`).
+
+The default is a conservative generic LFP curve. At 0 °C it still assumes
+10 %, because many BMS allow a trickle charge there. The documentation tells
+users to check their battery's datasheet.
 
 Learning additionally needs the existing `battery_charge_energy_entity`.
 Without it the curve is used permanently; the config sensor says so.
@@ -68,7 +84,7 @@ class ChargeSample:
     at: datetime
 
 class ChargeRateModel:
-    def __init__(self, curve: list[tuple[float, float]]) -> None
+    def __init__(self, curve: list[tuple[float, float]]) -> None  # [(0, .10), (5, .20), ...]
     def factor(self, temperature: float | None) -> float           # 0..1
     def source(self, temperature: float | None) -> str             # "curve" | "learned" | "off"
     def add_sample(self, sample: ChargeSample) -> None
@@ -147,8 +163,8 @@ power_w = min(max_charge_power_w, planned_power_w / charge_factor)   # factor > 
 The script asks for the power that, at the expected acceptance, stores the
 planned energy. If the battery is warmer than modelled, it charges faster, the
 SOC runs ahead of the forecast, and the next re-plan (≤ 30 min) accounts for
-it. A factor of `0` means no charge slots are planned at all, so the division
-never happens.
+it. The default curve never reaches 0. A user can still set a slider to 0 %;
+then no charge slots are planned at all, so the division never happens.
 
 ### Coordinator wiring
 
@@ -170,7 +186,7 @@ never happens.
 | Charge meter missing | curve only, recorder inactive, config sensor says "curve (no charge meter)" |
 | Meter unavailable / reset during a slot | sample discarded, debug log with the reason |
 | Stored samples unreadable | model starts empty, warning (same as the consumption model) |
-| Invalid curve text | config flow error, entry not saved |
+| Falling slider values / missing temperature entity | config flow error, section not saved |
 
 ## Testing
 
@@ -184,16 +200,16 @@ never happens.
     explicit equality test),
   * a cold factor spreads the charge over more slots and keeps the SOC
     forecast within the derated rate,
-  * factor 0 → no charge slots,
+  * factor 0 (slider set to 0 %) → no charge slots,
   * the charge script's `power_w` is never below the non-derated plan's.
 * Coordinator/executor:
   * a sample is opened on an applied charge and closed at the next decision,
   * each discard rule (short slot, taper SOC, meter reset, dry run, small
     request) has its own test,
   * persistence round trip.
-* Config flow: new fields, curve validation, temperature entity required when
-  enabled; translations en/de (the existing translation test enforces key
-  parity).
+* Config flow: new options menu section, default values, monotonic
+  validation, temperature entity required when enabled; translations en/de
+  (the existing translation test enforces key parity).
 * `tests_ha` smoke: setup with derating on still loads.
 
 ## Rollout
