@@ -146,8 +146,11 @@ def test_plan_inputs_are_kept_with_the_result():
     inputs = result.inputs
     assert inputs["soc"] == 55.0
     assert inputs["slots"] == len(result.plan.slots)
-    assert inputs["price_min"] == 0.20
-    assert inputs["price_max"] == 0.40
+    # Past slots are dropped, so which half of the day remains depends on
+    # the clock - compare against the plan built from the same inputs.
+    prices = [slot.price for slot in result.plan.slots]
+    assert inputs["price_min"] == min(prices)
+    assert inputs["price_max"] == max(prices)
     assert inputs["battery"]["capacity_kwh"] > 0
     assert "spread_threshold" in inputs["config"]
 
