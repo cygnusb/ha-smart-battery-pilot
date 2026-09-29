@@ -243,9 +243,16 @@ def test_an_inverted_soc_window_is_rejected(min_soc, max_soc):
 
 
 def _options_flow(hass, entry) -> cf.SBPOptionsFlow:
-    flow = cf.SBPOptionsFlow()
+    """Built the way Home Assistant builds it: through the config flow's hook.
+
+    Home Assistant 2024.11 - the oldest supported core - never sets
+    `config_entry` on an options flow, and current cores refuse to let it be
+    set. The flow therefore has to carry the entry it was created for; a
+    helper that assigned `config_entry` here hid that the options dialog
+    crashed on 2024.11.
+    """
+    flow = cf.SBPConfigFlow.async_get_options_flow(entry)
     flow.hass = hass
-    flow.config_entry = entry
     return flow
 
 
@@ -285,7 +292,7 @@ def test_sections_only_persist_once_apply_is_chosen():
         )
     )
     assert result["type"] == "menu"
-    assert flow.config_entry.options[CONF_SPREAD_THRESHOLD] == 0.20
+    assert flow._entry.options[CONF_SPREAD_THRESHOLD] == 0.20
 
     applied = _run(flow.async_step_apply())
     assert applied["type"] == "create_entry"

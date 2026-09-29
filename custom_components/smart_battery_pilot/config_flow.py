@@ -392,7 +392,7 @@ class SBPConfigFlow(ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> SBPOptionsFlow:
-        return SBPOptionsFlow()
+        return SBPOptionsFlow(config_entry)
 
 
 class SBPOptionsFlow(OptionsFlow):
@@ -403,12 +403,16 @@ class SBPOptionsFlow(OptionsFlow):
     integration once, not per section).
     """
 
-    def __init__(self) -> None:
+    def __init__(self, config_entry: ConfigEntry) -> None:
         self._pending: dict[str, Any] = {}
+        # Our own name on purpose. Home Assistant 2024.11 never sets
+        # `config_entry` on an options flow, and current cores refuse any
+        # assignment to it - so the entry travels in through the constructor.
+        self._entry = config_entry
 
     @property
     def _merged(self) -> dict[str, Any]:
-        return {**self.config_entry.data, **self.config_entry.options, **self._pending}
+        return {**self._entry.data, **self._entry.options, **self._pending}
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return self.async_show_menu(
@@ -445,7 +449,7 @@ class SBPOptionsFlow(OptionsFlow):
         return await self.async_step_init()
 
     async def async_step_apply(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        return self.async_create_entry(data={**self.config_entry.options, **self._pending})
+        return self.async_create_entry(data={**self._entry.options, **self._pending})
 
     async def async_step_prices(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
