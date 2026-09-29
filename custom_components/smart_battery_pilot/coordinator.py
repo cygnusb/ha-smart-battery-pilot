@@ -649,7 +649,8 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             if not self._warned_reserve_entity:
                 self._warned_reserve_entity = True
                 _LOGGER.warning(
-                    "Reserve entity %s is unavailable - using the fixed reserve until it reads again",
+                    "Reserve entity %s is unavailable - using the fixed reserve "
+                    "until it reads again",
                     entity_id,
                 )
             else:
