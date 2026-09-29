@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+from collections import deque
 from datetime import datetime
 import logging
+from typing import Any
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_point_in_time
@@ -25,6 +27,10 @@ from .coordinator import SBPCoordinator
 from .optimizer import PlanSlot
 
 _LOGGER = logging.getLogger(__name__)
+
+# Decisions kept for the diagnostics dump. Identical consecutive ones collapse
+# into a single entry, so this covers many hours of steady operation.
+MAX_DECISIONS = 50
 
 
 class PlanExecutor:
@@ -48,6 +54,34 @@ class PlanExecutor:
         # scheduled and would otherwise re-arm the timer and re-apply a forced
         # mode behind an entry that is gone.
         self._stopped = False
+        # What the executor decided and why, newest last. A support report
+        # rarely comes with debug logging switched on; the diagnostics dump
+        # carries this instead.
+        self.decisions: deque[dict[str, Any]] = deque(maxlen=MAX_DECISIONS)
+
+    def _record(
+        self,
+        outcome: str,
+        slot: PlanSlot | None,
+        detail: str | None = None,
+    ) -> None:
+        """Append a decision, or bump the last one if nothing differs."""
+        entry = {
+            "slot_start": slot.start.isoformat() if slot else None,
+            "planned": slot.action if slot else None,
+            "power_w": round(slot.power_w) if slot else None,
+            "outcome": outcome,
+            "detail": detail,
+            "last_applied": self._last_applied,
+        }
+        now = dt_util.now().isoformat()
+        if self.decisions:
+            last = self.decisions[-1]
+            if all(last[key] == value for key, value in entry.items()):
+                last["repeats"] += 1
+                last["last_at"] = now
+                return
+        self.decisions.append({"at": now, "last_at": now, "repeats": 1, **entry})
 
     @property
     def _last_applied(self) -> str | None:
@@ -158,6 +192,10 @@ class PlanExecutor:
         coordinator = self.coordinator
         slot = self.current_slot()
         if slot is None or not self._plan_is_live():
+            reason = self._why_no_live_plan()
+            _LOGGER.debug(
+                "No live plan slot (%s); last applied mode '%s'", reason, self._last_applied
+            )
             # Invalid plan: fail safe to auto mode once. `last_applied`
             # survives restarts, so a battery left in a forced mode by the
             # previous run is released here too.
@@ -166,12 +204,15 @@ class PlanExecutor:
                 and not coordinator.dry_run
                 and self._last_applied not in (None, ACTION_AUTO)
             ):
-                _LOGGER.warning("Plan invalid - restoring battery auto mode")
+                _LOGGER.warning("Plan invalid (%s) - restoring battery auto mode", reason)
                 if await self._call_script(ACTION_AUTO, 0.0):
                     await self._remember(ACTION_AUTO)
+            self._record("no_live_plan", None, reason)
             return
 
         if not coordinator.enabled:
+            _LOGGER.debug("Pilot disabled - leaving slot action '%s' unapplied", slot.action)
+            self._record("disabled", slot)
             return
 
         action = slot.action
@@ -187,19 +228,41 @@ class PlanExecutor:
                 slot.start.isoformat(),
                 slot.end.isoformat(),
             )
+            self._record("dry_run", slot)
             return
 
         if action == self._last_applied and action not in (
             ACTION_CHARGE,
             ACTION_EXPORT,
         ):
+            _LOGGER.debug(
+                "Action '%s' already applied - no script call for slot %s",
+                action,
+                slot.start.isoformat(),
+            )
+            self._record("unchanged", slot)
             return
 
         if await self._call_script(action, slot.power_w):
             await self._remember(action)
+            self._record("applied", slot)
             return
         if action != ACTION_AUTO and await self._call_script(ACTION_AUTO, 0.0):
             await self._remember(ACTION_AUTO)
+            self._record("failed_fell_back_to_auto", slot)
+            return
+        self._record("failed", slot)
+
+    def _why_no_live_plan(self) -> str:
+        """Short reason the executor has no slot to apply, for logs and diagnostics."""
+        data = self.coordinator.data
+        if data is None:
+            return "no_data"
+        if not data.valid:
+            return data.error or "invalid_plan"
+        if getattr(self.coordinator, "last_update_success", True) is False:
+            return "last_refresh_failed"
+        return "no_slot_covers_now"
 
     def _schedule_boundary(self) -> None:
         if self._unsub_timer:
@@ -211,7 +274,9 @@ class PlanExecutor:
             nxt = self.next_slot()
             boundary = nxt.start if nxt else None
         if boundary is None:
+            _LOGGER.debug("No upcoming slot boundary - timer not armed")
             return
+        _LOGGER.debug("Next slot boundary armed for %s", boundary.isoformat())
 
         @callback
         def _fire(_now: datetime) -> None:
@@ -271,4 +336,5 @@ class PlanExecutor:
         except Exception:
             _LOGGER.exception("Calling script.%s failed", object_id)
             return False
+        _LOGGER.debug("script.%s returned for action '%s'", object_id, action)
         return True
