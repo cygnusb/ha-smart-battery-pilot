@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 import logging
+import math
 from typing import Any, NamedTuple
 
 from homeassistant.components.recorder import get_instance
@@ -61,7 +62,13 @@ from .const import (
     STORE_SAVE_DELAY_SECONDS,
     UPDATE_INTERVAL_MINUTES,
 )
-from .forecast.charge_rate import SOURCE_OFF, ChargeRateModel, Curve, curve_from_percentages
+from .forecast.charge_rate import (
+    SOURCE_OFF,
+    ChargeRateModel,
+    ChargeSample,
+    Curve,
+    curve_from_percentages,
+)
 from .forecast.consumption import ConsumptionForecaster, TrainingSample
 from .forecast.pv import pv_kwh_for_slot
 from .optimizer import BatteryState, InputSlot, OptimizerConfig, Plan, build_plan
@@ -93,6 +100,12 @@ DEFAULT_SUNSET_HOUR = 21.0
 # Charge factor source while derating is on but the temperature cannot be read.
 SOURCE_NO_TEMPERATURE = "no_temperature"
 
+# Observation rules for learning the cold charge limit (see the spec).
+MIN_OBSERVATION = timedelta(minutes=10)
+TAPER_MARGIN_SOC = 5.0  # above max_soc - this, the BMS tapers because it is full
+MIN_REQUEST_SHARE = 0.2  # smaller requests say nothing about the limit
+SATURATION_SHARE = 0.85  # took less than this share of the request -> limited
+
 
 class PriceEntityUnavailable(UpdateFailed):
     """The configured price entity has no usable state."""
@@ -115,6 +128,16 @@ class IntervalPrices(NamedTuple):
 
     charge: float  # what a kWh put into the battery cost
     discharge: float  # what a kWh taken out of it was worth
+
+
+@dataclass(frozen=True, slots=True)
+class _OpenCharge:
+    """A forced charge slot being watched."""
+
+    started: datetime
+    kwh: float
+    temperature: float
+    requested_w: float
 
 
 @dataclass
@@ -158,6 +181,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         # Battery temperature entity already warned about as unreadable; reset
         # once it reads again, so a later outage is reported afresh.
         self._warned_battery_temperature = False
+        self._open_charge: _OpenCharge | None = None
         self._store: Store = Store(hass, STORAGE_VERSION, f"{STORAGE_KEY}.{entry.entry_id}")
         self._last_training: datetime | None = None
         self._last_attempt: datetime | None = None
@@ -706,6 +730,88 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 TrainingSample(start=start_dt, kwh=kwh, temperature=temps.get(row["start"]))
             )
         return samples
+
+    # --- charge rate observation --------------------------------------------------
+
+    def charge_observation(self, requested_w: float | None, now: datetime | None = None) -> None:
+        """Close the watched charge slot and, if charging goes on, watch the next.
+
+        Called by the executor after every decision: with the requested power
+        while it really runs a charge slot, with None otherwise. A coordinator
+        refresh re-applies charge mid-slot, which simply splits the
+        observation in two.
+        """
+        now = now or dt_util.now()
+        self._close_charge_observation(now)
+        if requested_w is not None:
+            self._open_charge_observation(requested_w, now)
+
+    def _open_charge_observation(self, requested_w: float, now: datetime) -> None:
+        if not self.derating_enabled():
+            return
+        meter = self.conf(CONF_BATTERY_CHARGE_ENERGY_ENTITY)
+        max_w = float(self.conf(CONF_MAX_CHARGE_POWER_W, 5000))
+        reason = None
+        kwh = self._read_energy_kwh(meter) if meter else None
+        temperature = self._read_temperature_c(self.conf(CONF_BATTERY_TEMPERATURE_ENTITY))
+        if not meter:
+            reason = "no charge meter"
+        elif requested_w < MIN_REQUEST_SHARE * max_w:
+            reason = f"request {requested_w:.0f} W too small"
+        elif kwh is None:
+            reason = "charge meter unavailable"
+        elif temperature is None:
+            reason = "battery temperature unavailable"
+        if reason:
+            _LOGGER.debug("Not observing this charge slot: %s", reason)
+            return
+        self._open_charge = _OpenCharge(now, kwh, temperature, requested_w)
+
+    def _close_charge_observation(self, now: datetime) -> None:
+        opened, self._open_charge = self._open_charge, None
+        if opened is None:
+            return
+        elapsed = now - opened.started
+        kwh = self._read_energy_kwh(self.conf(CONF_BATTERY_CHARGE_ENERGY_ENTITY))
+        soc = self._read_float_state(self.conf(CONF_SOC_ENTITY))
+        max_soc = float(self.conf(CONF_MAX_SOC, DEFAULT_MAX_SOC))
+        reason = None
+        if elapsed < MIN_OBSERVATION:
+            reason = f"only {elapsed.total_seconds() / 60:.0f} min"
+        elif kwh is None:
+            reason = "charge meter unavailable"
+        elif kwh < opened.kwh:
+            reason = "charge meter went backwards"
+        elif soc is None or soc >= max_soc - TAPER_MARGIN_SOC:
+            reason = f"SOC {soc} too close to max SOC {max_soc:.0f}"
+        if reason:
+            _LOGGER.debug("Charge observation discarded: %s", reason)
+            return
+
+        hours = elapsed.total_seconds() / 3600.0
+        achieved_kw = (kwh - opened.kwh) / hours
+        eta_one_way = math.sqrt(
+            max(0.5, min(1.0, float(self.conf(CONF_EFFICIENCY, DEFAULT_EFFICIENCY)) / 100.0))
+        )
+        max_kw = float(self.conf(CONF_MAX_CHARGE_POWER_W, 5000)) / 1000.0
+        sample = ChargeSample(
+            temperature=opened.temperature,
+            ratio=achieved_kw / (max_kw * eta_one_way),
+            saturated=achieved_kw < SATURATION_SHARE * opened.requested_w / 1000.0,
+            at=now,
+        )
+        self.charge_model.add_sample(sample)
+        _LOGGER.debug(
+            "Charge observation at %.1f °C: %.2f kW of %.2f kW requested "
+            "(ratio %.3f, %s) over %.0f min",
+            sample.temperature,
+            achieved_kw,
+            opened.requested_w / 1000.0,
+            sample.ratio,
+            "limited" if sample.saturated else "took all",
+            elapsed.total_seconds() / 60,
+        )
+        self.schedule_persist()
 
     # --- actual savings tracking --------------------------------------------------
 

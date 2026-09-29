@@ -157,3 +157,117 @@ def test_the_config_sensor_says_when_the_curve_stays_for_good():
     assert _config_attributes(coord)["charge_rate_learning"] == "no_charge_meter"
     coord_off = _coordinator(hass)
     assert _config_attributes(coord_off)["charge_rate_learning"] == "off"
+
+
+# --- observations -----------------------------------------------------------------
+
+from datetime import timedelta  # noqa: E402
+
+from smart_battery_pilot.const import (  # noqa: E402
+    CONF_BATTERY_CHARGE_ENERGY_ENTITY,
+    CONF_MAX_CHARGE_POWER_W,
+)
+
+T0 = datetime(2026, 1, 15, 2, 0, tzinfo=UTC)
+LEARNING = {**DERATING, CONF_MAX_CHARGE_POWER_W: 5000, "efficiency": 100}
+
+
+def _observed(hass, coord, *, kwh_end, minutes=60, soc_end=40.0, requested=5000.0, unit="kWh"):
+    hass.states.set(
+        "sensor.charge_energy", 100.0 if unit == "kWh" else 100000.0, {"unit_of_measurement": unit}
+    )
+    coord.charge_observation(requested, now=T0)
+    hass.states.set(
+        "sensor.charge_energy",
+        kwh_end if unit == "kWh" else kwh_end * 1000,
+        {"unit_of_measurement": unit},
+    )
+    hass.states.set("sensor.soc", soc_end)
+    coord.charge_observation(None, now=T0 + timedelta(minutes=minutes))
+    return coord.charge_model.samples
+
+
+def test_a_throttled_charge_slot_becomes_a_saturated_sample():
+    hass = _hass_with_prices(temp=3.0)
+    coord = _coordinator(hass, **LEARNING)
+    [sample] = _observed(hass, coord, kwh_end=101.5)  # 1.5 kW of 5 kW asked
+    assert sample.temperature == 3.0
+    assert round(sample.ratio, 3) == 0.3
+    assert sample.saturated is True
+
+
+def test_a_full_power_slot_is_a_lower_bound():
+    hass = _hass_with_prices(temp=3.0)
+    coord = _coordinator(hass, **LEARNING)
+    [sample] = _observed(hass, coord, kwh_end=104.8)
+    assert sample.saturated is False
+
+
+def test_a_wh_meter_gives_the_same_ratio():
+    hass = _hass_with_prices(temp=3.0)
+    coord = _coordinator(hass, **LEARNING)
+    [sample] = _observed(hass, coord, kwh_end=101.5, unit="Wh")
+    assert round(sample.ratio, 3) == 0.3
+
+
+def test_the_ratio_is_measured_on_the_battery_side():
+    hass = _hass_with_prices(temp=3.0)
+    coord = _coordinator(hass, **{**LEARNING, "efficiency": 81})  # one way 0.9
+    [sample] = _observed(hass, coord, kwh_end=104.5)
+    assert round(sample.ratio, 3) == 1.0
+
+
+def test_short_slots_are_discarded():
+    hass = _hass_with_prices(temp=3.0)
+    coord = _coordinator(hass, **LEARNING)
+    assert _observed(hass, coord, kwh_end=100.1, minutes=5) == ()
+
+
+def test_a_nearly_full_battery_is_discarded():
+    hass = _hass_with_prices(temp=3.0)
+    coord = _coordinator(hass, **LEARNING)  # max_soc default 95
+    assert _observed(hass, coord, kwh_end=101.0, soc_end=91.0) == ()
+
+
+def test_a_meter_reset_is_discarded():
+    hass = _hass_with_prices(temp=3.0)
+    coord = _coordinator(hass, **LEARNING)
+    assert _observed(hass, coord, kwh_end=0.5) == ()
+
+
+def test_a_small_request_is_not_observed():
+    hass = _hass_with_prices(temp=3.0)
+    coord = _coordinator(hass, **LEARNING)
+    assert _observed(hass, coord, kwh_end=100.5, requested=500.0) == ()
+
+
+def test_no_learning_without_a_charge_meter():
+    hass = _hass_with_prices(temp=3.0)
+    coord = _coordinator(hass, **LEARNING, **{CONF_BATTERY_CHARGE_ENERGY_ENTITY: None})
+    assert _observed(hass, coord, kwh_end=101.5) == ()
+
+
+def test_no_learning_while_derating_is_off():
+    hass = _hass_with_prices(temp=3.0)
+    coord = _coordinator(hass, **{**LEARNING, CONF_CHARGE_DERATING: False})
+    assert _observed(hass, coord, kwh_end=101.5) == ()
+
+
+def test_a_mid_slot_refresh_splits_the_observation():
+    hass = _hass_with_prices(temp=3.0)
+    coord = _coordinator(hass, **LEARNING)
+    hass.states.set("sensor.charge_energy", 100.0, {"unit_of_measurement": "kWh"})
+    coord.charge_observation(5000.0, now=T0)
+    hass.states.set("sensor.charge_energy", 100.75, {"unit_of_measurement": "kWh"})
+    coord.charge_observation(5000.0, now=T0 + timedelta(minutes=30))  # refresh re-applies
+    hass.states.set("sensor.charge_energy", 101.5, {"unit_of_measurement": "kWh"})
+    coord.charge_observation(None, now=T0 + timedelta(minutes=60))
+    ratios = [round(s.ratio, 3) for s in coord.charge_model.samples]
+    assert ratios == [0.3, 0.3]
+
+
+def test_a_new_sample_is_persisted():
+    hass = _hass_with_prices(temp=3.0)
+    coord = _coordinator(hass, **LEARNING)
+    _observed(hass, coord, kwh_end=101.5)
+    assert coord._store._data["charge_rate"]["samples"]

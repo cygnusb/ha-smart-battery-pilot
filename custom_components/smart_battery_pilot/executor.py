@@ -133,6 +133,7 @@ class PlanExecutor:
             self._unsub_coordinator = None
         async with self._lock:
             self._stopped = True
+            self.coordinator.charge_observation(None)
             # `last_applied` is only set after a real script call, so dry-run
             # never triggers a restore on unload.
             if (
@@ -187,6 +188,19 @@ class PlanExecutor:
                 return
             self._schedule_boundary()
             await self._apply_locked()
+            self._report_charge()
+
+    def _report_charge(self) -> None:
+        """Tell the coordinator whether a charge slot is really running.
+
+        It watches those slots to learn how much a cold battery actually
+        takes; only a charge the inverter really received tells it anything.
+        """
+        last = self.decisions[-1] if self.decisions else None
+        charging = (
+            last is not None and last["outcome"] == "applied" and last["planned"] == ACTION_CHARGE
+        )
+        self.coordinator.charge_observation(float(last["power_w"]) if charging else None)
 
     async def _apply_locked(self) -> None:
         coordinator = self.coordinator

@@ -195,3 +195,13 @@ def test_diagnostics_carry_decisions_and_inputs():
     assert dump["decisions"][-1]["outcome"] == "dry_run"
     assert dump["state"]["inputs"]["soc"] == 50.0
     assert dump["runtime"]["charge_rate_bands"] == []
+
+
+def test_executor_reports_applied_charges_to_the_coordinator():
+    coord = _FakeCoordinator([_slot(ACTION_CHARGE, power=3000.0)], dry_run=False)
+    executor = PlanExecutor(_FakeHass(), coord)
+    _run(executor.async_apply_current())
+    coord.dry_run = True
+    _run(executor.async_apply_current())
+    _run(executor.async_stop())
+    assert coord.charge_requests == [3000.0, None, None]
