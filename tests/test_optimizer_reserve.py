@@ -101,3 +101,28 @@ def test_refill_slots_obey_the_cold_derating_cap():
         if slot.action == ACTION_CHARGE and stored >= cap_kwh - 0.013:
             assert slot.power_w == BATTERY.max_charge_power_w
         previous = slot.soc_forecast
+
+
+def _below_reserve(plan, reserve):
+    return [
+        (i, s.action, s.soc_forecast)
+        for i, s in enumerate(plan.slots)
+        if (s.discharge_kwh > 0 or s.action == ACTION_EXPORT) and s.soc_forecast < reserve - 0.05
+    ]
+
+
+def test_no_discharge_below_the_reserve_while_it_is_still_being_refilled():
+    """Starting under the reserve, a pairing of a cheap charge slot with a later
+    discharge slot ran the battery back down to 10 % hours before the refill."""
+    prices = [0.10, 0.50] + [0.30] * 9 + [0.01]
+    battery = replace(BATTERY, soc=10.0, reserve_soc=50.0)
+    plan = build_plan(make_slots(prices, demand_kwh=1.0), battery, CONFIG)
+    assert _below_reserve(plan, 50.0) == []
+
+
+def test_no_export_below_the_reserve_while_it_is_still_being_refilled():
+    prices = [0.10, 0.50] + [0.30] * 9 + [0.01]
+    config = replace(CONFIG, discharge_mode=DISCHARGE_MODE_EXPORT, feed_in_tariff=0.0)
+    battery = replace(BATTERY, soc=10.0, reserve_soc=50.0)
+    plan = build_plan(make_slots(prices, demand_kwh=1.0), battery, config)
+    assert _below_reserve(plan, 50.0) == []

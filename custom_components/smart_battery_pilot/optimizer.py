@@ -308,8 +308,15 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
                     available,
                 )
 
-        # 2. Pair with cheap earlier grid-charge slots.
+        # 2. Pair with cheap earlier grid-charge slots. A pairing leaves the
+        # level at the end of d unchanged, so if that level is still below the
+        # floor - a backup reserve not yet refilled - the paired discharge would
+        # run from inside the reserve. No pairing then.
         remaining = want_stored - assigned
+        if remaining > 1e-9 and timeline()[0][d] < -1e-9:
+            if debug:
+                _LOGGER.debug("%s: no pairing - still below the backup reserve", label(d))
+            remaining = 0.0
         if remaining > 1e-9:
             sell_price = _export_sell_price(d) if store is export_stored else prices[d]
             candidates = sorted(
