@@ -143,7 +143,7 @@ Off by default. Keeps enough energy in the battery for a grid outage.
 | Backup reserve | 0 % | SOC that arbitrage never spends. At or below the minimum SOC the option is off. |
 | Reserve entity | – | Optional `input_number`, `number` or `sensor` in percent. While it reads a number it replaces the fixed value — let an automation raise it on a storm warning, in winter, or before a holiday. If it becomes unavailable, the fixed value applies and one warning is logged. |
 | Refill deadline | 12 h | If the SOC is below the reserve, it is brought back up within this many hours: forecast PV first, the rest in the cheapest grid slots, whether or not the price spread pays for it. |
-| Block discharging at the reserve | off | Fallback for inverters without a reserve setting of their own: when the SOC reaches the reserve, the pilot runs the *block discharge* script instead of *auto*, and releases it 2 % above the reserve. It reacts to SOC changes immediately, not only at the next re-plan. |
+| Block discharging at the reserve | off | Fallback for inverters without a reserve setting of their own: when the SOC reaches the reserve, the pilot runs the *block discharge* script instead of *auto*, and releases it 2 percentage points above the reserve. It reacts to SOC changes immediately, not only at the next re-plan. |
 
 The effective reserve is the entity value (or the fixed value), clamped to the
 SOC window.
@@ -158,7 +158,9 @@ SOC window.
 
 Refilling costs money, and that cost is **not** counted against the estimated
 savings — it is reported separately as `reserve_refill_kwh` and
-`reserve_refill_cost_eur` on the plan sensor. A deadline too short for the
+`reserve_refill_cost_eur` on the plan sensor. The *actual* savings sensors
+count what the meters measured, so the energy bought for a refill does show
+up there — estimated and actual savings drift apart by the refill cost. A deadline too short for the
 charge power shows the plan warning `reserve_refill_incomplete`. The
 configuration sensor shows `reserve_soc`, its source (`fixed`, `entity`,
 `off`) and whether the discharge block is on.
