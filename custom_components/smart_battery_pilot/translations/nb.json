@@ -316,10 +316,16 @@
         }
       },
       "actual_savings_eur": {
-        "name": "Faktisk besparelse"
+        "name": "Batteriets gevinst (netto)"
       },
       "actual_savings_kwh": {
         "name": "Faktisk energigevinst"
+      },
+      "battery_gross_eur": {
+        "name": "Batteriets gevinst (brutto)"
+      },
+      "pilot_savings_eur": {
+        "name": "Besparelse fra piloten"
       }
     },
     "switch": {

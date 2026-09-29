@@ -18,8 +18,10 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    ACTION_AUTO,
     ACTION_CHARGE,
     ACTION_EXPORT,
+    ACTION_IDLE,
     CONF_BACKUP_RESERVE,
     CONF_BACKUP_RESERVE_ENTITY,
     CONF_BATTERY_CHARGE_ENERGY_ENTITY,
@@ -81,6 +83,7 @@ from .forecast.pv import pv_kwh_for_slot
 from .optimizer import BatteryState, InputSlot, OptimizerConfig, Plan, build_plan
 from .price_adapters import detect_adapter
 from .price_adapters.base import PriceSlot
+from .savings_ledger import PilotLedger
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -156,6 +159,18 @@ class _OpenCharge:
 
 
 @dataclass(frozen=True, slots=True)
+class _LedgerMark:
+    """Meters, mode and price at the start of a pilot-ledger segment."""
+
+    at: datetime
+    charge_kwh: float
+    discharge_kwh: float
+    action: str | None
+    price: float
+    demand_kw: float  # forecast net demand rate of the slot, for idle holds
+
+
+@dataclass(frozen=True, slots=True)
 class ChargeReading:
     """Meter and SOC at one instant - the end point of a charge observation."""
 
@@ -182,6 +197,8 @@ class SBPData:
     actual_savings_eur: float | None = None
     actual_charge_kwh: float | None = None
     actual_discharge_kwh: float | None = None
+    battery_gross_eur: float | None = None
+    pilot_savings_eur: float | None = None
     pv_power_w: float | None = None
     pv_power_entity: str | None = None
     # What the planner was fed, for the diagnostics dump: a plan is only
@@ -242,6 +259,11 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         # warning to the log twice an hour forever.
         self._warned_units: set[str] = set()
         self._acc_savings_eur: float = 0.0
+        # Discharge valued at the grid price only - no PV opportunity cost.
+        self._acc_gross_eur: float = 0.0
+        # What the pilot itself saved; see savings_ledger.
+        self.pilot_ledger = PilotLedger()
+        self._ledger_mark: _LedgerMark | None = None
         self._acc_charge_kwh: float = 0.0
         self._acc_discharge_kwh: float = 0.0
 
@@ -284,6 +306,10 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         if stored and stored.get("savings"):
             sv = stored["savings"]
             self._acc_savings_eur = float(sv.get("savings_eur", 0.0))
+            self._acc_gross_eur = float(sv.get("gross_eur", 0.0))
+
+        if stored and stored.get("pilot_ledger"):
+            self.pilot_ledger = PilotLedger.from_dict(stored["pilot_ledger"])
             self._acc_charge_kwh = float(sv.get("charge_kwh", 0.0))
             self._acc_discharge_kwh = float(sv.get("discharge_kwh", 0.0))
 
@@ -542,8 +568,12 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 "actual_savings_eur": None,
                 "actual_charge_kwh": None,
                 "actual_discharge_kwh": None,
+                "battery_gross_eur": None,
+                "pilot_savings_eur": None,
             }
         return {
+            "battery_gross_eur": round(self._acc_gross_eur, 3),
+            "pilot_savings_eur": round(self.pilot_ledger.savings_eur, 3),
             "actual_savings_eur": round(self._acc_savings_eur, 3),
             "actual_charge_kwh": round(self._acc_charge_kwh, 2),
             "actual_discharge_kwh": round(self._acc_discharge_kwh, 2),
@@ -1024,7 +1054,8 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         """
         if not self._has_energy_entities():
             return
-        sample = (now.timestamp(), self._price_for_now(plan, now), self.last_applied)
+        self._ledger_step(plan, now)
+        sample = (now.timestamp(), self._price_for_now(plan, now), self._effective_action())
         if self._conditions and self._conditions[-1][1:] == sample[1:]:
             return
         self._conditions.append(sample)
@@ -1113,22 +1144,83 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             self._trim_conditions(now.timestamp())
             return
 
-        if not self._is_steering():
-            # The meter baselines above are still advanced, so switching the
-            # pilot on later books the next real delta only - not everything
-            # that moved while it was off. Just the accounting pauses.
-            self._prev_savings_at = now
-            self._trim_conditions(now.timestamp())
-            return
-
+        # The battery benefit is the battery's worth, pilot or not - with the
+        # pilot off, the inverter simply runs in its own (auto) mode. What the
+        # pilot itself adds is the ledger's business.
         self._acc_charge_kwh += delta_charge
         self._acc_discharge_kwh += delta_discharge
         interval_start = self._prev_savings_at or now
         unit = self._interval_prices(interval_start, now)
         self._acc_savings_eur += delta_discharge * unit.discharge - delta_charge * unit.charge
+        self._acc_gross_eur += delta_discharge * unit.discharge
         self._prev_savings_at = now
         self._trim_conditions(now.timestamp())
 
+        self.schedule_persist()
+
+    def _effective_action(self) -> str | None:
+        """The mode the inverter is in: the pilot's, or auto while it is off."""
+        return self.last_applied if self._is_steering() else ACTION_AUTO
+
+    def _stored_kwh(self) -> float | None:
+        """Energy in the battery above min SOC, from the live SOC."""
+        soc = self._read_float_state(self.conf(CONF_SOC_ENTITY))
+        if soc is None:
+            return None
+        min_soc = float(self.conf(CONF_MIN_SOC, DEFAULT_MIN_SOC))
+        return max(0.0, (soc - min_soc) / 100.0 * float(self.conf(CONF_CAPACITY_KWH, 10.0)))
+
+    def _ledger_step(self, plan: Plan, now: datetime) -> None:
+        """Book the segment since the last mark on the pilot ledger.
+
+        Runs at every slot boundary, mode change and refresh, so each segment
+        has one mode and one price: grid charge in a charge slot and demand
+        held back in an idle slot become lots; any discharge spends them.
+        """
+        charge = self._read_energy_kwh(self.conf(CONF_BATTERY_CHARGE_ENERGY_ENTITY))
+        discharge = self._read_energy_kwh(self.conf(CONF_BATTERY_DISCHARGE_ENERGY_ENTITY))
+        if charge is None or discharge is None:
+            self._ledger_mark = None
+            return
+        slot = next((s for s in plan.slots if s.covers(now)), None)
+        hours = (slot.end - slot.start).total_seconds() / 3600.0 if slot else 0.0
+        mark = _LedgerMark(
+            at=now,
+            charge_kwh=charge,
+            discharge_kwh=discharge,
+            action=self._effective_action(),
+            price=slot.price if slot else 0.0,
+            demand_kw=max(0.0, slot.net_demand_kwh) / hours if slot and hours > 0 else 0.0,
+        )
+        prev, self._ledger_mark = self._ledger_mark, mark
+        if prev is None:
+            return
+        d_charge = charge - prev.charge_kwh
+        d_discharge = discharge - prev.discharge_kwh
+        if d_charge < 0 or d_discharge < 0:
+            _LOGGER.debug("Energy meter went backwards - pilot ledger skips this segment")
+            return
+        elapsed_h = max(0.0, (now - prev.at).total_seconds() / 3600.0)
+        eta = math.sqrt(
+            max(0.5, min(1.0, float(self.conf(CONF_EFFICIENCY, DEFAULT_EFFICIENCY)) / 100.0))
+        )
+        stored = self._stored_kwh()
+        if prev.action == ACTION_CHARGE and d_charge > 0:
+            self.pilot_ledger.book_charge(d_charge, prev.price, eta)
+        elif prev.action == ACTION_IDLE and elapsed_h > 0 and stored is not None:
+            self.pilot_ledger.book_hold(prev.demand_kw * elapsed_h, prev.price, eta, stored)
+        if d_discharge > 0:
+            value = self._export_value(prev.price) if prev.action == ACTION_EXPORT else prev.price
+            gain = self.pilot_ledger.book_discharge(d_discharge, value, eta)
+            if gain:
+                _LOGGER.debug(
+                    "Pilot ledger: %.3f kWh discharged at %.4f -> %+.4f EUR",
+                    d_discharge,
+                    value,
+                    gain,
+                )
+        if stored is not None:
+            self.pilot_ledger.cap(stored)
         self.schedule_persist()
 
     def _price_for_now(self, plan: Plan, now: datetime) -> float:
@@ -1182,8 +1274,10 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             "last_applied": self.last_applied,
             "last_reserve_sent": self.last_reserve_sent,
             "charge_rate": self.charge_model.to_dict(),
+            "pilot_ledger": self.pilot_ledger.to_dict(),
             "savings": {
                 "savings_eur": self._acc_savings_eur,
+                "gross_eur": self._acc_gross_eur,
                 "charge_kwh": self._acc_charge_kwh,
                 "discharge_kwh": self._acc_discharge_kwh,
             },

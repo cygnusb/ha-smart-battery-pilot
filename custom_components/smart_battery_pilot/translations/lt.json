@@ -316,10 +316,16 @@
         }
       },
       "actual_savings_eur": {
-        "name": "Faktinės santaupos"
+        "name": "Baterijos nauda (neto)"
       },
       "actual_savings_kwh": {
         "name": "Faktinis energijos prieaugis"
+      },
+      "battery_gross_eur": {
+        "name": "Baterijos nauda (bruto)"
+      },
+      "pilot_savings_eur": {
+        "name": "Piloto sutaupymas"
       }
     },
     "switch": {

@@ -316,10 +316,16 @@
         }
       },
       "actual_savings_eur": {
-        "name": "Tatsächliche Ersparnis"
+        "name": "Batterie-Nutzen (netto)"
       },
       "actual_savings_kwh": {
         "name": "Tatsächlicher Energiegewinn"
+      },
+      "battery_gross_eur": {
+        "name": "Batterie-Nutzen (brutto)"
+      },
+      "pilot_savings_eur": {
+        "name": "Ersparnis durch Pilot"
       }
     },
     "switch": {

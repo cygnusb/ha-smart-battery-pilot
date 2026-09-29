@@ -22,7 +22,7 @@ If your integration is not recognized, create a template sensor with `today`/
 | Max charge / discharge power | Inverter limits in W. |
 | Min / Max SOC | The plan never leaves this window (e.g. 10–95 %). |
 | Roundtrip efficiency | Grid → battery → load efficiency, typically 88–92 %. Losses are priced into every charge decision. |
-| Battery charge / discharge energy (optional) | Cumulative kWh or Wh meters. **Both** are required before either `sensor.…_actual_savings` entity reports a value — each one is a net figure (discharge minus charge), which a single meter cannot produce. Unavailable readings are skipped so a glitch cannot inflate the total. Accounting only runs while the pilot actually steers (master switch on, dry-run off); the meter baselines keep advancing while it is off, so switching on does not book everything that moved in the meantime. Grid charge is priced at the import slot; PV charge in auto/idle is priced at the feed-in tariff (opportunity cost); charge in a mode not yet on record is priced at the import price; discharge into the grid during an `export` slot is credited at the feed-in tariff, not at the import price. |
+| Battery charge / discharge energy (optional) | Cumulative kWh or Wh meters. **Both** are required before the battery benefit (net, gross), pilot savings and energy sensors report a value. Unavailable readings are skipped so a glitch cannot inflate the totals. See [how the three euro totals differ](optimizer.md) — in short: *battery benefit* is what the battery is worth (counted whether or not the pilot steers), *pilot savings* is only what the pilot added by charging from the grid or holding energy back. |
 
 ### 3. Control scripts
 
@@ -158,9 +158,10 @@ SOC window.
 
 Refilling costs money, and that cost is **not** counted against the estimated
 savings — it is reported separately as `reserve_refill_kwh` and
-`reserve_refill_cost_eur` on the plan sensor. The *actual* savings sensors
-count what the meters measured, so the energy bought for a refill does show
-up there — estimated and actual savings drift apart by the refill cost. A deadline too short for the
+`reserve_refill_cost_eur` on the plan sensor. The battery benefit
+and pilot savings sensors count what the meters measured, so the energy bought
+for a refill does show up there (a refill charge is a pilot lot like any grid
+charge) — estimated and measured figures drift apart by the refill cost. A deadline too short for the
 charge power shows the plan warning `reserve_refill_incomplete`. The
 configuration sensor shows `reserve_soc`, its source (`fixed`, `entity`,
 `off`) and whether the discharge block is on.

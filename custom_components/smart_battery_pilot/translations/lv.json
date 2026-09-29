@@ -316,10 +316,16 @@
         }
       },
       "actual_savings_eur": {
-        "name": "Faktiskais ietaupījums"
+        "name": "Akumulatora ieguvums (neto)"
       },
       "actual_savings_kwh": {
         "name": "Faktiskais enerģijas ieguvums"
+      },
+      "battery_gross_eur": {
+        "name": "Akumulatora ieguvums (bruto)"
+      },
+      "pilot_savings_eur": {
+        "name": "Pilota ietaupījums"
       }
     },
     "switch": {

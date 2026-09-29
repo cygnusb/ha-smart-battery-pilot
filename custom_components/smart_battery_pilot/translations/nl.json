@@ -316,10 +316,16 @@
         }
       },
       "actual_savings_eur": {
-        "name": "Werkelijke besparing"
+        "name": "Batterijopbrengst (netto)"
       },
       "actual_savings_kwh": {
         "name": "Werkelijke energiewinst"
+      },
+      "battery_gross_eur": {
+        "name": "Batterijopbrengst (bruto)"
+      },
+      "pilot_savings_eur": {
+        "name": "Besparing door de piloot"
       }
     },
     "switch": {
