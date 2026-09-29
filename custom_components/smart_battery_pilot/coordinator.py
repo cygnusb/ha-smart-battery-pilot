@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 import logging
 from typing import Any, NamedTuple
@@ -128,6 +128,9 @@ class SBPData:
     actual_discharge_kwh: float | None = None
     pv_power_w: float | None = None
     pv_power_entity: str | None = None
+    # What the planner was fed, for the diagnostics dump: a plan is only
+    # explainable next to the SOC, prices and limits it was built from.
+    inputs: dict[str, Any] | None = None
 
 
 class SBPCoordinator(DataUpdateCoordinator[SBPData]):
@@ -220,6 +223,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
     @callback
     def _handle_price_update(self, _event) -> None:
         """Re-plan when the price entity updates (e.g. tomorrow's prices arrive)."""
+        _LOGGER.debug("Price entity changed - requesting a re-plan")
         self.hass.async_create_task(self.async_request_refresh())
 
     # --- update ------------------------------------------------------------------
@@ -263,6 +267,23 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         pv_tomorrow = self._read_float_state(self.conf(CONF_PV_FORECAST_TOMORROW))
 
         sunrise_hour, sunset_hour = self._daylight_window()
+        _LOGGER.debug(
+            "Planning inputs: %d price slots %s .. %s via '%s', SOC %.1f%%, "
+            "temperature %s, PV forecast today %s / tomorrow %s kWh, "
+            "daylight %.2f-%.2f h, model %s (%d samples)",
+            len(slots),
+            slots[0].start.isoformat(),
+            slots[-1].end.isoformat(),
+            self._adapter_name,
+            soc,
+            temperature,
+            pv_today,
+            pv_tomorrow,
+            sunrise_hour,
+            sunset_hour,
+            self.forecaster.model_type,
+            self.forecaster.sample_count,
+        )
 
         input_slots: list[InputSlot] = []
         consumption_24h = 0.0
@@ -323,6 +344,24 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         pv_entity = self.conf(CONF_PV_POWER_ENTITY)
         pv_power = self._read_float_state(pv_entity) if pv_entity else None
 
+        prices = [slot.price for slot in slots]
+        inputs = {
+            "soc": soc,
+            "temperature": temperature,
+            "pv_forecast_today_kwh": pv_today,
+            "pv_forecast_tomorrow_kwh": pv_tomorrow,
+            "daylight_hours": [round(sunrise_hour, 2), round(sunset_hour, 2)],
+            "slots": len(slots),
+            "horizon_start": slots[0].start.isoformat(),
+            "horizon_end": slots[-1].end.isoformat(),
+            "price_min": round(min(prices), 4),
+            "price_max": round(max(prices), 4),
+            "battery": asdict(battery),
+            "config": asdict(config),
+        }
+        if self.data is not None and not self.data.valid:
+            _LOGGER.info("Planning works again after '%s'", self.data.error)
+
         return SBPData(
             plan=plan,
             valid=True,
@@ -335,10 +374,18 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             pv_forecast_24h_kwh=round(pv_24h, 2),
             pv_power_w=pv_power,
             pv_power_entity=pv_entity,
+            inputs=inputs,
             **self._savings_fields(),
         )
 
     def _invalid_plan(self, now: datetime, error: str) -> SBPData:
+        # Warn when the reason first appears; repeating it every 30 minutes
+        # while an entity stays down would only bury the rest of the log.
+        previous = self.data.error if self.data is not None and not self.data.valid else None
+        if error != previous:
+            _LOGGER.warning("No valid plan (%s) - the battery is handed back to auto mode", error)
+        else:
+            _LOGGER.debug("Still no valid plan (%s)", error)
         return SBPData(
             plan=Plan(), valid=False, error=error, updated_at=now, **self._savings_fields()
         )
@@ -375,6 +422,14 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         self._adapter_name = adapter.name
         offset = float(self.conf(CONF_PRICE_OFFSET, DEFAULT_PRICE_OFFSET))
         slots = adapter.parse(attrs, now)
+        _LOGGER.debug(
+            "Adapter '%s' parsed %d slots from %s (attributes: %s), offset %.4f EUR/kWh",
+            adapter.name,
+            len(slots),
+            entity_id,
+            sorted(attrs),
+            offset,
+        )
         if offset:
             slots = [PriceSlot(start=s.start, end=s.end, price=s.price + offset) for s in slots]
         self._reject_implausible_prices(slots, entity_id, adapter.name)
@@ -468,6 +523,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             return
         entity_id = self.conf(CONF_CONSUMPTION_ENTITY)
         if not entity_id:
+            _LOGGER.debug("No consumption entity configured - skipping model training")
             return
         # Kept in memory only, so a restart always retries straight away.
         self._last_attempt = now
@@ -483,6 +539,13 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             return
 
         samples = self._build_samples(stats.get(entity_id, []), stats.get(temp_entity or "", []))
+        _LOGGER.debug(
+            "Statistics since %s: %d consumption rows, %d temperature rows -> %d samples",
+            start.isoformat(),
+            len(stats.get(entity_id, [])),
+            len(stats.get(temp_entity or "", [])),
+            len(samples),
+        )
         if not samples:
             _LOGGER.warning(
                 "No statistics found for %s - consumption forecast uses defaults",

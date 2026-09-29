@@ -1,7 +1,9 @@
 """Diagnostics dump for a config entry.
 
 Everything an issue report needs: which price adapter matched, what the
-forecast model is, and the head of the current plan. Entity ids are kept -
+forecast model is, what the planner was fed, the head of the current plan and
+the executor's recent decisions - so a report explains itself even when debug
+logging was not switched on. Entity ids are kept -
 they are the whole point of a support dump and hold nothing private.
 """
 
@@ -36,6 +38,7 @@ async def async_get_config_entry_diagnostics(
             "last_applied": coordinator.last_applied,
             "last_update_success": coordinator.last_update_success,
         },
+        "decisions": list(executor.decisions),
     }
 
     if data is None:
@@ -54,6 +57,7 @@ async def async_get_config_entry_diagnostics(
         "consumption_forecast_24h_kwh": data.consumption_forecast_24h_kwh,
         "pv_forecast_24h_kwh": data.pv_forecast_24h_kwh,
         "current_action": current.action if current else None,
+        "inputs": data.inputs,
     }
     diagnostics["plan"] = {
         "total_slots": len(data.plan.slots),

@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
+import logging
 import math
 
 from .const import (
@@ -34,6 +35,10 @@ from .const import (
     DISCHARGE_MODE_EXPORT,
 )
 from .price_adapters.base import PriceSlot
+
+# Plain logging keeps the module free of Home Assistant; the logger name sits
+# under the integration's, so HA's "enable debug logging" switch covers it.
+_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -128,6 +133,34 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
     hours = [s.price_slot.hours for s in slots]
     prices = [s.price_slot.price for s in slots]
     demand = [max(0.0, s.net_demand_kwh) for s in slots]
+    # The pairing loop runs thousands of times on a 15-minute horizon; the
+    # messages are only formatted when someone is actually listening.
+    debug = _LOGGER.isEnabledFor(logging.DEBUG)
+
+    def label(i: int) -> str:
+        return slots[i].price_slot.start.strftime("%a %H:%M")
+
+    if debug:
+        _LOGGER.debug(
+            "Planning %d slots %s .. %s: prices %.4f..%.4f EUR/kWh, demand %.2f kWh, "
+            "stored %.2f of %.2f kWh usable (SOC %.1f%%, window %.0f-%.0f%%), "
+            "eta %.3f, spread %.4f, mode %s, feed-in %.4f",
+            n,
+            label(0),
+            label(n - 1),
+            min(prices),
+            max(prices),
+            sum(demand),
+            e_init,
+            e_max,
+            battery.soc,
+            battery.min_soc,
+            battery.max_soc,
+            eta,
+            config.spread_threshold,
+            config.discharge_mode,
+            config.feed_in_tariff,
+        )
 
     # Stored energy added/removed per slot (kWh measured inside the battery).
     charge_stored = [0.0] * n
@@ -204,6 +237,14 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
         if use > 1e-9:
             store[d] += use
             assigned += use
+            if debug:
+                _LOGGER.debug(
+                    "%s @ %.4f: %.3f kWh from stored energy (%.3f available)",
+                    label(d),
+                    prices[d],
+                    use,
+                    available,
+                )
 
         # 2. Pair with cheap earlier grid-charge slots.
         remaining = want_stored - assigned
@@ -223,6 +264,16 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
                     break
                 # Cost to deliver 1 kWh from grid via battery vs. discharge value
                 if prices[c] / eta + config.spread_threshold >= sell_price:
+                    if debug:
+                        _LOGGER.debug(
+                            "%s @ %.4f: spread not reached - cheapest open charge "
+                            "slot %s @ %.4f costs %.4f with losses + spread",
+                            label(d),
+                            sell_price,
+                            label(c),
+                            prices[c],
+                            prices[c] / eta + config.spread_threshold,
+                        )
                     break  # candidates are price-sorted: none cheaper left
                 levels, _ = timeline()
                 headroom = e_max - max(levels[c:d])
@@ -232,11 +283,33 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
                     max(0.0, headroom),
                 )
                 if q <= 1e-9:
+                    if debug:
+                        _LOGGER.debug(
+                            "%s: charge slot %s skipped - no headroom (%.3f kWh) "
+                            "or no charge power left",
+                            label(d),
+                            label(c),
+                            headroom,
+                        )
                     continue
                 charge_stored[c] += q
                 store[d] += q
                 assigned += q
                 remaining -= q
+                if debug:
+                    _LOGGER.debug(
+                        "pair charge %s @ %.4f -> %s %s @ %.4f: %.3f kWh stored",
+                        label(c),
+                        prices[c],
+                        "export" if store is export_stored else "discharge",
+                        label(d),
+                        sell_price,
+                        q,
+                    )
+            if debug and remaining > 1e-9:
+                _LOGGER.debug(
+                    "%s: %.3f of %.3f kWh left uncovered", label(d), remaining, want_stored
+                )
         return assigned
 
     # --- self-consumption: cover demand in the most expensive slots first ---
@@ -249,6 +322,8 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
             # A slot already paired as a cheap charge slot for a pricier hour
             # will be force-charged. The inverter cannot serve the house from
             # the battery at the same time, so that demand comes from the grid.
+            if debug:
+                _LOGGER.debug("%s: not discharged - already a charge slot", label(d))
             continue
         # Energy delivered to the load is limited by demand and power.
         deliverable = min(demand[d], discharge_cap[d])
@@ -352,9 +427,30 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
         # running. Should not happen - but a wrong plan costs the user money,
         # while a needless fallback only costs an optimization.
         warnings.append("plan_worse_than_baseline")
+        if debug:
+            _LOGGER.debug(
+                "Plan cost %.4f EUR vs. baseline %.4f EUR - falling back to all-auto",
+                cost_plan,
+                cost_baseline,
+            )
         return _auto_plan(slots, prices, baseline_delivered, baseline_levels, battery, warnings)
 
     plan.estimated_savings_eur = round(savings, 2)
+    if debug:
+        counts: dict[str, int] = {}
+        for planned in plan.slots:
+            counts[planned.action] = counts.get(planned.action, 0) + 1
+        _LOGGER.debug(
+            "Plan result: %s; grid charge %.3f kWh, battery delivers %.3f kWh, "
+            "cost %.4f EUR vs. baseline %.4f EUR (saves %.4f), warnings %s",
+            ", ".join(f"{k}={v}" for k, v in sorted(counts.items())),
+            plan.grid_charge_kwh,
+            plan.battery_discharge_kwh,
+            cost_plan,
+            cost_baseline,
+            savings,
+            plan.warnings or "none",
+        )
     return plan
 
 

@@ -113,8 +113,25 @@ reports `0.00`. See [docs/optimizer.md](docs/optimizer.md#savings-estimate).
 Service: `smart_battery_pilot.replan` — recompute the plan immediately.
 
 Diagnostics (⋮ → *Download diagnostics* on the device page) dump the active
-configuration, the matched price adapter, the forecast model and the first day
-of the plan — attach that to any issue report.
+configuration, the matched price adapter, the forecast model, the inputs the
+last plan was built from (SOC, price range, battery limits, tunables), the
+first day of the plan and the executor's last 50 decisions (applied,
+unchanged, dry run, disabled, script failed, no valid plan — each with a
+reason) — attach that to any issue report.
+
+For a deeper look, switch on debug logging (device page → *Enable debug
+logging*, or in `configuration.yaml`):
+
+```yaml
+logger:
+  logs:
+    custom_components.smart_battery_pilot: debug
+```
+
+The log then shows every planning run's inputs, how the price adapter parsed
+the entity, each charge/discharge pairing the optimizer made or rejected (and
+why, e.g. *spread not reached*), the plan result against the do-nothing
+baseline, and every executor decision including skipped script calls.
 
 ## Dashboard card
 
