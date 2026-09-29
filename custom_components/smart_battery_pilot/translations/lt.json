@@ -201,9 +201,31 @@
           "control": "Valdymo scenarijai",
           "consumption": "Suvartojimas & temperatūra",
           "pv": "Saulės energijos prognozė",
+          "derating": "Įkrovimas šaltyje",
           "apply": "💾 Įrašyti & uždaryti"
         },
         "description": "Toliau esančiuose skyriuose atlikti pakeitimai kaupiami ir įrašomi tik paspaudus „Įrašyti & uždaryti“."
+      },
+      "derating": {
+        "title": "Įkrovimas šaltyje",
+        "data": {
+          "charge_derating": "Planuoti su sumažinta įkrovimo galia šaltyje",
+          "battery_temperature_entity": "Baterijos temperatūros objektas",
+          "derating_0c": "Įkrovimo galia esant 0 °C ir mažiau",
+          "derating_5c": "Įkrovimo galia esant 5 °C",
+          "derating_10c": "Įkrovimo galia esant 10 °C",
+          "derating_15c": "Įkrovimo galia esant 15 °C",
+          "derating_20c": "Įkrovimo galia esant 20 °C ir daugiau"
+        },
+        "data_description": {
+          "charge_derating": "Planuoklis tikisi, kad šalta baterija priims mažiau nei didžiausią įkrovimo galią, ir suplanuoja daugiau pigių įkrovimo intervalų. Iki šalčio ribos suplanuotas intervalas vis tiek prašo įkrovimo scenarijaus visos galios; ribojimą atlieka baterijos BMS, ne pilotas.",
+          "battery_temperature_entity": "Baterijos elemento ar modulio temperatūra, ne lauko temperatūra. Privaloma, kai parinktis įjungta.",
+          "derating_0c": "Didžiausios įkrovimo galios procentas, kurį baterija priima esant 0 °C ir šalčiau. Žr. baterijos duomenų lapą.",
+          "derating_5c": "Didžiausios įkrovimo galios procentas, kurį baterija priima esant 5 °C.",
+          "derating_10c": "Didžiausios įkrovimo galios procentas, kurį baterija priima esant 10 °C.",
+          "derating_15c": "Didžiausios įkrovimo galios procentas, kurį baterija priima esant 15 °C.",
+          "derating_20c": "Didžiausios įkrovimo galios procentas esant 20 °C ir šilčiau. Paprastai 100 %."
+        }
       }
     },
     "error": {
@@ -212,7 +234,9 @@
       "no_future_prices": "Objekte nėra būsimų kainų.",
       "soc_range_invalid": "Mažiausias SOC turi būti mažesnis už didžiausią SOC.",
       "export_spread_unreachable": "Pardavimo režimas su šiomis reikšmėmis nieko negali padaryti: atlygis yra lygus mažiausiam kainų skirtumui arba už jį mažesnis, todėl nė viena valanda niekada netiks. Padidink atlygį, sumažink skirtumą arba nustatyk atlygį į 0, kad parduotum rinkos kaina.",
-      "export_script_missing": "Eksporto režimui reikia priverstinio iškrovimo scenarijaus. Pridėkite jį prie valdymo scenarijų arba grąžinkite iškrovimo režimą į savo suvartojimą."
+      "export_script_missing": "Eksporto režimui reikia priverstinio iškrovimo scenarijaus. Pridėkite jį prie valdymo scenarijų arba grąžinkite iškrovimo režimą į savo suvartojimą.",
+      "derating_not_monotonic": "Įkrovimo galia neturi mažėti kylant temperatūrai. Patikrinkite slankiklius.",
+      "derating_needs_temperature": "Įkrovimui šaltyje reikia baterijos temperatūros objekto."
     }
   },
   "selector": {

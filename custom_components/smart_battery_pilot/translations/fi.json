@@ -201,9 +201,31 @@
           "control": "Ohjausskriptit",
           "consumption": "Kulutus & lämpötila",
           "pv": "Aurinkoennuste",
+          "derating": "Lataus kylmällä",
           "apply": "💾 Tallenna & sulje"
         },
         "description": "Alla olevien osioiden muutokset kerätään ja tallennetaan vasta painikkeella ”Tallenna & sulje”."
+      },
+      "derating": {
+        "title": "Lataus kylmällä",
+        "data": {
+          "charge_derating": "Suunnittele kylmällä alennetulla latausteholla",
+          "battery_temperature_entity": "Akun lämpötilan entiteetti",
+          "derating_0c": "Latausteho 0 °C:ssa ja alle",
+          "derating_5c": "Latausteho 5 °C:ssa",
+          "derating_10c": "Latausteho 10 °C:ssa",
+          "derating_15c": "Latausteho 15 °C:ssa",
+          "derating_20c": "Latausteho 20 °C:ssa ja yli"
+        },
+        "data_description": {
+          "charge_derating": "Suunnittelija olettaa, että kylmä akku ottaa vastaan vähemmän kuin suurimman lataustehon, ja suunnittelee enemmän edullisia latausjaksoja. Kylmärajaan asti suunniteltu jakso pyytää latausskriptiltä edelleen täyttä tehoa; rajoituksen hoitaa akun BMS, ei pilotti.",
+          "battery_temperature_entity": "Akun kennon tai moduulin lämpötila, ei ulkolämpötila. Pakollinen, kun asetus on päällä.",
+          "derating_0c": "Prosentti suurimmasta lataustehosta, jonka akku ottaa vastaan 0 °C:ssa ja kylmemmässä. Katso akun tuotetiedot.",
+          "derating_5c": "Prosentti suurimmasta lataustehosta, jonka akku ottaa vastaan 5 °C:ssa.",
+          "derating_10c": "Prosentti suurimmasta lataustehosta, jonka akku ottaa vastaan 10 °C:ssa.",
+          "derating_15c": "Prosentti suurimmasta lataustehosta, jonka akku ottaa vastaan 15 °C:ssa.",
+          "derating_20c": "Prosentti suurimmasta lataustehosta 20 °C:ssa ja lämpimämmässä. Yleensä 100 %."
+        }
       }
     },
     "error": {
@@ -212,7 +234,9 @@
       "no_future_prices": "Entiteetti ei sisällä tulevia hintoja.",
       "soc_range_invalid": "Pienimmän SOC:n on oltava suurinta SOC:ia pienempi.",
       "export_spread_unreachable": "Myyntitila ei voi tehdä näillä arvoilla mitään: syöttötariffi on pienimmän hintaspreadin tasolla tai sen alle, joten yksikään tunti ei voi koskaan täyttää ehtoa. Nosta tariffia, laske spreadia, tai aseta tariffi arvoon 0 myydäksesi markkinahintaan.",
-      "export_script_missing": "Vientitila vaatii pakotetun purun skriptin. Lisää sellainen ohjausskripteihin tai vaihda purkutila takaisin omaan käyttöön."
+      "export_script_missing": "Vientitila vaatii pakotetun purun skriptin. Lisää sellainen ohjausskripteihin tai vaihda purkutila takaisin omaan käyttöön.",
+      "derating_not_monotonic": "Lataustehon ei pidä laskea lämpötilan noustessa. Tarkista liukusäätimet.",
+      "derating_needs_temperature": "Lataus kylmällä vaatii akun lämpötilan entiteetin."
     }
   },
   "selector": {

@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 import logging
+import math
 from typing import Any, NamedTuple
 
 from homeassistant.components.recorder import get_instance
@@ -21,7 +22,9 @@ from .const import (
     ACTION_EXPORT,
     CONF_BATTERY_CHARGE_ENERGY_ENTITY,
     CONF_BATTERY_DISCHARGE_ENERGY_ENTITY,
+    CONF_BATTERY_TEMPERATURE_ENTITY,
     CONF_CAPACITY_KWH,
+    CONF_CHARGE_DERATING,
     CONF_CONSUMPTION_ENTITY,
     CONF_DISCHARGE_MODE,
     CONF_DRY_RUN,
@@ -41,6 +44,8 @@ from .const import (
     CONF_SPREAD_THRESHOLD,
     CONF_TEMPERATURE_ENTITY,
     CONF_TRAINING_DAYS,
+    DEFAULT_CHARGE_DERATING,
+    DEFAULT_DERATING_CURVE,
     DEFAULT_DISCHARGE_MODE,
     DEFAULT_DRY_RUN,
     DEFAULT_EFFICIENCY,
@@ -50,11 +55,19 @@ from .const import (
     DEFAULT_PRICE_OFFSET,
     DEFAULT_SPREAD_THRESHOLD,
     DEFAULT_TRAINING_DAYS,
+    DERATING_CURVE_KEYS,
     DOMAIN,
     STORAGE_KEY,
     STORAGE_VERSION,
     STORE_SAVE_DELAY_SECONDS,
     UPDATE_INTERVAL_MINUTES,
+)
+from .forecast.charge_rate import (
+    SOURCE_OFF,
+    ChargeRateModel,
+    ChargeSample,
+    Curve,
+    curve_from_percentages,
 )
 from .forecast.consumption import ConsumptionForecaster, TrainingSample
 from .forecast.pv import pv_kwh_for_slot
@@ -84,6 +97,23 @@ MAX_PLAUSIBLE_PRICE_EUR_KWH = 10.0
 DEFAULT_SUNRISE_HOUR = 6.0
 DEFAULT_SUNSET_HOUR = 21.0
 
+# Charge factor source while derating is on but the temperature cannot be read.
+SOURCE_NO_TEMPERATURE = "no_temperature"
+
+# Observation rules for learning the cold charge limit (see the spec).
+MIN_OBSERVATION = timedelta(minutes=10)
+# The battery warms while it charges; cut long charges into hour-long samples
+# so each is filed under a temperature close to the one it ran at.
+MAX_OBSERVATION = timedelta(hours=1)
+# Inverter energy meters often count in 0.1 kWh steps. A sample needs either
+# enough energy for that step not to dominate, or enough time that "nothing
+# went in" is a finding rather than a rounding artefact.
+MIN_OBSERVATION_KWH = 0.2
+RESOLUTION_EXEMPT_AFTER = timedelta(minutes=30)
+TAPER_MARGIN_SOC = 5.0  # above max_soc - this, the BMS tapers because it is full
+MIN_REQUEST_SHARE = 0.2  # smaller requests say nothing about the limit
+SATURATION_SHARE = 0.85  # took less than this share of the request -> limited
+
 
 class PriceEntityUnavailable(UpdateFailed):
     """The configured price entity has no usable state."""
@@ -106,6 +136,25 @@ class IntervalPrices(NamedTuple):
 
     charge: float  # what a kWh put into the battery cost
     discharge: float  # what a kWh taken out of it was worth
+
+
+@dataclass(frozen=True, slots=True)
+class _OpenCharge:
+    """A forced charge slot being watched."""
+
+    started: datetime
+    kwh: float
+    temperature: float
+    requested_w: float
+
+
+@dataclass(frozen=True, slots=True)
+class ChargeReading:
+    """Meter and SOC at one instant - the end point of a charge observation."""
+
+    at: datetime
+    kwh: float | None
+    soc: float | None
 
 
 @dataclass
@@ -145,6 +194,11 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         )
         self.entry = entry
         self.forecaster = ConsumptionForecaster()
+        self.charge_model = ChargeRateModel(self._derating_curve())
+        # Battery temperature entity already warned about as unreadable; reset
+        # once it reads again, so a later outage is reported afresh.
+        self._warned_battery_temperature = False
+        self._open_charge: _OpenCharge | None = None
         self._store: Store = Store(hass, STORAGE_VERSION, f"{STORAGE_KEY}.{entry.entry_id}")
         self._last_training: datetime | None = None
         self._last_attempt: datetime | None = None
@@ -186,6 +240,17 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
     def opt(self, key: str, default: Any = None) -> Any:
         return self.entry.options.get(key, default)
 
+    def derating_enabled(self) -> bool:
+        return bool(self.conf(CONF_CHARGE_DERATING, DEFAULT_CHARGE_DERATING))
+
+    def _derating_curve(self) -> Curve:
+        return curve_from_percentages(
+            [
+                float(self.conf(key, default))
+                for key, default in zip(DERATING_CURVE_KEYS, DEFAULT_DERATING_CURVE, strict=True)
+            ]
+        )
+
     # --- lifecycle -------------------------------------------------------------
 
     async def async_setup(self) -> None:
@@ -207,6 +272,14 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             self._acc_savings_eur = float(sv.get("savings_eur", 0.0))
             self._acc_charge_kwh = float(sv.get("charge_kwh", 0.0))
             self._acc_discharge_kwh = float(sv.get("discharge_kwh", 0.0))
+
+        if stored and stored.get("charge_rate"):
+            try:
+                self.charge_model = ChargeRateModel.from_dict(
+                    stored["charge_rate"], self._derating_curve()
+                )
+            except (AttributeError, KeyError, TypeError, ValueError) as err:
+                _LOGGER.warning("Could not restore charge rate observations: %s", err)
 
         price_entity = self.conf(CONF_PRICE_ENTITY)
         if price_entity:
@@ -267,10 +340,12 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         pv_tomorrow = self._read_float_state(self.conf(CONF_PV_FORECAST_TOMORROW))
 
         sunrise_hour, sunset_hour = self._daylight_window()
+        factor, factor_source, battery_temperature = self.charge_factor()
         _LOGGER.debug(
             "Planning inputs: %d price slots %s .. %s via '%s', SOC %.1f%%, "
             "temperature %s, PV forecast today %s / tomorrow %s kWh, "
-            "daylight %.2f-%.2f h, model %s (%d samples)",
+            "daylight %.2f-%.2f h, model %s (%d samples), "
+            "charge factor %.3f (%s) at battery %s °C",
             len(slots),
             slots[0].start.isoformat(),
             slots[-1].end.isoformat(),
@@ -283,6 +358,9 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             sunset_hour,
             self.forecaster.model_type,
             self.forecaster.sample_count,
+            factor,
+            factor_source,
+            battery_temperature,
         )
 
         input_slots: list[InputSlot] = []
@@ -314,6 +392,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             max_charge_power_w=float(self.conf(CONF_MAX_CHARGE_POWER_W, 5000)),
             max_discharge_power_w=float(self.conf(CONF_MAX_DISCHARGE_POWER_W, 5000)),
             efficiency=float(self.conf(CONF_EFFICIENCY, DEFAULT_EFFICIENCY)),
+            charge_factor=factor,
         )
         config = OptimizerConfig(
             spread_threshold=float(self.conf(CONF_SPREAD_THRESHOLD, DEFAULT_SPREAD_THRESHOLD)),
@@ -358,6 +437,14 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             "price_max": round(max(prices), 4),
             "battery": asdict(battery),
             "config": asdict(config),
+            "charge_derating": {
+                "enabled": self.derating_enabled(),
+                "temperature": (
+                    round(battery_temperature, 2) if battery_temperature is not None else None
+                ),
+                "factor": round(factor, 3),
+                "source": factor_source,
+            },
         }
         if self.data is not None and not self.data.valid:
             _LOGGER.info("Planning works again after '%s'", self.data.error)
@@ -493,6 +580,41 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         except ValueError:
             return None
 
+    def _read_temperature_c(self, entity_id: str | None) -> float | None:
+        """A temperature in °C, whatever unit the entity reports in."""
+        value = self._read_float_state(entity_id)
+        if value is None:
+            return None
+        state = self.hass.states.get(entity_id)
+        unit = str(state.attributes.get("unit_of_measurement") or "") if state else ""
+        if unit == "°F":
+            return (value - 32.0) * 5.0 / 9.0
+        return value
+
+    def charge_factor(self) -> tuple[float, str, float | None]:
+        """(factor, source, battery temperature °C) for the planner."""
+        if not self.derating_enabled():
+            return 1.0, SOURCE_OFF, None
+        entity_id = self.conf(CONF_BATTERY_TEMPERATURE_ENTITY)
+        temperature = self._read_temperature_c(entity_id)
+        if temperature is None:
+            if not self._warned_battery_temperature:
+                self._warned_battery_temperature = True
+                _LOGGER.warning(
+                    "Battery temperature %s is unavailable - planning with full "
+                    "charge power until it reads again",
+                    entity_id,
+                )
+            else:
+                _LOGGER.debug("Battery temperature %s still unavailable", entity_id)
+            return 1.0, SOURCE_NO_TEMPERATURE, None
+        self._warned_battery_temperature = False
+        return (
+            self.charge_model.factor(temperature),
+            self.charge_model.source(temperature),
+            temperature,
+        )
+
     def _read_energy_kwh(self, entity_id: str | None) -> float | None:
         """Read a cumulative energy meter, converting Wh → kWh when needed."""
         raw = self._read_float_state(entity_id)
@@ -623,6 +745,119 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 TrainingSample(start=start_dt, kwh=kwh, temperature=temps.get(row["start"]))
             )
         return samples
+
+    # --- charge rate observation --------------------------------------------------
+
+    def charge_reading(self, now: datetime | None = None) -> ChargeReading:
+        """Snapshot for closing an observation.
+
+        The executor takes it before calling the next action's script: that
+        script may run for minutes with no charge flowing, and timing the
+        sample after it returned would dilute the measured rate.
+        """
+        return ChargeReading(
+            at=now or dt_util.now(),
+            kwh=self._read_energy_kwh(self.conf(CONF_BATTERY_CHARGE_ENERGY_ENTITY)),
+            soc=self._read_float_state(self.conf(CONF_SOC_ENTITY)),
+        )
+
+    def charge_observation(
+        self,
+        requested_w: float | None,
+        now: datetime | None = None,
+        closing: ChargeReading | None = None,
+    ) -> None:
+        """Close the watched charge slot and, if charging goes on, watch the next.
+
+        Called by the executor after every decision: with the requested power
+        while it really runs a charge slot, with None otherwise. The same
+        request again - a coordinator refresh re-applying the slot, or the next
+        slot asking for the same power - continues the running observation.
+        Splitting there would cut 15-minute slots below the minimum length and
+        count one 60-minute slot as several samples.
+        """
+        now = now or dt_util.now()
+        running = self._open_charge
+        if (
+            running is not None
+            and requested_w is not None
+            and math.isclose(requested_w, running.requested_w, rel_tol=0.01)
+            and now - running.started < MAX_OBSERVATION
+        ):
+            return
+        self._close_charge_observation(closing or self.charge_reading(now))
+        if requested_w is not None:
+            self._open_charge_observation(requested_w, now)
+
+    def _open_charge_observation(self, requested_w: float, now: datetime) -> None:
+        if not self.derating_enabled():
+            return
+        meter = self.conf(CONF_BATTERY_CHARGE_ENERGY_ENTITY)
+        max_w = float(self.conf(CONF_MAX_CHARGE_POWER_W, 5000))
+        reason = None
+        kwh = self._read_energy_kwh(meter) if meter else None
+        temperature = self._read_temperature_c(self.conf(CONF_BATTERY_TEMPERATURE_ENTITY))
+        if not meter:
+            reason = "no charge meter"
+        elif requested_w < MIN_REQUEST_SHARE * max_w:
+            reason = f"request {requested_w:.0f} W too small"
+        elif kwh is None:
+            reason = "charge meter unavailable"
+        elif temperature is None:
+            reason = "battery temperature unavailable"
+        if reason:
+            _LOGGER.debug("Not observing this charge slot: %s", reason)
+            return
+        self._open_charge = _OpenCharge(now, kwh, temperature, requested_w)
+
+    def _close_charge_observation(self, reading: ChargeReading) -> None:
+        opened, self._open_charge = self._open_charge, None
+        if opened is None:
+            return
+        now, kwh, soc = reading.at, reading.kwh, reading.soc
+        elapsed = now - opened.started
+        max_soc = float(self.conf(CONF_MAX_SOC, DEFAULT_MAX_SOC))
+        reason = None
+        if elapsed < MIN_OBSERVATION:
+            reason = f"only {elapsed.total_seconds() / 60:.0f} min"
+        elif kwh is None:
+            reason = "charge meter unavailable"
+        elif kwh < opened.kwh:
+            reason = "charge meter went backwards"
+        elif kwh - opened.kwh < MIN_OBSERVATION_KWH and elapsed < RESOLUTION_EXEMPT_AFTER:
+            reason = f"only {kwh - opened.kwh:.2f} kWh - below meter resolution"
+        elif soc is None or soc >= max_soc - TAPER_MARGIN_SOC:
+            reason = f"SOC {soc} too close to max SOC {max_soc:.0f}"
+        if reason:
+            _LOGGER.debug("Charge observation discarded: %s", reason)
+            return
+
+        hours = elapsed.total_seconds() / 3600.0
+        achieved_kw = (kwh - opened.kwh) / hours
+        eta_one_way = math.sqrt(
+            max(0.5, min(1.0, float(self.conf(CONF_EFFICIENCY, DEFAULT_EFFICIENCY)) / 100.0))
+        )
+        max_kw = float(self.conf(CONF_MAX_CHARGE_POWER_W, 5000)) / 1000.0
+        sample = ChargeSample(
+            temperature=opened.temperature,
+            ratio=achieved_kw / (max_kw * eta_one_way),
+            # Both sides of the comparison on the battery side of the inverter:
+            # the meter counts what arrived, the request is what left the grid.
+            saturated=achieved_kw < SATURATION_SHARE * opened.requested_w / 1000.0 * eta_one_way,
+            at=now,
+        )
+        self.charge_model.add_sample(sample)
+        _LOGGER.debug(
+            "Charge observation at %.1f °C: %.2f kW of %.2f kW requested "
+            "(ratio %.3f, %s) over %.0f min",
+            sample.temperature,
+            achieved_kw,
+            opened.requested_w / 1000.0,
+            sample.ratio,
+            "limited" if sample.saturated else "took all",
+            elapsed.total_seconds() / 60,
+        )
+        self.schedule_persist()
 
     # --- actual savings tracking --------------------------------------------------
 
@@ -842,6 +1077,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             "model": self.forecaster.to_dict(),
             "trained_at": self._last_training.isoformat() if self._last_training else None,
             "last_applied": self.last_applied,
+            "charge_rate": self.charge_model.to_dict(),
             "savings": {
                 "savings_eur": self._acc_savings_eur,
                 "charge_kwh": self._acc_charge_kwh,

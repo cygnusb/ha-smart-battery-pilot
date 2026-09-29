@@ -14,6 +14,7 @@ from . import SBPConfigEntry
 from .const import (
     ACTION_AUTO,
     ATTR_SLOTS,
+    CONF_BATTERY_CHARGE_ENERGY_ENTITY,
     CONF_CAPACITY_KWH,
     CONF_DISCHARGE_MODE,
     CONF_EFFICIENCY,
@@ -344,8 +345,27 @@ class ConfigSensor(SBPEntity, SensorEntity):
             "price_offset_eur_kwh": c(CONF_PRICE_OFFSET, DEFAULT_PRICE_OFFSET),
             "feed_in_tariff_eur_kwh": c(CONF_FEED_IN_TARIFF, DEFAULT_FEED_IN_TARIFF),
             "training_days": c(CONF_TRAINING_DAYS, DEFAULT_TRAINING_DAYS),
+            "charge_derating": self.coordinator.derating_enabled(),
+            "charge_factor": self._derating().get("factor"),
+            "charge_factor_source": self._derating().get("source"),
+            "charge_rate_learning": self._learning_state(),
+            "learned_bands": self.coordinator.charge_model.learned_band_count,
             "dry_run": self.coordinator.dry_run,
         }
+
+    def _learning_state(self) -> str:
+        """off | active | no_charge_meter (the curve then stays for good)."""
+        if not self.coordinator.derating_enabled():
+            return "off"
+        if self.coordinator.conf(CONF_BATTERY_CHARGE_ENERGY_ENTITY):
+            return "active"
+        return "no_charge_meter"
+
+    def _derating(self) -> dict[str, Any]:
+        data = self.coordinator.data
+        if data is None or not data.inputs:
+            return {}
+        return data.inputs.get("charge_derating", {})
 
 
 class ActualSavingsEurSensor(SBPEntity, SensorEntity):

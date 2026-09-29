@@ -18,7 +18,9 @@ import voluptuous as vol
 from .const import (
     CONF_BATTERY_CHARGE_ENERGY_ENTITY,
     CONF_BATTERY_DISCHARGE_ENERGY_ENTITY,
+    CONF_BATTERY_TEMPERATURE_ENTITY,
     CONF_CAPACITY_KWH,
+    CONF_CHARGE_DERATING,
     CONF_CONSUMPTION_ENTITY,
     CONF_DISCHARGE_MODE,
     CONF_DRY_RUN,
@@ -42,6 +44,8 @@ from .const import (
     CONF_SPREAD_THRESHOLD,
     CONF_TEMPERATURE_ENTITY,
     CONF_TRAINING_DAYS,
+    DEFAULT_CHARGE_DERATING,
+    DEFAULT_DERATING_CURVE,
     DEFAULT_DISCHARGE_MODE,
     DEFAULT_DRY_RUN,
     DEFAULT_EFFICIENCY,
@@ -51,16 +55,29 @@ from .const import (
     DEFAULT_PRICE_OFFSET,
     DEFAULT_SPREAD_THRESHOLD,
     DEFAULT_TRAINING_DAYS,
+    DERATING_CURVE_KEYS,
     DISCHARGE_MODE_EXPORT,
     DISCHARGE_MODE_SELF_CONSUMPTION,
     DOMAIN,
 )
+from .forecast.charge_rate import is_non_decreasing
 from .price_adapters import detect_adapter
 
 _ENTITY = selector.EntitySelector(
     selector.EntitySelectorConfig(domain=["sensor", "input_number", "number"])
 )
 _SCRIPT = selector.EntitySelector(selector.EntitySelectorConfig(domain="script"))
+# No device-class filter: Modbus and template battery sensors often carry
+# none, and the filter would hide exactly them. The unit is read at runtime.
+_BATTERY_TEMPERATURE = selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor"))
+
+
+def _percent_slider() -> selector.NumberSelector:
+    return selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=0, max=100, step=5, unit_of_measurement="%", mode="slider"
+        )
+    )
 
 
 def _price_number(minimum: float = -1) -> selector.NumberSelector:
@@ -206,6 +223,21 @@ def schema_tuning(d: dict[str, Any]) -> vol.Schema:
     )
 
 
+def schema_derating(d: dict[str, Any]) -> vol.Schema:
+    fields: dict[Any, Any] = {
+        vol.Required(
+            CONF_CHARGE_DERATING, default=d.get(CONF_CHARGE_DERATING, DEFAULT_CHARGE_DERATING)
+        ): selector.BooleanSelector(),
+        vol.Optional(
+            CONF_BATTERY_TEMPERATURE_ENTITY,
+            description=_sugg(d.get(CONF_BATTERY_TEMPERATURE_ENTITY)),
+        ): _BATTERY_TEMPERATURE,
+    }
+    for key, default in zip(DERATING_CURVE_KEYS, DEFAULT_DERATING_CURVE, strict=True):
+        fields[vol.Required(key, default=d.get(key, default))] = _percent_slider()
+    return vol.Schema(fields)
+
+
 STEP_FIELDS: dict[str, list[str]] = {
     "prices": [CONF_PRICE_ENTITY, CONF_PRICE_OFFSET, CONF_FEED_IN_TARIFF],
     "battery": [
@@ -223,6 +255,7 @@ STEP_FIELDS: dict[str, list[str]] = {
     "consumption": [CONF_CONSUMPTION_ENTITY, CONF_TEMPERATURE_ENTITY, CONF_HAS_HEAT_PUMP],
     "pv": [CONF_PV_FORECAST_TODAY, CONF_PV_FORECAST_TOMORROW, CONF_PV_POWER_ENTITY],
     "tuning": [CONF_SPREAD_THRESHOLD, CONF_DISCHARGE_MODE, CONF_TRAINING_DAYS],
+    "derating": [CONF_CHARGE_DERATING, CONF_BATTERY_TEMPERATURE_ENTITY, *DERATING_CURVE_KEYS],
 }
 
 
@@ -255,6 +288,19 @@ def _export_script_is_configured(merged: dict[str, Any]) -> bool:
     if merged.get(CONF_DISCHARGE_MODE) != DISCHARGE_MODE_EXPORT:
         return True
     return bool(merged.get(CONF_SCRIPT_EXPORT))
+
+
+def _derating_error(merged: dict[str, Any]) -> str | None:
+    """Error key for the cold-weather section, or None."""
+    values = [
+        float(merged.get(key, default))
+        for key, default in zip(DERATING_CURVE_KEYS, DEFAULT_DERATING_CURVE, strict=True)
+    ]
+    if not is_non_decreasing(values):
+        return "derating_not_monotonic"
+    if merged.get(CONF_CHARGE_DERATING) and not merged.get(CONF_BATTERY_TEMPERATURE_ENTITY):
+        return "derating_needs_temperature"
+    return None
 
 
 def _validate_price_entity(hass, entity_id: str) -> str | None:
@@ -346,7 +392,7 @@ class SBPConfigFlow(ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> SBPOptionsFlow:
-        return SBPOptionsFlow()
+        return SBPOptionsFlow(config_entry)
 
 
 class SBPOptionsFlow(OptionsFlow):
@@ -357,12 +403,16 @@ class SBPOptionsFlow(OptionsFlow):
     integration once, not per section).
     """
 
-    def __init__(self) -> None:
+    def __init__(self, config_entry: ConfigEntry) -> None:
         self._pending: dict[str, Any] = {}
+        # Our own name on purpose. Home Assistant 2024.11 never sets
+        # `config_entry` on an options flow, and current cores refuse any
+        # assignment to it - so the entry travels in through the constructor.
+        self._entry = config_entry
 
     @property
     def _merged(self) -> dict[str, Any]:
-        return {**self.config_entry.data, **self.config_entry.options, **self._pending}
+        return {**self._entry.data, **self._entry.options, **self._pending}
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return self.async_show_menu(
@@ -374,6 +424,7 @@ class SBPOptionsFlow(OptionsFlow):
                 "control",
                 "consumption",
                 "pv",
+                "derating",
                 "apply",
             ],
         )
@@ -398,7 +449,7 @@ class SBPOptionsFlow(OptionsFlow):
         return await self.async_step_init()
 
     async def async_step_apply(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        return self.async_create_entry(data={**self.config_entry.options, **self._pending})
+        return self.async_create_entry(data={**self._entry.options, **self._pending})
 
     async def async_step_prices(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
@@ -453,6 +504,20 @@ class SBPOptionsFlow(OptionsFlow):
         if user_input is not None:
             return await self._save_step("pv", user_input)
         return self.async_show_form(step_id="pv", data_schema=schema_pv(self._merged))
+
+    async def async_step_derating(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            error = _derating_error(self._would_be("derating", user_input))
+            if error:
+                errors["base"] = error
+            else:
+                return await self._save_step("derating", user_input)
+        return self.async_show_form(
+            step_id="derating", data_schema=schema_derating(self._merged), errors=errors
+        )
 
     async def async_step_tuning(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}

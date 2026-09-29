@@ -17,7 +17,9 @@ import pytest
 
 from smart_battery_pilot import config_flow as cf
 from smart_battery_pilot.const import (
+    CONF_BATTERY_TEMPERATURE_ENTITY,
     CONF_CAPACITY_KWH,
+    CONF_CHARGE_DERATING,
     CONF_CONSUMPTION_ENTITY,
     CONF_DISCHARGE_MODE,
     CONF_DRY_RUN,
@@ -39,7 +41,9 @@ from smart_battery_pilot.const import (
     CONF_SPREAD_THRESHOLD,
     CONF_TEMPERATURE_ENTITY,
     CONF_TRAINING_DAYS,
+    DEFAULT_DERATING_CURVE,
     DEFAULT_TRAINING_DAYS,
+    DERATING_CURVE_KEYS,
     DISCHARGE_MODE_EXPORT,
     DISCHARGE_MODE_SELF_CONSUMPTION,
 )
@@ -239,9 +243,16 @@ def test_an_inverted_soc_window_is_rejected(min_soc, max_soc):
 
 
 def _options_flow(hass, entry) -> cf.SBPOptionsFlow:
-    flow = cf.SBPOptionsFlow()
+    """Built the way Home Assistant builds it: through the config flow's hook.
+
+    Home Assistant 2024.11 - the oldest supported core - never sets
+    `config_entry` on an options flow, and current cores refuse to let it be
+    set. The flow therefore has to carry the entry it was created for; a
+    helper that assigned `config_entry` here hid that the options dialog
+    crashed on 2024.11.
+    """
+    flow = cf.SBPConfigFlow.async_get_options_flow(entry)
     flow.hass = hass
-    flow.config_entry = entry
     return flow
 
 
@@ -281,7 +292,7 @@ def test_sections_only_persist_once_apply_is_chosen():
         )
     )
     assert result["type"] == "menu"
-    assert flow.config_entry.options[CONF_SPREAD_THRESHOLD] == 0.20
+    assert flow._entry.options[CONF_SPREAD_THRESHOLD] == 0.20
 
     applied = _run(flow.async_step_apply())
     assert applied["type"] == "create_entry"
@@ -473,3 +484,72 @@ def test_the_export_script_stays_optional_in_self_consumption_mode():
     result = _run(flow.async_step_control(dict(CONTROL_INPUT)))
     assert result["type"] == "menu"
     assert _run(flow.async_step_apply())["data"][CONF_SCRIPT_EXPORT] is None
+
+
+# --- cold-weather charging ------------------------------------------------------
+
+
+def _derating_input(enabled=True, entity="sensor.battery_temp", values=DEFAULT_DERATING_CURVE):
+    data = {CONF_CHARGE_DERATING: enabled, **dict(zip(DERATING_CURVE_KEYS, values, strict=True))}
+    if entity:
+        data[CONF_BATTERY_TEMPERATURE_ENTITY] = entity
+    return data
+
+
+def test_the_derating_section_is_in_the_options_menu_only():
+    flow = _options_flow(_FakeHass(), _entry())
+    menu = _run(flow.async_step_init())
+    assert "derating" in menu["menu_options"]
+    assert menu["menu_options"][-1] == "apply"
+    assert not hasattr(cf.SBPConfigFlow, "async_step_derating")
+
+
+def test_the_derating_defaults_are_off_and_the_generic_lfp_curve():
+    defaults = {
+        str(m): m.default()
+        for m in cf.schema_derating({}).schema
+        if callable(getattr(m, "default", None))
+    }
+    assert defaults[CONF_CHARGE_DERATING] is False
+    assert [defaults[k] for k in DERATING_CURVE_KEYS] == [10, 20, 50, 80, 100]
+
+
+def test_a_valid_derating_section_is_saved_on_apply():
+    flow = _options_flow(_FakeHass(), _entry())
+    result = _run(flow.async_step_derating(_derating_input(values=(10, 30, 60, 90, 100))))
+    assert result["type"] == "menu"
+    applied = _run(flow.async_step_apply())
+    assert applied["data"][CONF_CHARGE_DERATING] is True
+    assert applied["data"][CONF_BATTERY_TEMPERATURE_ENTITY] == "sensor.battery_temp"
+    assert applied["data"]["derating_5c"] == 30
+
+
+def test_falling_derating_values_are_refused():
+    flow = _options_flow(_FakeHass(), _entry())
+    result = _run(flow.async_step_derating(_derating_input(values=(10, 50, 40, 80, 100))))
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "derating_not_monotonic"}
+
+
+def test_derating_without_a_temperature_entity_is_refused():
+    flow = _options_flow(_FakeHass(), _entry())
+    result = _run(flow.async_step_derating(_derating_input(entity=None)))
+    assert result["errors"] == {"base": "derating_needs_temperature"}
+
+
+def test_switched_off_derating_needs_no_temperature_entity():
+    flow = _options_flow(_FakeHass(), _entry())
+    result = _run(flow.async_step_derating(_derating_input(enabled=False, entity=None)))
+    assert result["type"] == "menu"
+
+
+def test_a_battery_temperature_without_device_class_can_be_picked():
+    """Modbus and template sensors often carry no device class; filtering on it
+    would hide exactly the battery sensors this option needs."""
+    [selector] = [
+        value
+        for marker, value in cf.schema_derating({}).schema.items()
+        if str(marker) == CONF_BATTERY_TEMPERATURE_ENTITY
+    ]
+    assert "device_class" not in selector.config
+    assert selector.config["domain"] == "sensor"

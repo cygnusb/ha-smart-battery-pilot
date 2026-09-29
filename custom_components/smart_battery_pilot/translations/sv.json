@@ -201,9 +201,31 @@
           "control": "Styrskript",
           "consumption": "Förbrukning & temperatur",
           "pv": "Solelprognos",
+          "derating": "Laddning i kyla",
           "apply": "💾 Spara & stäng"
         },
         "description": "Ändringar i avsnitten nedan samlas ihop och sparas först via ”Spara & stäng”."
+      },
+      "derating": {
+        "title": "Laddning i kyla",
+        "data": {
+          "charge_derating": "Planera med reducerad laddeffekt i kyla",
+          "battery_temperature_entity": "Entitet för batteritemperatur",
+          "derating_0c": "Laddeffekt vid 0 °C och lägre",
+          "derating_5c": "Laddeffekt vid 5 °C",
+          "derating_10c": "Laddeffekt vid 10 °C",
+          "derating_15c": "Laddeffekt vid 15 °C",
+          "derating_20c": "Laddeffekt vid 20 °C och högre"
+        },
+        "data_description": {
+          "charge_derating": "Planeraren räknar med att ett kallt batteri tar emot mindre än den maximala laddeffekten och planerar fler billiga laddperioder. En period som planerats upp till köldgränsen begär fortfarande full effekt av laddskriptet; batteriets BMS sköter begränsningen, inte piloten.",
+          "battery_temperature_entity": "Cell- eller modultemperatur för batteriet, inte utomhustemperaturen. Krävs när alternativet är på.",
+          "derating_0c": "Procent av den maximala laddeffekten som batteriet tar emot vid 0 °C och kallare. Se batteriets datablad.",
+          "derating_5c": "Procent av den maximala laddeffekten som batteriet tar emot vid 5 °C.",
+          "derating_10c": "Procent av den maximala laddeffekten som batteriet tar emot vid 10 °C.",
+          "derating_15c": "Procent av den maximala laddeffekten som batteriet tar emot vid 15 °C.",
+          "derating_20c": "Procent av den maximala laddeffekten vid 20 °C och varmare. Vanligtvis 100 %."
+        }
       }
     },
     "error": {
@@ -212,7 +234,9 @@
       "no_future_prices": "Entiteten innehåller inga framtida priser.",
       "soc_range_invalid": "Lägsta SOC måste vara under högsta SOC.",
       "export_spread_unreachable": "Försäljningsläget kan inte göra något med dessa värden: ersättningen ligger på eller under den minsta prisspreaden, så ingen timme kan någonsin kvalificera sig. Höj ersättningen, sänk spreaden, eller sätt ersättningen till 0 för att sälja till marknadspris.",
-      "export_script_missing": "Exportläget kräver ett skript för tvingad urladdning. Lägg till ett under styrskript, eller ställ tillbaka urladdningsläget till egenförbrukning."
+      "export_script_missing": "Exportläget kräver ett skript för tvingad urladdning. Lägg till ett under styrskript, eller ställ tillbaka urladdningsläget till egenförbrukning.",
+      "derating_not_monotonic": "Laddeffekten får inte sjunka när temperaturen stiger. Kontrollera skjutreglagen.",
+      "derating_needs_temperature": "Laddning i kyla kräver en entitet för batteritemperaturen."
     }
   },
   "selector": {

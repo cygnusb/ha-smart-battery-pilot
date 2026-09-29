@@ -11,6 +11,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -47,7 +48,7 @@ ENTRY_DATA = {
 }
 
 
-async def _setup(hass: HomeAssistant) -> MockConfigEntry:
+async def _setup(hass: HomeAssistant, options: dict | None = None) -> MockConfigEntry:
     """Publish a 24 h EPEX-style curve and set the integration up on it."""
     start = dt_util.now().replace(minute=0, second=0, microsecond=0)
     hass.states.async_set(
@@ -66,7 +67,9 @@ async def _setup(hass: HomeAssistant) -> MockConfigEntry:
     )
     hass.states.async_set("sensor.battery_soc", "55", {"unit_of_measurement": "%"})
 
-    entry = MockConfigEntry(domain=DOMAIN, data=ENTRY_DATA, unique_id="sensor.battery_soc")
+    entry = MockConfigEntry(
+        domain=DOMAIN, data=ENTRY_DATA, options=options or {}, unique_id="sensor.battery_soc"
+    )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
@@ -117,6 +120,73 @@ async def test_the_replan_service_refreshes_the_plan(sbp_hass: HomeAssistant) ->
     await sbp_hass.async_block_till_done()
 
     assert entry.runtime_data.coordinator.data.updated_at >= before
+
+
+async def test_setup_with_cold_weather_charging_on(sbp_hass: HomeAssistant) -> None:
+    """The new options section must not break setup on a real Home Assistant."""
+    sbp_hass.states.async_set("sensor.battery_temp", "3.0", {"unit_of_measurement": "°C"})
+    entry = await _setup(
+        sbp_hass,
+        options={
+            "charge_derating": True,
+            "battery_temperature_entity": "sensor.battery_temp",
+        },
+    )
+
+    assert entry.state is entry.state.LOADED
+    derating = entry.runtime_data.coordinator.data.inputs["charge_derating"]
+    assert derating["source"] == "curve"
+    assert derating["factor"] < 1.0
+
+
+async def test_the_derating_options_step_renders_and_saves(sbp_hass: HomeAssistant) -> None:
+    """The stub suite cannot tell whether real selectors accept the slider and
+    entity configs, nor whether the frontend can serialise the form."""
+    entry = await _setup(sbp_hass)
+    options = sbp_hass.config_entries.options
+
+    menu = await options.async_init(entry.entry_id)
+    assert menu["type"] == "menu"
+    assert "derating" in menu["menu_options"]
+
+    form = await options.async_configure(menu["flow_id"], {"next_step_id": "derating"})
+    assert form["type"] == "form"
+    assert form["step_id"] == "derating"
+    # What the frontend does per field; a selector config HA rejects raises here.
+    for selector in form["data_schema"].schema.values():
+        assert "selector" in cv.custom_serializer(selector)
+
+    refused = await options.async_configure(
+        form["flow_id"],
+        {
+            "charge_derating": True,
+            "derating_0c": 10,
+            "derating_5c": 20,
+            "derating_10c": 50,
+            "derating_15c": 80,
+            "derating_20c": 100,
+        },
+    )
+    assert refused["errors"] == {"base": "derating_needs_temperature"}
+
+    saved = await options.async_configure(
+        refused["flow_id"],
+        {
+            "charge_derating": True,
+            "battery_temperature_entity": "sensor.battery_soc",
+            "derating_0c": 10,
+            "derating_5c": 30,
+            "derating_10c": 50,
+            "derating_15c": 80,
+            "derating_20c": 100,
+        },
+    )
+    assert saved["type"] == "menu"
+    done = await options.async_configure(saved["flow_id"], {"next_step_id": "apply"})
+    await sbp_hass.async_block_till_done()
+    assert done["type"] == "create_entry"
+    assert entry.options["derating_5c"] == 30
+    assert entry.options["charge_derating"] is True
 
 
 async def test_the_entry_unloads_cleanly(sbp_hass: HomeAssistant) -> None:

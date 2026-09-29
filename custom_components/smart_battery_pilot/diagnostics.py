@@ -37,6 +37,7 @@ async def async_get_config_entry_diagnostics(
             "dry_run": coordinator.dry_run,
             "last_applied": coordinator.last_applied,
             "last_update_success": coordinator.last_update_success,
+            "charge_rate_bands": coordinator.charge_model.bands(),
         },
         "decisions": list(executor.decisions),
     }

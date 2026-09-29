@@ -201,9 +201,31 @@
           "control": "Styringsscripts",
           "consumption": "Forbrug & temperatur",
           "pv": "Solcelleprognose",
+          "derating": "Opladning i kulde",
           "apply": "💾 Gem & luk"
         },
         "description": "Ændringer i afsnittene nedenfor samles og gemmes først via »Gem & luk«."
+      },
+      "derating": {
+        "title": "Opladning i kulde",
+        "data": {
+          "charge_derating": "Planlæg med reduceret ladeeffekt i kulde",
+          "battery_temperature_entity": "Entitet for batteritemperatur",
+          "derating_0c": "Ladeeffekt ved 0 °C og derunder",
+          "derating_5c": "Ladeeffekt ved 5 °C",
+          "derating_10c": "Ladeeffekt ved 10 °C",
+          "derating_15c": "Ladeeffekt ved 15 °C",
+          "derating_20c": "Ladeeffekt ved 20 °C og derover"
+        },
+        "data_description": {
+          "charge_derating": "Planlæggeren regner med, at et koldt batteri modtager mindre end den maksimale ladeeffekt, og planlægger flere billige ladeperioder. En periode, der er planlagt op til kuldegrænsen, beder stadig ladescriptet om fuld effekt; batteriets BMS står for begrænsningen, ikke piloten.",
+          "battery_temperature_entity": "Celle- eller modultemperatur for batteriet, ikke udetemperaturen. Påkrævet, når indstillingen er slået til.",
+          "derating_0c": "Procent af den maksimale ladeeffekt, som batteriet modtager ved 0 °C og koldere. Se batteriets datablad.",
+          "derating_5c": "Procent af den maksimale ladeeffekt, som batteriet modtager ved 5 °C.",
+          "derating_10c": "Procent af den maksimale ladeeffekt, som batteriet modtager ved 10 °C.",
+          "derating_15c": "Procent af den maksimale ladeeffekt, som batteriet modtager ved 15 °C.",
+          "derating_20c": "Procent af den maksimale ladeeffekt ved 20 °C og varmere. Normalt 100 %."
+        }
       }
     },
     "error": {
@@ -212,7 +234,9 @@
       "no_future_prices": "Entiteten indeholder ingen fremtidige priser.",
       "soc_range_invalid": "Mindste SOC skal være under største SOC.",
       "export_spread_unreachable": "Salgstilstanden kan ikke gøre noget med disse værdier: afregningsprisen ligger på eller under det mindste prisspread, så ingen time kan nogensinde kvalificere sig. Hæv afregningsprisen, sænk spreadet, eller sæt afregningsprisen til 0 for at sælge til markedspris.",
-      "export_script_missing": "Eksporttilstand kræver et script til tvungen afladning. Tilføj et under styringsscripts, eller sæt afladningstilstanden tilbage til eget forbrug."
+      "export_script_missing": "Eksporttilstand kræver et script til tvungen afladning. Tilføj et under styringsscripts, eller sæt afladningstilstanden tilbage til eget forbrug.",
+      "derating_not_monotonic": "Ladeeffekten må ikke falde, når temperaturen stiger. Kontrollér skyderne.",
+      "derating_needs_temperature": "Opladning i kulde kræver en entitet for batteritemperaturen."
     }
   },
   "selector": {

@@ -201,9 +201,31 @@
           "control": "Styringsskript",
           "consumption": "Forbruk & temperatur",
           "pv": "Solstrømprognose",
+          "derating": "Lading i kulde",
           "apply": "💾 Lagre & lukk"
         },
         "description": "Endringer i seksjonene nedenfor samles opp og lagres først via «Lagre & lukk»."
+      },
+      "derating": {
+        "title": "Lading i kulde",
+        "data": {
+          "charge_derating": "Planlegg med redusert ladeeffekt i kulde",
+          "battery_temperature_entity": "Entitet for batteritemperatur",
+          "derating_0c": "Ladeeffekt ved 0 °C og lavere",
+          "derating_5c": "Ladeeffekt ved 5 °C",
+          "derating_10c": "Ladeeffekt ved 10 °C",
+          "derating_15c": "Ladeeffekt ved 15 °C",
+          "derating_20c": "Ladeeffekt ved 20 °C og høyere"
+        },
+        "data_description": {
+          "charge_derating": "Planleggeren regner med at et kaldt batteri tar imot mindre enn maksimal ladeeffekt, og planlegger flere billige ladeperioder. En periode som er planlagt opp til kuldegrensen, ber fortsatt ladeskriptet om full effekt; batteriets BMS står for begrensningen, ikke piloten.",
+          "battery_temperature_entity": "Celle- eller modultemperatur for batteriet, ikke utetemperaturen. Påkrevd når innstillingen er på.",
+          "derating_0c": "Prosent av maksimal ladeeffekt som batteriet tar imot ved 0 °C og kaldere. Se batteriets datablad.",
+          "derating_5c": "Prosent av maksimal ladeeffekt som batteriet tar imot ved 5 °C.",
+          "derating_10c": "Prosent av maksimal ladeeffekt som batteriet tar imot ved 10 °C.",
+          "derating_15c": "Prosent av maksimal ladeeffekt som batteriet tar imot ved 15 °C.",
+          "derating_20c": "Prosent av maksimal ladeeffekt ved 20 °C og varmere. Vanligvis 100 %."
+        }
       }
     },
     "error": {
@@ -212,7 +234,9 @@
       "no_future_prices": "Entiteten inneholder ingen fremtidige priser.",
       "soc_range_invalid": "Laveste SOC må være under høyeste SOC.",
       "export_spread_unreachable": "Innmatingsmodusen kan ikke gjøre noe med disse verdiene: innmatingstariffen ligger på eller under den minste prisspreaden, så ingen time kan noen gang kvalifisere. Øk tariffen, senk spreaden, eller sett tariffen til 0 for å selge til markedspris.",
-      "export_script_missing": "Eksportmodus krever et skript for tvungen utlading. Legg til ett under styringsskript, eller sett utladingsmodus tilbake til eget forbruk."
+      "export_script_missing": "Eksportmodus krever et skript for tvungen utlading. Legg til ett under styringsskript, eller sett utladingsmodus tilbake til eget forbruk.",
+      "derating_not_monotonic": "Ladeeffekten skal ikke synke når temperaturen stiger. Kontroller glidebryterne.",
+      "derating_needs_temperature": "Lading i kulde krever en entitet for batteritemperaturen."
     }
   },
   "selector": {

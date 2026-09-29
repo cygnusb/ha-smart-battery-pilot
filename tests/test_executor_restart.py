@@ -75,6 +75,12 @@ class _Coordinator:
     def note_conditions(self):
         pass
 
+    def charge_reading(self):
+        return None
+
+    def charge_observation(self, requested_w, now=None, closing=None):
+        pass
+
     async def async_persist(self):
         self.persist_calls += 1
         self.immediate_persist += 1

@@ -146,8 +146,11 @@ def test_plan_inputs_are_kept_with_the_result():
     inputs = result.inputs
     assert inputs["soc"] == 55.0
     assert inputs["slots"] == len(result.plan.slots)
-    assert inputs["price_min"] == 0.20
-    assert inputs["price_max"] == 0.40
+    # Past slots are dropped, so which half of the day remains depends on
+    # the clock - compare against the plan built from the same inputs.
+    prices = [slot.price for slot in result.plan.slots]
+    assert inputs["price_min"] == min(prices)
+    assert inputs["price_max"] == max(prices)
     assert inputs["battery"]["capacity_kwh"] > 0
     assert "spread_threshold" in inputs["config"]
 
@@ -191,3 +194,30 @@ def test_diagnostics_carry_decisions_and_inputs():
     dump = _run(async_get_config_entry_diagnostics(hass, entry))
     assert dump["decisions"][-1]["outcome"] == "dry_run"
     assert dump["state"]["inputs"]["soc"] == 50.0
+    assert dump["runtime"]["charge_rate_bands"] == []
+
+
+def test_executor_reports_applied_charges_to_the_coordinator():
+    coord = _FakeCoordinator([_slot(ACTION_CHARGE, power=3000.0)], dry_run=False)
+    executor = PlanExecutor(_FakeHass(), coord)
+    _run(executor.async_apply_current())
+    coord.dry_run = True
+    _run(executor.async_apply_current())
+    _run(executor.async_stop())
+    assert coord.charge_requests == [3000.0, None, None]
+
+
+def test_the_executor_takes_the_close_reading_before_any_script():
+    hass = _FakeHass()
+    coord = _FakeCoordinator([_slot(ACTION_CHARGE, power=3000.0)], dry_run=False)
+    seen = []
+
+    def _reading():
+        seen.append(len(hass.services.calls))
+        return "reading"
+
+    coord.charge_reading = _reading
+    executor = PlanExecutor(hass, coord)
+    _run(executor.async_apply_current())
+    assert seen == [0]
+    assert coord.closings == ["reading"]
