@@ -102,6 +102,9 @@ SOURCE_NO_TEMPERATURE = "no_temperature"
 
 # Observation rules for learning the cold charge limit (see the spec).
 MIN_OBSERVATION = timedelta(minutes=10)
+# The battery warms while it charges; cut long charges into hour-long samples
+# so each is filed under a temperature close to the one it ran at.
+MAX_OBSERVATION = timedelta(hours=1)
 TAPER_MARGIN_SOC = 5.0  # above max_soc - this, the BMS tapers because it is full
 MIN_REQUEST_SHARE = 0.2  # smaller requests say nothing about the limit
 SATURATION_SHARE = 0.85  # took less than this share of the request -> limited
@@ -737,11 +740,21 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         """Close the watched charge slot and, if charging goes on, watch the next.
 
         Called by the executor after every decision: with the requested power
-        while it really runs a charge slot, with None otherwise. A coordinator
-        refresh re-applies charge mid-slot, which simply splits the
-        observation in two.
+        while it really runs a charge slot, with None otherwise. The same
+        request again - a coordinator refresh re-applying the slot, or the next
+        slot asking for the same power - continues the running observation.
+        Splitting there would cut 15-minute slots below the minimum length and
+        count one 60-minute slot as several samples.
         """
         now = now or dt_util.now()
+        running = self._open_charge
+        if (
+            running is not None
+            and requested_w is not None
+            and math.isclose(requested_w, running.requested_w, rel_tol=0.01)
+            and now - running.started < MAX_OBSERVATION
+        ):
+            return
         self._close_charge_observation(now)
         if requested_w is not None:
             self._open_charge_observation(requested_w, now)

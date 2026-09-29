@@ -253,17 +253,70 @@ def test_no_learning_while_derating_is_off():
     assert _observed(hass, coord, kwh_end=101.5) == ()
 
 
-def test_a_mid_slot_refresh_splits_the_observation():
+def _meter(hass, kwh):
+    hass.states.set("sensor.charge_energy", kwh, {"unit_of_measurement": "kWh"})
+
+
+def _durations(coord):
+    return len(coord.charge_model.samples)
+
+
+def test_a_refresh_inside_a_15_minute_slot_keeps_one_observation():
+    """Splitting at the refresh left an 8 and a 7 minute half - both under the
+    10-minute minimum, so the slot was lost entirely."""
     hass = _hass_with_prices(temp=3.0)
     coord = _coordinator(hass, **LEARNING)
-    hass.states.set("sensor.charge_energy", 100.0, {"unit_of_measurement": "kWh"})
+    _meter(hass, 100.0)
     coord.charge_observation(5000.0, now=T0)
-    hass.states.set("sensor.charge_energy", 100.75, {"unit_of_measurement": "kWh"})
-    coord.charge_observation(5000.0, now=T0 + timedelta(minutes=30))  # refresh re-applies
-    hass.states.set("sensor.charge_energy", 101.5, {"unit_of_measurement": "kWh"})
+    _meter(hass, 100.2)
+    coord.charge_observation(5000.0, now=T0 + timedelta(minutes=8))  # refresh re-applies
+    _meter(hass, 100.375)
+    coord.charge_observation(None, now=T0 + timedelta(minutes=15))
+    [sample] = coord.charge_model.samples
+    assert round(sample.ratio, 3) == 0.3
+
+
+def test_one_slot_is_one_sample_however_often_it_is_re_applied():
+    """Two samples from one slot would let a band count as learned after three
+    real slots instead of six."""
+    hass = _hass_with_prices(temp=3.0)
+    coord = _coordinator(hass, **LEARNING)
+    _meter(hass, 100.0)
+    coord.charge_observation(5000.0, now=T0)
+    for minutes in (10, 20, 30, 40, 50):
+        coord.charge_observation(5000.0, now=T0 + timedelta(minutes=minutes))
+    _meter(hass, 101.5)
     coord.charge_observation(None, now=T0 + timedelta(minutes=60))
-    ratios = [round(s.ratio, 3) for s in coord.charge_model.samples]
-    assert ratios == [0.3, 0.3]
+    assert [round(s.ratio, 3) for s in coord.charge_model.samples] == [0.3]
+
+
+def test_a_changed_request_closes_the_observation():
+    """A mixed window would compare what the battery took against an average
+    of two different requests."""
+    hass = _hass_with_prices(temp=3.0)
+    coord = _coordinator(hass, **LEARNING)
+    _meter(hass, 100.0)
+    coord.charge_observation(5000.0, now=T0)
+    _meter(hass, 100.375)
+    coord.charge_observation(1200.0, now=T0 + timedelta(minutes=15))
+    _meter(hass, 100.675)
+    coord.charge_observation(None, now=T0 + timedelta(minutes=30))
+    samples = coord.charge_model.samples
+    assert [s.saturated for s in samples] == [True, False]
+
+
+def test_a_long_charge_is_cut_into_hour_long_samples():
+    """The battery warms while it charges; one sample per hour keeps the
+    temperature it is filed under close to the truth."""
+    hass = _hass_with_prices(temp=3.0)
+    coord = _coordinator(hass, **LEARNING)
+    _meter(hass, 100.0)
+    coord.charge_observation(5000.0, now=T0)
+    _meter(hass, 101.5)
+    coord.charge_observation(5000.0, now=T0 + timedelta(minutes=60))
+    _meter(hass, 101.875)
+    coord.charge_observation(None, now=T0 + timedelta(minutes=75))
+    assert _durations(coord) == 2
 
 
 def test_a_new_sample_is_persisted():
