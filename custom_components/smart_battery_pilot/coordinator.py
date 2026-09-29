@@ -20,6 +20,8 @@ from homeassistant.util import dt as dt_util
 from .const import (
     ACTION_CHARGE,
     ACTION_EXPORT,
+    CONF_BACKUP_RESERVE,
+    CONF_BACKUP_RESERVE_ENTITY,
     CONF_BATTERY_CHARGE_ENERGY_ENTITY,
     CONF_BATTERY_DISCHARGE_ENERGY_ENTITY,
     CONF_BATTERY_TEMPERATURE_ENTITY,
@@ -40,10 +42,13 @@ from .const import (
     CONF_PV_FORECAST_TODAY,
     CONF_PV_FORECAST_TOMORROW,
     CONF_PV_POWER_ENTITY,
+    CONF_RESERVE_BLOCK_DISCHARGE,
+    CONF_RESERVE_REFILL_HOURS,
     CONF_SOC_ENTITY,
     CONF_SPREAD_THRESHOLD,
     CONF_TEMPERATURE_ENTITY,
     CONF_TRAINING_DAYS,
+    DEFAULT_BACKUP_RESERVE,
     DEFAULT_CHARGE_DERATING,
     DEFAULT_DERATING_CURVE,
     DEFAULT_DISCHARGE_MODE,
@@ -53,6 +58,8 @@ from .const import (
     DEFAULT_MAX_SOC,
     DEFAULT_MIN_SOC,
     DEFAULT_PRICE_OFFSET,
+    DEFAULT_RESERVE_BLOCK_DISCHARGE,
+    DEFAULT_RESERVE_REFILL_HOURS,
     DEFAULT_SPREAD_THRESHOLD,
     DEFAULT_TRAINING_DAYS,
     DERATING_CURVE_KEYS,
@@ -204,6 +211,12 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         self._last_attempt: datetime | None = None
         self._unsub_price = None
         self._adapter_name: str | None = None
+        self._unsub_reserve = None
+        # Reserve entity already warned about as unreadable; reset once it reads.
+        self._warned_reserve_entity = False
+        # Reserve (whole %) last handed to a control script, persisted: after a
+        # restart only a changed reserve has to reach the inverter again.
+        self.last_reserve_sent: int | None = None
 
         # Last action really applied to the inverter. Persisted, because
         # after a restart it is the only way to know that the battery is
@@ -266,6 +279,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
 
         if stored:
             self.last_applied = stored.get("last_applied")
+            self.last_reserve_sent = stored.get("last_reserve_sent")
 
         if stored and stored.get("savings"):
             sv = stored["savings"]
@@ -286,12 +300,26 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             self._unsub_price = async_track_state_change_event(
                 self.hass, [price_entity], self._handle_price_update
             )
+        reserve_entity = self.conf(CONF_BACKUP_RESERVE_ENTITY)
+        if reserve_entity:
+            self._unsub_reserve = async_track_state_change_event(
+                self.hass, [reserve_entity], self._handle_reserve_update
+            )
 
     async def async_shutdown(self) -> None:
         if self._unsub_price:
             self._unsub_price()
             self._unsub_price = None
+        if self._unsub_reserve:
+            self._unsub_reserve()
+            self._unsub_reserve = None
         await super().async_shutdown()
+
+    @callback
+    def _handle_reserve_update(self, _event) -> None:
+        """The reserve floor moved: re-plan, and the executor re-sends it."""
+        _LOGGER.debug("Reserve entity changed - requesting a re-plan")
+        self.hass.async_create_task(self.async_request_refresh())
 
     @callback
     def _handle_price_update(self, _event) -> None:
@@ -341,11 +369,13 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
 
         sunrise_hour, sunset_hour = self._daylight_window()
         factor, factor_source, battery_temperature = self.charge_factor()
+        reserve, reserve_source, reserve_entity_value = self.reserve_state()
+        refill_hours = float(self.conf(CONF_RESERVE_REFILL_HOURS, DEFAULT_RESERVE_REFILL_HOURS))
         _LOGGER.debug(
             "Planning inputs: %d price slots %s .. %s via '%s', SOC %.1f%%, "
             "temperature %s, PV forecast today %s / tomorrow %s kWh, "
             "daylight %.2f-%.2f h, model %s (%d samples), "
-            "charge factor %.3f (%s) at battery %s °C",
+            "charge factor %.3f (%s) at battery %s °C, reserve %s %% (%s)",
             len(slots),
             slots[0].start.isoformat(),
             slots[-1].end.isoformat(),
@@ -361,6 +391,8 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             factor,
             factor_source,
             battery_temperature,
+            reserve,
+            reserve_source,
         )
 
         input_slots: list[InputSlot] = []
@@ -393,12 +425,14 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             max_discharge_power_w=float(self.conf(CONF_MAX_DISCHARGE_POWER_W, 5000)),
             efficiency=float(self.conf(CONF_EFFICIENCY, DEFAULT_EFFICIENCY)),
             charge_factor=factor,
+            reserve_soc=reserve,
         )
         config = OptimizerConfig(
             spread_threshold=float(self.conf(CONF_SPREAD_THRESHOLD, DEFAULT_SPREAD_THRESHOLD)),
             discharge_mode=self.conf(CONF_DISCHARGE_MODE, DEFAULT_DISCHARGE_MODE),
             feed_in_tariff=float(self.conf(CONF_FEED_IN_TARIFF, DEFAULT_FEED_IN_TARIFF)),
             price_offset=float(self.conf(CONF_PRICE_OFFSET, DEFAULT_PRICE_OFFSET)),
+            reserve_refill_hours=refill_hours,
         )
 
         plan = await self.hass.async_add_executor_job(build_plan, input_slots, battery, config)
@@ -409,6 +443,13 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 "for market-price export, or lower the spread.",
                 config.feed_in_tariff,
                 config.spread_threshold,
+            )
+        if "reserve_refill_incomplete" in plan.warnings:
+            _LOGGER.warning(
+                "The backup reserve of %.0f %% cannot be refilled within %.0f h at the "
+                "current charge limits; charging what fits.",
+                reserve,
+                refill_hours,
             )
         if "plan_worse_than_baseline" in plan.warnings:
             _LOGGER.warning(
@@ -444,6 +485,13 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 ),
                 "factor": round(factor, 3),
                 "source": factor_source,
+            },
+            "reserve": {
+                "soc": reserve,
+                "source": reserve_source,
+                "entity_value": reserve_entity_value,
+                "refill_hours": refill_hours,
+                "block": self.reserve_block_enabled(),
             },
         }
         if self.data is not None and not self.data.valid:
@@ -579,6 +627,53 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             return float(state.state)
         except ValueError:
             return None
+
+    def live_soc(self) -> float | None:
+        """The SOC entity right now, not as of the last refresh."""
+        return self._read_float_state(self.conf(CONF_SOC_ENTITY))
+
+    def reserve_block_enabled(self) -> bool:
+        return bool(self.conf(CONF_RESERVE_BLOCK_DISCHARGE, DEFAULT_RESERVE_BLOCK_DISCHARGE))
+
+    def reserve_state(self) -> tuple[float | None, str, float | None]:
+        """(active reserve % or None, source, raw entity value).
+
+        The entity, while it reads a number, replaces the fixed value; either
+        is clamped to the SOC window, and a reserve at or below min_soc is off.
+        """
+        min_soc = float(self.conf(CONF_MIN_SOC, DEFAULT_MIN_SOC))
+        max_soc = float(self.conf(CONF_MAX_SOC, DEFAULT_MAX_SOC))
+        entity_id = self.conf(CONF_BACKUP_RESERVE_ENTITY)
+        entity_value = self._read_float_state(entity_id) if entity_id else None
+        if entity_id and entity_value is None:
+            if not self._warned_reserve_entity:
+                self._warned_reserve_entity = True
+                _LOGGER.warning(
+                    "Reserve entity %s is unavailable - using the fixed reserve until it reads again",
+                    entity_id,
+                )
+            else:
+                _LOGGER.debug("Reserve entity %s still unavailable", entity_id)
+        elif entity_value is not None:
+            self._warned_reserve_entity = False
+
+        if entity_value is not None:
+            value, source = entity_value, "entity"
+        else:
+            value, source = float(self.conf(CONF_BACKUP_RESERVE, DEFAULT_BACKUP_RESERVE)), "fixed"
+        clamped = max(min_soc, min(max_soc, value))
+        if clamped != value:
+            _LOGGER.debug("Reserve %.1f %% clamped to the SOC window: %.1f %%", value, clamped)
+        if clamped <= min_soc:
+            return None, "off", entity_value
+        return clamped, source, entity_value
+
+    def reserve_for_scripts(self) -> int:
+        """reserve_soc for every script call: the reserve, or min_soc when off."""
+        reserve, _, _ = self.reserve_state()
+        if reserve is None:
+            reserve = float(self.conf(CONF_MIN_SOC, DEFAULT_MIN_SOC))
+        return round(reserve)
 
     def _read_temperature_c(self, entity_id: str | None) -> float | None:
         """A temperature in °C, whatever unit the entity reports in."""
@@ -1077,6 +1172,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             "model": self.forecaster.to_dict(),
             "trained_at": self._last_training.isoformat() if self._last_training else None,
             "last_applied": self.last_applied,
+            "last_reserve_sent": self.last_reserve_sent,
             "charge_rate": self.charge_model.to_dict(),
             "savings": {
                 "savings_eur": self._acc_savings_eur,
