@@ -46,7 +46,7 @@ runs.
 | Key | Selector | Default | Meaning |
 |---|---|---|---|
 | `charge_derating` | boolean | `false` | Master switch for the feature. |
-| `battery_temperature_entity` | entity (sensor, device class temperature) | — | Cell/pack temperature, e.g. the BMS module temperature. **Required** when derating is on. Separate from the outdoor temperature used by the consumption model. |
+| `battery_temperature_entity` | entity (sensor; deliberately no device-class filter, since Modbus/template battery sensors often lack one) | — | Cell/pack temperature, e.g. the BMS module temperature. **Required** when derating is on. Separate from the outdoor temperature used by the consumption model. |
 | `derating_0c` | slider 0–100 %, step 5 | `10` | Charge power at **0 °C and below**, percent of max charge power |
 | `derating_5c` | slider 0–100 %, step 5 | `20` | … at 5 °C |
 | `derating_10c` | slider 0–100 %, step 5 | `50` | … at 10 °C |

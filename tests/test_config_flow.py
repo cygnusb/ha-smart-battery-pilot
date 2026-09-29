@@ -534,3 +534,15 @@ def test_switched_off_derating_needs_no_temperature_entity():
     flow = _options_flow(_FakeHass(), _entry())
     result = _run(flow.async_step_derating(_derating_input(enabled=False, entity=None)))
     assert result["type"] == "menu"
+
+
+def test_a_battery_temperature_without_device_class_can_be_picked():
+    """Modbus and template sensors often carry no device class; filtering on it
+    would hide exactly the battery sensors this option needs."""
+    [selector] = [
+        value
+        for marker, value in cf.schema_derating({}).schema.items()
+        if str(marker) == CONF_BATTERY_TEMPERATURE_ENTITY
+    ]
+    assert "device_class" not in selector.config
+    assert selector.config["domain"] == "sensor"

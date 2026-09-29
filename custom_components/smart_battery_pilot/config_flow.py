@@ -67,9 +67,9 @@ _ENTITY = selector.EntitySelector(
     selector.EntitySelectorConfig(domain=["sensor", "input_number", "number"])
 )
 _SCRIPT = selector.EntitySelector(selector.EntitySelectorConfig(domain="script"))
-_BATTERY_TEMPERATURE = selector.EntitySelector(
-    selector.EntitySelectorConfig(domain="sensor", device_class="temperature")
-)
+# No device-class filter: Modbus and template battery sensors often carry
+# none, and the filter would hide exactly them. The unit is read at runtime.
+_BATTERY_TEMPERATURE = selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor"))
 
 
 def _percent_slider() -> selector.NumberSelector:
