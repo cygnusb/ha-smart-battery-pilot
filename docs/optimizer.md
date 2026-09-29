@@ -31,17 +31,24 @@ same inputs always produce the same plan.
 
 ## Algorithm
 
-Greedy pairing with a stored-energy timeline simulation:
+Greedy pairing with a stored-energy timeline simulation. Stored energy is
+counted above a floor — the minimum SOC, or the backup reserve when one is
+set — and each slot's charge capacity is the max charge power scaled by the
+cold-weather charge factor.
 
+0. **Refill the backup reserve** (only if the SOC is below it): forecast PV
+   first, then the cheapest grid slots up to the refill deadline, regardless of
+   the spread. These become ordinary `charge` slots.
 1. **Sort** all slots by price, most expensive first. These are the discharge
    candidates — the hours where battery energy is worth the most.
 2. For each candidate, the energy needed to cover its net demand is sourced:
    1. from **energy already in the battery** (PV surplus, initial SOC) — free
       energy is always used at the most expensive hours first;
    2. from **grid charging in cheaper, earlier slots** — only if
-      `charge price / efficiency + spread < discharge price`.
+      `charge price / efficiency + spread < discharge price`, and never while
+      the battery would still be below an unfilled reserve at that slot.
 3. Every assignment is validated against the battery **timeline**: SOC never
-   leaves the min/max window at any point, and per-slot charge/discharge
+   leaves the window between the floor and max SOC at any point, and per-slot charge/discharge
    power limits are respected. **Forecasted PV surplus charges the battery
    in this timeline** (clamped at max SOC, limited by charge power) — so on
    sunny days the planner knows the battery refills by evening, doesn't lock
@@ -76,9 +83,9 @@ Greedy pairing with a stored-energy timeline simulation:
    plan sensor's attributes. Leaving the inverter alone is always available
    and is the very baseline the figure is measured against.
 
-The plan is recomputed every 30 minutes, whenever the price entity updates
-(e.g. tomorrow's prices arriving around 14:00), on option changes, and via
-the `smart_battery_pilot.replan` service. Only the *current* slot's action is
+The plan is recomputed every 30 minutes, whenever the price entity or the
+backup-reserve entity updates (e.g. tomorrow's prices arriving around 14:00),
+on option changes, and via the `smart_battery_pilot.replan` service. Only the *current* slot's action is
 ever executed, so plan revisions take effect immediately.
 
 ## What an export slot assumes

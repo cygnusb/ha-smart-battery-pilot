@@ -64,7 +64,11 @@ integrating power.
 ## Scripts (scripts.yaml)
 
 The charge and export scripts receive `power_w` from Smart Battery Pilot and
-convert it to the Gen24's per-mille encoding. `max_power` is the value WChaMax
+convert it to the Gen24's per-mille encoding. Every script also receives
+`reserve_soc` — the backup reserve, or the minimum SOC while none is set; the
+idle and auto scripts write it into `MinRsvPct` (40350) so the Gen24 holds the
+reserve on its own, even while Home Assistant is down. The charge script keeps
+99 % there on purpose. `max_power` is the value WChaMax
 (e.g. `12800` from register 40346 / `sensor.reading_battery_settings`).
 
 ```yaml
@@ -156,7 +160,14 @@ sbp_force_discharge:
 | Temperature sensor | `sensor.aussen_temperatur` |
 | PV forecast today / tomorrow | `sensor.vorhersage_solarproduktion_gesamt_heute` / `…_morgen` (Open-Meteo Solar Forecast) |
 | Current PV power (optional) | e.g. `sensor.solarnet_leistung_produktion` — shown live on the card |
-| Battery charge / discharge energy (optional) | cumulative kWh or Wh meters, both needed for actual-savings EUR. Prefer the core Fronius DC counters `Battery charging/discharging energy total` (HA 2026.9+) over a Riemann sum |
+| Battery charge / discharge energy (optional) | cumulative kWh or Wh meters, both needed for the battery-benefit and pilot-savings sensors and for learning the cold-weather charge limit. Prefer the core Fronius DC counters `Battery charging/discharging energy total` (HA 2026.9+) over a Riemann sum |
+
+Optional features in the options menu:
+
+| Option | Entity / value |
+|---|---|
+| Cold-weather charging | on, with the BYD module/cell temperature sensor of your `byd_hvs` installation as battery temperature; defaults `10/20/50/80/100 %` suit the LFP cells — check the BYD datasheet |
+| Backup reserve | e.g. `20` %, optionally an `input_number` your storm-warning automation raises; *block discharging* is not needed, the Gen24 holds `MinRsvPct` itself |
 
 ## Verification sensors
 

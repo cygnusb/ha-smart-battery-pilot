@@ -46,9 +46,14 @@ vendor configurations.
    with the most expensive consumption slots, respecting battery capacity,
    power limits, SOC limits and roundtrip efficiency. Charging only happens if
    the price spread exceeds your configured threshold (default 0.20 EUR/kWh).
+   Optionally it plans with the reduced charge power of a **cold battery** and
+   keeps a **backup reserve** that arbitrage never spends.
 5. **Execution** — at every slot boundary the integration calls your scripts:
    *force charge*, *block discharge (idle)*, *auto mode* or optionally
-   *export to grid*.
+   *export to grid* — each with the variable `reserve_soc`, and the power
+   scripts with `power_w`.
+6. **Accounting** — from your battery's energy meters it reports what the
+   battery is worth and, separately, what the pilot itself added.
 
 ### Actions
 
@@ -72,14 +77,18 @@ The config flow guides you through five steps: price source, battery
 parameters, control scripts, consumption sensor and (optional) PV forecast.
 Details and the full option reference: [docs/configuration.md](docs/configuration.md).
 
-Optional, in the options menu: **cold-weather charging**. The planner accounts
-for the reduced charge power of a cold battery. It starts from a slider curve
-and learns the real limit from the charge slots the pilot runs.
+Two features live only in the options menu (*Configure* on the integration)
+and are off until you switch them on:
 
-Also optional: a **backup reserve** for grid outages. Arbitrage never spends
-it, a SOC below it is refilled by a deadline, every control script receives it
-as `reserve_soc`, and an entity can raise it at runtime (e.g. on a storm
-warning).
+* **Cold-weather charging** — the planner accounts for the reduced charge
+  power of a cold battery. It starts from a slider curve (0–20 °C) and learns
+  the real limit from the charge slots the pilot runs. The charge script is
+  still asked for full power; the BMS does the throttling.
+* **Backup reserve** — SOC kept for a grid outage. Arbitrage never spends it,
+  a SOC below it is refilled by a deadline (PV first, then the cheapest grid
+  slots), every control script receives it as `reserve_soc`, and an entity can
+  raise it at runtime (e.g. on a storm warning). An optional fallback blocks
+  discharging at the reserve for inverters without a reserve setting.
 
 > **Safety first:** the integration starts **disabled** and in **dry-run**
 > mode. Watch the planned actions in the log and the plan sensor for a day or
@@ -96,39 +105,45 @@ warning).
 | `sensor.…_charge_plan`                   | Full plan as `slots` attribute               |
 | `sensor.…_plan_status`                   | Plan validity (`ok` / `no_price_data` / …)   |
 | `sensor.…_estimated_savings`             | Plan vs. doing nothing, over the horizon     |
-| `sensor.…_actual_savings_eur`            | Battery benefit (net): what the battery is worth, pilot or not. Discharge at the import price, minus charge cost (grid at import, PV at feed-in) |
-| `sensor.…_battery_gross_eur`             | Battery benefit (gross): discharge at the grid price, no charge cost deducted |
-| `sensor.…_pilot_savings_eur`             | What the pilot itself added: energy it charged from the grid or held back, credited when used. 0.00 while it only runs `auto` |
-| `sensor.…_actual_savings_kwh`            | Accumulated kWh (discharge − grid charge)    |
+| `sensor.…_actual_savings_eur`            | **Battery benefit (net)** — what the battery is worth, pilot or not: discharge at the import price, minus charge cost (grid at import, PV at feed-in). Entity id kept from before the rename |
+| `sensor.…_battery_gross_eur`             | **Battery benefit (gross)** — discharge at the grid price, no charge cost deducted |
+| `sensor.…_pilot_savings_eur`             | **Pilot savings** — what the pilot itself added: energy it charged from the grid or held back, credited when used (`pending_kwh`: not used yet). 0.00 while it only runs `auto` |
+| `sensor.…_actual_savings_kwh`            | Accumulated kWh (discharge − charge)         |
 | `sensor.…_consumption_forecast`          | Learned 24h consumption forecast             |
-| `sensor.…_configuration`                 | Diagnostic dump of the active settings       |
+| `sensor.…_configuration`                 | Active settings, incl. charge factor and backup reserve with their sources |
 | `switch.…_enabled`                       | Master switch                                |
 | `switch.…_dry_run`                       | Plan only, don't call scripts                |
 | `binary_sensor.…_plan_problem`           | On when no valid plan exists                 |
 
-Actual-savings sensors stay empty until **both** optional battery charge and
-discharge energy entities are configured — each reports a net figure, which a
-single meter cannot produce. They only accumulate while the pilot actually
-steers (master switch on, dry-run off): a battery cycling under the inverter's
-own control is not the planner's doing.
+The three euro totals and the kWh total stay empty until **both** optional
+battery charge and discharge energy entities are configured. *Battery benefit*
+counts whether or not the pilot steers — it is what the battery is worth.
+*Pilot savings* counts only what the pilot moved differently from the
+inverter: grid charge in `charge` slots and energy held back in `idle` slots,
+valued when the battery later discharges it. See
+[docs/optimizer.md](docs/optimizer.md#savings-estimate).
 
 `estimated_savings` is measured against doing nothing (plain self-consumption),
 not against buying everything from the grid: a plan that changes nothing
 reports `0.00`. See [docs/optimizer.md](docs/optimizer.md#savings-estimate).
 
-> Entity IDs are generated from the **localized** entity names — on a German
-> installation the plan sensor is `sensor.smart_battery_pilot_ladeplan`, on
-> an English one `sensor.smart_battery_pilot_charge_plan`. The UI languages
-> shipped are English and German.
+> Entity IDs are generated from the **localized** entity names when an entity
+> is first created — on a German installation the plan sensor is
+> `sensor.smart_battery_pilot_ladeplan`, on an English one
+> `sensor.smart_battery_pilot_charge_plan`. Renaming an entity later (as with
+> *Battery benefit (net)*) changes its display name, not its id. See
+> [Languages](#languages) for the ten UI languages shipped.
 
 Service: `smart_battery_pilot.replan` — recompute the plan immediately.
 
 Diagnostics (⋮ → *Download diagnostics* on the device page) dump the active
 configuration, the matched price adapter, the forecast model, the inputs the
-last plan was built from (SOC, price range, battery limits, tunables), the
-first day of the plan and the executor's last 50 decisions (applied,
-unchanged, dry run, disabled, script failed, no valid plan — each with a
-reason) — attach that to any issue report.
+last plan was built from (SOC, price range, battery limits, tunables, charge
+factor, backup reserve), the first day of the plan, the learned cold-weather
+charge bands, the pilot's savings ledger, and the executor's last 50
+decisions (applied, unchanged, dry run, disabled, reserve updated, reserve
+block, script failed, no valid plan — each with a reason) — attach that to
+any issue report.
 
 For a deeper look, switch on debug logging (device page → *Enable debug
 logging*, or in `configuration.yaml`):
