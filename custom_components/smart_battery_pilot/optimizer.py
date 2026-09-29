@@ -52,6 +52,10 @@ class BatteryState:
     max_charge_power_w: float
     max_discharge_power_w: float
     efficiency: float  # roundtrip efficiency, percent (e.g. 90)
+    # Share of max_charge_power_w a cold battery is expected to accept. A
+    # planning assumption only: it shrinks the charge the model counts on per
+    # slot, while the power requested from the script is scaled back up.
+    charge_factor: float = 1.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,6 +137,7 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
     hours = [s.price_slot.hours for s in slots]
     prices = [s.price_slot.price for s in slots]
     demand = [max(0.0, s.net_demand_kwh) for s in slots]
+    charge_factor = max(0.0, min(1.0, battery.charge_factor))
     # The pairing loop runs thousands of times on a 15-minute horizon; the
     # messages are only formatted when someone is actually listening.
     debug = _LOGGER.isEnabledFor(logging.DEBUG)
@@ -144,7 +149,7 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
         _LOGGER.debug(
             "Planning %d slots %s .. %s: prices %.4f..%.4f EUR/kWh, demand %.2f kWh, "
             "stored %.2f of %.2f kWh usable (SOC %.1f%%, window %.0f-%.0f%%), "
-            "eta %.3f, spread %.4f, mode %s, feed-in %.4f",
+            "eta %.3f, spread %.4f, mode %s, feed-in %.4f, charge factor %.2f",
             n,
             label(0),
             label(n - 1),
@@ -160,6 +165,7 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
             config.spread_threshold,
             config.discharge_mode,
             config.feed_in_tariff,
+            charge_factor,
         )
 
     # Stored energy added/removed per slot (kWh measured inside the battery).
@@ -167,7 +173,9 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
     discharge_stored = [0.0] * n
     export_stored = [0.0] * n
 
-    charge_cap = [battery.max_charge_power_w / 1000.0 * h * eta_one_way for h in hours]
+    charge_cap = [
+        battery.max_charge_power_w * charge_factor / 1000.0 * h * eta_one_way for h in hours
+    ]
     discharge_cap = [battery.max_discharge_power_w / 1000.0 * h for h in hours]
 
     # PV surplus (negative net demand) charges the battery in auto mode -
@@ -364,6 +372,12 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
             action = ACTION_CHARGE
             grid_kwh = charge_stored[i] / eta_one_way
             charge_power = grid_kwh / hours[i] * 1000.0
+            if 0.0 < charge_factor < 1.0:
+                # The planned power already has the cold limit in it. Passing
+                # it on would make the pilot throttle the battery itself;
+                # request what stores the planned energy at the expected
+                # acceptance instead, and leave the limiting to the BMS.
+                charge_power = min(battery.max_charge_power_w, charge_power / charge_factor)
             plan.grid_charge_kwh += grid_kwh
         elif export_stored[i] > 1e-9:
             action = ACTION_EXPORT
