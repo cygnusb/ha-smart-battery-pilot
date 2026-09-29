@@ -25,17 +25,17 @@ def _live(action, **kwargs):
 
 
 def test_every_script_gets_reserve_soc():
-    hass, coord, executor = _live(ACTION_IDLE)
+    hass, _coord, executor = _live(ACTION_IDLE)
     _run(executor.async_apply_current())
     assert _calls(hass) == [("sbp_idle", {"reserve_soc": 10})]
 
-    hass, coord, executor = _live(ACTION_CHARGE)
+    hass, _coord, executor = _live(ACTION_CHARGE)
     _run(executor.async_apply_current())
     assert _calls(hass) == [("sbp_charge", {"power_w": 4000, "reserve_soc": 10})]
 
 
 def test_a_successful_call_remembers_the_reserve_sent():
-    hass, coord, executor = _live(ACTION_IDLE)
+    _hass, coord, executor = _live(ACTION_IDLE)
     _run(executor.async_apply_current())
     assert coord.last_reserve_sent == 10
 
@@ -51,7 +51,7 @@ def test_a_changed_reserve_is_re_sent_with_the_same_action():
 
 
 def test_an_unchanged_reserve_is_not_re_sent():
-    hass, coord, executor = _live(ACTION_IDLE)
+    hass, _coord, executor = _live(ACTION_IDLE)
     _run(executor.async_apply_current())
     _run(executor.async_apply_current())
     assert len(hass.services.calls) == 1
@@ -92,7 +92,7 @@ def _blocking(soc):
 
 
 def test_the_block_replaces_auto_with_idle_at_the_reserve():
-    hass, coord, executor = _blocking(soc=30.0)
+    hass, _coord, executor = _blocking(soc=30.0)
     _run(executor.async_apply_current())
     assert _calls(hass) == [("sbp_idle", {"reserve_soc": 30})]
     assert executor.decisions[-1]["outcome"] == "reserve_block"
@@ -124,7 +124,7 @@ def test_without_the_option_auto_stays_auto_below_the_reserve():
 
 
 def test_a_soc_change_queues_an_apply_only_when_the_block_flips():
-    hass, coord, executor = _blocking(soc=40.0)
+    _hass, _coord, executor = _blocking(soc=40.0)
     queued = []
     executor._queue_apply = lambda: queued.append(True)
     executor._handle_soc_change(35.0)
