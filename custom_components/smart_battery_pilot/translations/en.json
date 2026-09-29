@@ -201,9 +201,31 @@
           "control": "Control scripts",
           "consumption": "Consumption & temperature",
           "pv": "PV forecast",
+          "derating": "Cold-weather charging",
           "apply": "💾 Save & close"
         },
         "description": "Changes in the sections below are collected and only saved via “Save & close”."
+      },
+      "derating": {
+        "title": "Cold-weather charging",
+        "data": {
+          "charge_derating": "Plan with reduced charge power in the cold",
+          "battery_temperature_entity": "Battery temperature entity",
+          "derating_0c": "Charge power at 0 °C and below",
+          "derating_5c": "Charge power at 5 °C",
+          "derating_10c": "Charge power at 10 °C",
+          "derating_15c": "Charge power at 15 °C",
+          "derating_20c": "Charge power at 20 °C and above"
+        },
+        "data_description": {
+          "charge_derating": "The planner expects a cold battery to accept less than the maximum charge power and schedules more cheap charge slots. The charge script is still asked for full power; the battery's BMS does the throttling.",
+          "battery_temperature_entity": "Cell or module temperature of the battery, not the outdoor temperature. Required when the option is on.",
+          "derating_0c": "Percent of the maximum charge power the battery accepts at 0 °C and colder. Check your battery's datasheet.",
+          "derating_5c": "Percent of the maximum charge power the battery accepts at 5 °C.",
+          "derating_10c": "Percent of the maximum charge power the battery accepts at 10 °C.",
+          "derating_15c": "Percent of the maximum charge power the battery accepts at 15 °C.",
+          "derating_20c": "Percent of the maximum charge power at 20 °C and warmer. Usually 100 %."
+        }
       }
     },
     "error": {
@@ -212,7 +234,9 @@
       "no_future_prices": "The entity contains no future prices.",
       "soc_range_invalid": "Minimum SOC must be below maximum SOC.",
       "export_spread_unreachable": "Export mode cannot do anything with these values: the feed-in tariff is at or below the minimum price spread, so no slot can ever qualify. Raise the feed-in tariff, lower the spread, or set the feed-in tariff to 0 to export at the market price.",
-      "export_script_missing": "Export mode needs a force-discharge script. Configure one in the control scripts step, or set the discharge mode back to self-consumption."
+      "export_script_missing": "Export mode needs a force-discharge script. Configure one in the control scripts step, or set the discharge mode back to self-consumption.",
+      "derating_not_monotonic": "The charge power must not fall as the temperature rises. Check the sliders.",
+      "derating_needs_temperature": "Cold-weather charging needs a battery temperature entity."
     }
   },
   "selector": {

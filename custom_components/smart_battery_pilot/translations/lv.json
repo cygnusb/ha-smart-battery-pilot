@@ -201,9 +201,31 @@
           "control": "Vadības skripti",
           "consumption": "Patēriņš & temperatūra",
           "pv": "Saules enerģijas prognoze",
+          "derating": "Uzlāde aukstumā",
           "apply": "💾 Saglabāt & aizvērt"
         },
         "description": "Izmaiņas zemāk esošajās sadaļās tiek apkopotas un saglabātas tikai ar „Saglabāt & aizvērt”."
+      },
+      "derating": {
+        "title": "Uzlāde aukstumā",
+        "data": {
+          "charge_derating": "Plānot ar samazinātu uzlādes jaudu aukstumā",
+          "battery_temperature_entity": "Akumulatora temperatūras entītija",
+          "derating_0c": "Uzlādes jauda pie 0 °C un zemāk",
+          "derating_5c": "Uzlādes jauda pie 5 °C",
+          "derating_10c": "Uzlādes jauda pie 10 °C",
+          "derating_15c": "Uzlādes jauda pie 15 °C",
+          "derating_20c": "Uzlādes jauda pie 20 °C un augstāk"
+        },
+        "data_description": {
+          "charge_derating": "Plānotājs pieņem, ka auksts akumulators pieņem mazāk nekā maksimālo uzlādes jaudu, un ieplāno vairāk lētu uzlādes periodu. Uzlādes skripts joprojām pieprasa pilnu jaudu; ierobežošanu veic akumulatora BMS.",
+          "battery_temperature_entity": "Akumulatora šūnas vai moduļa temperatūra, nevis āra temperatūra. Obligāta, ja opcija ir ieslēgta.",
+          "derating_0c": "Procenti no maksimālās uzlādes jaudas, ko akumulators pieņem pie 0 °C un aukstākā laikā. Skatiet akumulatora datu lapu.",
+          "derating_5c": "Procenti no maksimālās uzlādes jaudas, ko akumulators pieņem pie 5 °C.",
+          "derating_10c": "Procenti no maksimālās uzlādes jaudas, ko akumulators pieņem pie 10 °C.",
+          "derating_15c": "Procenti no maksimālās uzlādes jaudas, ko akumulators pieņem pie 15 °C.",
+          "derating_20c": "Procenti no maksimālās uzlādes jaudas pie 20 °C un siltākā laikā. Parasti 100 %."
+        }
       }
     },
     "error": {
@@ -212,7 +234,9 @@
       "no_future_prices": "Entītijā nav nākotnes cenu.",
       "soc_range_invalid": "Minimālajam SOC jābūt zemākam par maksimālo SOC.",
       "export_spread_unreachable": "Pārdošanas režīms ar šīm vērtībām neko nevar izdarīt: atlīdzība ir vienāda ar minimālo cenu starpību vai zemāka, tāpēc neviena stunda nekad nekvalificēsies. Palielini atlīdzību, samazini starpību vai iestati atlīdzību uz 0, lai pārdotu par tirgus cenu.",
-      "export_script_missing": "Eksporta režīmam nepieciešams piespiedu izlādes skripts. Pievienojiet to vadības skriptos vai iestatiet izlādes režīmu atpakaļ uz pašpatēriņu."
+      "export_script_missing": "Eksporta režīmam nepieciešams piespiedu izlādes skripts. Pievienojiet to vadības skriptos vai iestatiet izlādes režīmu atpakaļ uz pašpatēriņu.",
+      "derating_not_monotonic": "Uzlādes jauda nedrīkst samazināties, temperatūrai pieaugot. Pārbaudiet slīdņus.",
+      "derating_needs_temperature": "Uzlādei aukstumā nepieciešama akumulatora temperatūras entītija."
     }
   },
   "selector": {

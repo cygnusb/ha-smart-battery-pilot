@@ -201,9 +201,31 @@
           "control": "Juhtimisskriptid",
           "consumption": "Tarbimine & temperatuur",
           "pv": "Päikeseenergia prognoos",
+          "derating": "Laadimine külmaga",
           "apply": "💾 Salvesta & sulge"
         },
         "description": "Allolevate jaotiste muudatused kogutakse kokku ja salvestatakse alles nupuga „Salvesta & sulge”."
+      },
+      "derating": {
+        "title": "Laadimine külmaga",
+        "data": {
+          "charge_derating": "Arvesta külmaga vähendatud laadimisvõimsusega",
+          "battery_temperature_entity": "Aku temperatuuri olem",
+          "derating_0c": "Laadimisvõimsus 0 °C ja alla selle",
+          "derating_5c": "Laadimisvõimsus 5 °C juures",
+          "derating_10c": "Laadimisvõimsus 10 °C juures",
+          "derating_15c": "Laadimisvõimsus 15 °C juures",
+          "derating_20c": "Laadimisvõimsus 20 °C ja üle selle"
+        },
+        "data_description": {
+          "charge_derating": "Planeerija eeldab, et külm aku võtab vastu vähem kui maksimaalse laadimisvõimsuse, ja planeerib rohkem odavaid laadimisperioode. Laadimisskript küsib endiselt täit võimsust; piiramise teeb aku BMS.",
+          "battery_temperature_entity": "Aku elemendi või mooduli temperatuur, mitte välistemperatuur. Kohustuslik, kui valik on sisse lülitatud.",
+          "derating_0c": "Protsent maksimaalsest laadimisvõimsusest, mida aku 0 °C ja külmemal vastu võtab. Vaata aku andmelehte.",
+          "derating_5c": "Protsent maksimaalsest laadimisvõimsusest, mida aku 5 °C juures vastu võtab.",
+          "derating_10c": "Protsent maksimaalsest laadimisvõimsusest, mida aku 10 °C juures vastu võtab.",
+          "derating_15c": "Protsent maksimaalsest laadimisvõimsusest, mida aku 15 °C juures vastu võtab.",
+          "derating_20c": "Protsent maksimaalsest laadimisvõimsusest 20 °C ja soojemal. Tavaliselt 100 %."
+        }
       }
     },
     "error": {
@@ -212,7 +234,9 @@
       "no_future_prices": "Olem ei sisalda tulevasi hindu.",
       "soc_range_invalid": "Minimaalne SOC peab olema väiksem kui maksimaalne SOC.",
       "export_spread_unreachable": "Müügirežiim ei saa nende väärtustega midagi teha: müügihind on minimaalse hinnavahemiku tasemel või allpool, seega ei kvalifitseeru ükski tund kunagi. Tõsta müügihinda, langeta vahemikku või määra müügihinnaks 0, et müüa turuhinnaga.",
-      "export_script_missing": "Ekspordirežiim vajab sunnitud tühjendamise skripti. Lisa see juhtimisskriptide sammus või määra tühjendusrežiim tagasi omatarbeks."
+      "export_script_missing": "Ekspordirežiim vajab sunnitud tühjendamise skripti. Lisa see juhtimisskriptide sammus või määra tühjendusrežiim tagasi omatarbeks.",
+      "derating_not_monotonic": "Laadimisvõimsus ei tohi temperatuuri tõustes langeda. Kontrolli liugureid.",
+      "derating_needs_temperature": "Laadimine külmaga vajab aku temperatuuri olemit."
     }
   },
   "selector": {

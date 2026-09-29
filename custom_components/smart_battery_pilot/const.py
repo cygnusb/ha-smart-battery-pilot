@@ -37,6 +37,24 @@ CONF_PV_FORECAST_TODAY = "pv_forecast_today"
 CONF_PV_FORECAST_TOMORROW = "pv_forecast_tomorrow"
 CONF_PV_POWER_ENTITY = "pv_power_entity"
 
+# Options section: cold-weather charging (not part of the initial setup)
+CONF_CHARGE_DERATING = "charge_derating"
+CONF_BATTERY_TEMPERATURE_ENTITY = "battery_temperature_entity"
+# Percent of max charge power at 0, 5, 10, 15 and 20 °C - the support points
+# of forecast.charge_rate.CURVE_TEMPERATURES, in that order.
+CONF_DERATING_0C = "derating_0c"
+CONF_DERATING_5C = "derating_5c"
+CONF_DERATING_10C = "derating_10c"
+CONF_DERATING_15C = "derating_15c"
+CONF_DERATING_20C = "derating_20c"
+DERATING_CURVE_KEYS = (
+    CONF_DERATING_0C,
+    CONF_DERATING_5C,
+    CONF_DERATING_10C,
+    CONF_DERATING_15C,
+    CONF_DERATING_20C,
+)
+
 # Options
 CONF_SPREAD_THRESHOLD = "spread_threshold"  # EUR/kWh min price spread
 CONF_DISCHARGE_MODE = "discharge_mode"
@@ -56,6 +74,9 @@ DEFAULT_SPREAD_THRESHOLD = 0.20
 DEFAULT_DISCHARGE_MODE = DISCHARGE_MODE_SELF_CONSUMPTION
 DEFAULT_DRY_RUN = True
 DEFAULT_TRAINING_DAYS = 60
+DEFAULT_CHARGE_DERATING = False
+# Conservative generic LFP: many BMS still allow a trickle charge at 0 °C.
+DEFAULT_DERATING_CURVE = (10, 20, 50, 80, 100)
 
 # --- Plan actions ---
 ACTION_CHARGE = "charge"

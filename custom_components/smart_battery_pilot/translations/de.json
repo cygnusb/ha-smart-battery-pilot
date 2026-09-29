@@ -201,9 +201,31 @@
           "control": "Steuerungs-Scripts",
           "consumption": "Verbrauch & Temperatur",
           "pv": "PV-Prognose",
+          "derating": "Laden bei Kälte",
           "apply": "💾 Speichern & schließen"
         },
         "description": "Änderungen in den Unterpunkten werden gesammelt und erst über „Speichern & schließen“ übernommen."
+      },
+      "derating": {
+        "title": "Laden bei Kälte",
+        "data": {
+          "charge_derating": "Reduzierte Ladeleistung bei Kälte einplanen",
+          "battery_temperature_entity": "Batterietemperatur-Entität",
+          "derating_0c": "Ladeleistung bei 0 °C und kälter",
+          "derating_5c": "Ladeleistung bei 5 °C",
+          "derating_10c": "Ladeleistung bei 10 °C",
+          "derating_15c": "Ladeleistung bei 15 °C",
+          "derating_20c": "Ladeleistung bei 20 °C und wärmer"
+        },
+        "data_description": {
+          "charge_derating": "Der Planer rechnet damit, dass eine kalte Batterie weniger als die maximale Ladeleistung aufnimmt, und plant mehr günstige Ladeslots ein. Das Lade-Skript bekommt weiterhin die volle Leistung; die Drosselung übernimmt das BMS der Batterie.",
+          "battery_temperature_entity": "Zellen- oder Modultemperatur der Batterie, nicht die Außentemperatur. Pflicht, wenn die Option aktiv ist.",
+          "derating_0c": "Prozent der maximalen Ladeleistung, die die Batterie bei 0 °C und kälter aufnimmt. Werte stehen im Datenblatt der Batterie.",
+          "derating_5c": "Prozent der maximalen Ladeleistung, die die Batterie bei 5 °C aufnimmt.",
+          "derating_10c": "Prozent der maximalen Ladeleistung, die die Batterie bei 10 °C aufnimmt.",
+          "derating_15c": "Prozent der maximalen Ladeleistung, die die Batterie bei 15 °C aufnimmt.",
+          "derating_20c": "Prozent der maximalen Ladeleistung bei 20 °C und wärmer. Meist 100 %."
+        }
       }
     },
     "error": {
@@ -212,7 +234,9 @@
       "no_future_prices": "Die Entity enthält keine zukünftigen Preise.",
       "soc_range_invalid": "Minimaler SOC muss unter dem maximalen SOC liegen.",
       "export_spread_unreachable": "Der Einspeise-Modus kann mit diesen Werten nichts tun: Die Einspeisevergütung liegt auf oder unter dem minimalen Preisspread, damit qualifiziert sich kein Slot. Vergütung erhöhen, Spread senken oder die Vergütung auf 0 setzen, um zum Marktpreis einzuspeisen.",
-      "export_script_missing": "Der Export-Modus braucht ein Script zum erzwungenen Entladen. Hinterlege eines bei den Steuerungs-Scripts, oder stelle den Entlademodus zurück auf Eigenverbrauch."
+      "export_script_missing": "Der Export-Modus braucht ein Script zum erzwungenen Entladen. Hinterlege eines bei den Steuerungs-Scripts, oder stelle den Entlademodus zurück auf Eigenverbrauch.",
+      "derating_not_monotonic": "Die Ladeleistung darf mit steigender Temperatur nicht sinken. Bitte die Schieberegler prüfen.",
+      "derating_needs_temperature": "Laden bei Kälte braucht eine Entität für die Batterietemperatur."
     }
   },
   "selector": {
