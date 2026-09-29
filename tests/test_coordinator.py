@@ -628,7 +628,7 @@ def test_a_record_price_spike_is_still_planned():
     assert _run(coord._async_update_data()).valid is True
 
 
-# --- savings only accrue while the pilot steers -------------------------------
+# --- the battery benefit counts whether or not the pilot steers ---------------
 
 
 def _cycle_the_battery(hass, coord, plan, steps: int = 4) -> None:
@@ -642,62 +642,32 @@ def _cycle_the_battery(hass, coord, plan, steps: int = 4) -> None:
         coord._update_actual_savings(plan, NOW + timedelta(minutes=30 * i))
 
 
-def test_nothing_accumulates_while_the_pilot_is_switched_off():
-    """The shipped default is master switch off and dry-run on.
-
-    A battery cycling on its own is the inverter's doing, not the pilot's;
-    counting it reported euros a day of savings from an integration that had
-    not called a single script.
-    """
+def test_the_battery_benefit_counts_while_the_pilot_is_switched_off():
+    """It is what the battery is worth, pilot or not. What the pilot adds is
+    the pilot ledger's business (tests/test_pilot_savings.py)."""
     hass = _FakeHass()
     coord = _coordinator(hass, steering=False)
     plan = Plan(slots=[_plan_slot("auto", 0.40, NOW.replace(hour=3, minute=0), hours=6)])
 
     _cycle_the_battery(hass, coord, plan)
 
-    assert coord._acc_savings_eur == 0.0
-    assert coord._acc_charge_kwh == 0.0
-    assert coord._acc_discharge_kwh == 0.0
+    # Three settled steps: 2 kWh at 0.40 out, 1 kWh PV in at the 0.08 feed-in.
+    assert coord._acc_savings_eur == pytest.approx(3 * (2 * 0.40 - 0.08))
+    assert coord.pilot_ledger.savings_eur == 0.0
 
 
-def test_dry_run_alone_is_enough_to_stop_accumulating():
+def test_in_dry_run_the_inverter_runs_in_auto_mode():
+    """No script runs in dry-run, so a stale forced mode must not price the
+    energy - PV charge is valued at the feed-in, not the import price."""
     hass = _FakeHass()
     coord = _coordinator(hass)
-    coord.enabled = True
-    coord.dry_run = True
+    coord.enabled, coord.dry_run = True, True
+    coord._last_applied = ACTION_CHARGE
     plan = Plan(slots=[_plan_slot("auto", 0.40, NOW.replace(hour=3, minute=0), hours=6)])
 
     _cycle_the_battery(hass, coord, plan)
 
-    assert coord._acc_savings_eur == 0.0
-
-
-def test_switching_on_does_not_book_the_energy_that_moved_while_off():
-    """The meter baseline keeps advancing while the accounting is paused.
-
-    Otherwise the first update after switching on would settle days of
-    inverter-driven cycling as one enormous delta.
-    """
-    hass = _FakeHass()
-    coord = _coordinator(hass, steering=False)
-    coord.last_applied = ACTION_CHARGE
-    plan = Plan(slots=[_plan_slot("charge", 0.20, NOW.replace(hour=3, minute=0), hours=6)])
-
-    hass.states.set("sensor.charge_energy", 100.0)
-    hass.states.set("sensor.discharge_energy", 50.0)
-    coord._update_actual_savings(plan, NOW)
-    hass.states.set("sensor.charge_energy", 140.0)
-    hass.states.set("sensor.discharge_energy", 80.0)
-    coord._update_actual_savings(plan, NOW + timedelta(minutes=30))
-
-    coord.enabled, coord.dry_run = True, False
-    hass.states.set("sensor.charge_energy", 142.0)
-    hass.states.set("sensor.discharge_energy", 80.0)
-    coord._update_actual_savings(plan, NOW + timedelta(hours=1))
-
-    # Only the 2 kWh charged after switching on, not the 40 kWh before it.
-    assert coord._acc_charge_kwh == pytest.approx(2.0)
-    assert coord._acc_savings_eur == pytest.approx(-0.40)
+    assert coord._acc_savings_eur == pytest.approx(3 * (2 * 0.40 - 0.08))
 
 
 def test_charge_in_an_unknown_mode_is_priced_at_the_import_price():

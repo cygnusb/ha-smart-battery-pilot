@@ -53,6 +53,8 @@ async def async_setup_entry(
             SavingsSensor(coordinator),
             ActualSavingsEurSensor(coordinator),
             ActualSavingsKwhSensor(coordinator),
+            BatteryGrossSensor(coordinator),
+            PilotSavingsSensor(coordinator),
             ConsumptionForecastSensor(coordinator),
             ConfigSensor(coordinator),
         ]
@@ -380,10 +382,12 @@ class ConfigSensor(SBPEntity, SensorEntity):
 
 
 class ActualSavingsEurSensor(SBPEntity, SensorEntity):
-    """Accumulated actual savings in EUR since integration start.
+    """Battery benefit (net): what the battery is worth, pilot or not.
 
-    Only available when battery charge/discharge energy entities are configured.
-    Uses actual energy meter deltas correlated with plan prices.
+    Discharge at the import price (export value in export slots) minus charge
+    at what it cost (grid: import price, PV: the feed-in it displaced). The
+    unique id predates the rename and stays, so history and statistics carry
+    on. Only available when both battery energy meters are configured.
     """
 
     _attr_device_class = SensorDeviceClass.MONETARY
@@ -408,6 +412,46 @@ class ActualSavingsEurSensor(SBPEntity, SensorEntity):
             "charge_kwh_total": data.actual_charge_kwh,
             "discharge_kwh_total": data.actual_discharge_kwh,
         }
+
+
+class BatteryGrossSensor(SBPEntity, SensorEntity):
+    """Battery benefit (gross): discharge at the grid price, no PV cost deducted."""
+
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = "EUR"
+    _attr_suggested_display_precision = 2
+    _attr_state_class = SensorStateClass.TOTAL
+
+    def __init__(self, coordinator: SBPCoordinator) -> None:
+        super().__init__(coordinator, "battery_gross_eur")
+
+    @property
+    def native_value(self) -> float | None:
+        data = self.coordinator.data
+        return data.battery_gross_eur if data else None
+
+
+class PilotSavingsSensor(SBPEntity, SensorEntity):
+    """What the pilot itself saved: energy it charged or held back, and what
+    that energy was worth when it was used. Can go down after a bad trade."""
+
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = "EUR"
+    _attr_suggested_display_precision = 2
+    _attr_state_class = SensorStateClass.TOTAL
+
+    def __init__(self, coordinator: SBPCoordinator) -> None:
+        super().__init__(coordinator, "pilot_savings_eur")
+
+    @property
+    def native_value(self) -> float | None:
+        data = self.coordinator.data
+        return data.pilot_savings_eur if data else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        ledger = self.coordinator.pilot_ledger
+        return {"pending_kwh": round(ledger.total_kwh, 3), "pending_lots": len(ledger.lots)}
 
 
 class ActualSavingsKwhSensor(SBPEntity, SensorEntity):

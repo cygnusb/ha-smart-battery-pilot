@@ -87,8 +87,8 @@ async def test_the_integration_sets_up_and_creates_its_entities(
     assert sbp_hass.services.has_service(DOMAIN, SERVICE_REPLAN)
 
     created = [eid for eid in sbp_hass.states.async_entity_ids() if "smart_battery_pilot" in eid]
-    # Ten sensors, two switches, one binary sensor.
-    assert len(created) == 13, created
+    # Twelve sensors, two switches, one binary sensor.
+    assert len(created) == 15, created
 
 
 async def test_a_plan_is_computed_from_the_price_entity(

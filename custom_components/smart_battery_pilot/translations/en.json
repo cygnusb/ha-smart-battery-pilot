@@ -316,10 +316,16 @@
         }
       },
       "actual_savings_eur": {
-        "name": "Actual savings"
+        "name": "Battery benefit (net)"
       },
       "actual_savings_kwh": {
         "name": "Actual energy gain"
+      },
+      "battery_gross_eur": {
+        "name": "Battery benefit (gross)"
+      },
+      "pilot_savings_eur": {
+        "name": "Pilot savings"
       }
     },
     "switch": {

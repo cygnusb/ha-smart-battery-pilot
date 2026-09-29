@@ -316,10 +316,16 @@
         }
       },
       "actual_savings_eur": {
-        "name": "Todellinen säästö"
+        "name": "Akun hyöty (netto)"
       },
       "actual_savings_kwh": {
         "name": "Todellinen energiahyöty"
+      },
+      "battery_gross_eur": {
+        "name": "Akun hyöty (brutto)"
+      },
+      "pilot_savings_eur": {
+        "name": "Pilotin säästö"
       }
     },
     "switch": {

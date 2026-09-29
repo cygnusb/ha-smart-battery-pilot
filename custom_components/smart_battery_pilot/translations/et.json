@@ -316,10 +316,16 @@
         }
       },
       "actual_savings_eur": {
-        "name": "Tegelik kokkuhoid"
+        "name": "Aku kasu (neto)"
       },
       "actual_savings_kwh": {
         "name": "Tegelik energiavõit"
+      },
+      "battery_gross_eur": {
+        "name": "Aku kasu (bruto)"
+      },
+      "pilot_savings_eur": {
+        "name": "Piloodi sääst"
       }
     },
     "switch": {

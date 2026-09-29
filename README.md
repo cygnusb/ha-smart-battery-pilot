@@ -96,7 +96,9 @@ warning).
 | `sensor.…_charge_plan`                   | Full plan as `slots` attribute               |
 | `sensor.…_plan_status`                   | Plan validity (`ok` / `no_price_data` / …)   |
 | `sensor.…_estimated_savings`             | Plan vs. doing nothing, over the horizon     |
-| `sensor.…_actual_savings_eur`            | Accumulated EUR from energy-meter deltas, counted only while the pilot steers (grid charge at import, PV charge at feed-in, export credited at feed-in) |
+| `sensor.…_actual_savings_eur`            | Battery benefit (net): what the battery is worth, pilot or not. Discharge at the import price, minus charge cost (grid at import, PV at feed-in) |
+| `sensor.…_battery_gross_eur`             | Battery benefit (gross): discharge at the grid price, no charge cost deducted |
+| `sensor.…_pilot_savings_eur`             | What the pilot itself added: energy it charged from the grid or held back, credited when used. 0.00 while it only runs `auto` |
 | `sensor.…_actual_savings_kwh`            | Accumulated kWh (discharge − grid charge)    |
 | `sensor.…_consumption_forecast`          | Learned 24h consumption forecast             |
 | `sensor.…_configuration`                 | Diagnostic dump of the active settings       |
