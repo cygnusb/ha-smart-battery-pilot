@@ -202,6 +202,7 @@
           "consumption": "Forbrug & temperatur",
           "pv": "Solcelleprognose",
           "derating": "Opladning i kulde",
+          "reserve": "Nødstrømsreserve",
           "apply": "💾 Gem & luk"
         },
         "description": "Ændringer i afsnittene nedenfor samles og gemmes først via »Gem & luk«."
@@ -225,6 +226,21 @@
           "derating_10c": "Procent af den maksimale ladeeffekt, som batteriet modtager ved 10 °C.",
           "derating_15c": "Procent af den maksimale ladeeffekt, som batteriet modtager ved 15 °C.",
           "derating_20c": "Procent af den maksimale ladeeffekt ved 20 °C og varmere. Normalt 100 %."
+        }
+      },
+      "reserve": {
+        "title": "Nødstrømsreserve",
+        "data": {
+          "backup_reserve": "Nødstrømsreserve (SOC til strømsvigt)",
+          "backup_reserve_entity": "Reserve-entitet (valgfri, overstyrer værdien)",
+          "reserve_refill_hours": "Frist for genopfyldning",
+          "reserve_block_discharge": "Spær afladning ved reserven (fallback)"
+        },
+        "data_description": {
+          "backup_reserve": "Arbitrage bruger aldrig batteriet under denne SOC, og en SOC under den genopfyldes inden fristen. Ved eller under minimum-SOC er indstillingen slået fra. Hvert styrescript modtager værdien som reserve_soc – ved et reelt strømsvigt bør inverteren holde den.",
+          "backup_reserve_entity": "Et tal eller en sensor i procent, f.eks. en input_number, som en automation hæver ved et stormvarsel. Så længe den giver et tal, erstatter den den faste værdi.",
+          "reserve_refill_hours": "Timer, inden for hvilke en SOC under reserven bringes op igen: først med solceller, resten i de billigste netperioder.",
+          "reserve_block_discharge": "Kun til invertere uden egen reserveindstilling: piloten skifter til 'spær afladning', når SOC når reserven. Virker kun, mens Home Assistant kører."
         }
       }
     },

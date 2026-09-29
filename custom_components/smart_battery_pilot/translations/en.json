@@ -202,6 +202,7 @@
           "consumption": "Consumption & temperature",
           "pv": "PV forecast",
           "derating": "Cold-weather charging",
+          "reserve": "Backup reserve",
           "apply": "💾 Save & close"
         },
         "description": "Changes in the sections below are collected and only saved via “Save & close”."
@@ -225,6 +226,21 @@
           "derating_10c": "Percent of the maximum charge power the battery accepts at 10 °C.",
           "derating_15c": "Percent of the maximum charge power the battery accepts at 15 °C.",
           "derating_20c": "Percent of the maximum charge power at 20 °C and warmer. Usually 100 %."
+        }
+      },
+      "reserve": {
+        "title": "Backup reserve",
+        "data": {
+          "backup_reserve": "Backup reserve (SOC kept for a grid outage)",
+          "backup_reserve_entity": "Reserve entity (optional, overrides the value)",
+          "reserve_refill_hours": "Refill deadline",
+          "reserve_block_discharge": "Block discharging at the reserve (fallback)"
+        },
+        "data_description": {
+          "backup_reserve": "Arbitrage never spends the battery below this SOC, and a SOC below it is refilled by the deadline. At or below the minimum SOC the option is off. Every control script receives it as reserve_soc - for a real outage, have your inverter hold it.",
+          "backup_reserve_entity": "A number or sensor in percent, e.g. an input_number that an automation raises on a storm warning. While it reads a number it replaces the fixed value.",
+          "reserve_refill_hours": "Hours within which a SOC below the reserve is brought back up: PV first, the rest in the cheapest grid slots.",
+          "reserve_block_discharge": "Only for inverters without their own reserve setting: the pilot switches to 'block discharge' when the SOC reaches the reserve. Works only while Home Assistant runs."
         }
       }
     },

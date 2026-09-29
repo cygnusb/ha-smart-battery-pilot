@@ -202,6 +202,7 @@
           "consumption": "Verbruik & temperatuur",
           "pv": "PV-prognose",
           "derating": "Laden bij kou",
+          "reserve": "Noodstroomreserve",
           "apply": "💾 Opslaan & sluiten"
         },
         "description": "Wijzigingen in de secties hieronder worden verzameld en pas via “Opslaan & sluiten” bewaard."
@@ -225,6 +226,21 @@
           "derating_10c": "Percentage van het maximale laadvermogen dat de batterij opneemt bij 10 °C.",
           "derating_15c": "Percentage van het maximale laadvermogen dat de batterij opneemt bij 15 °C.",
           "derating_20c": "Percentage van het maximale laadvermogen bij 20 °C en warmer. Meestal 100 %."
+        }
+      },
+      "reserve": {
+        "title": "Noodstroomreserve",
+        "data": {
+          "backup_reserve": "Noodstroomreserve (SOC voor een stroomstoring)",
+          "backup_reserve_entity": "Reserve-entiteit (optioneel, overschrijft de waarde)",
+          "reserve_refill_hours": "Termijn voor aanvullen",
+          "reserve_block_discharge": "Ontladen bij de reserve blokkeren (terugvaloptie)"
+        },
+        "data_description": {
+          "backup_reserve": "Arbitrage gebruikt de batterij nooit onder deze SOC, en een SOC eronder wordt binnen de termijn weer aangevuld. Op of onder de minimale SOC staat de optie uit. Elk stuurscript krijgt de waarde als reserve_soc – laat bij een echte storing de omvormer hem vasthouden.",
+          "backup_reserve_entity": "Een getal of sensor in procent, bijv. een input_number die een automatisering bij een stormwaarschuwing verhoogt. Zolang die een getal geeft, vervangt hij de vaste waarde.",
+          "reserve_refill_hours": "Uren waarbinnen een SOC onder de reserve weer wordt aangevuld: eerst met zonnestroom, de rest in de goedkoopste netperiodes.",
+          "reserve_block_discharge": "Alleen voor omvormers zonder eigen reserve-instelling: de piloot schakelt naar 'ontladen blokkeren' zodra de SOC de reserve bereikt. Werkt alleen zolang Home Assistant draait."
         }
       }
     },

@@ -202,6 +202,7 @@
           "consumption": "Verbrauch & Temperatur",
           "pv": "PV-Prognose",
           "derating": "Laden bei Kälte",
+          "reserve": "Notstrom-Reserve",
           "apply": "💾 Speichern & schließen"
         },
         "description": "Änderungen in den Unterpunkten werden gesammelt und erst über „Speichern & schließen“ übernommen."
@@ -225,6 +226,21 @@
           "derating_10c": "Prozent der maximalen Ladeleistung, die die Batterie bei 10 °C aufnimmt.",
           "derating_15c": "Prozent der maximalen Ladeleistung, die die Batterie bei 15 °C aufnimmt.",
           "derating_20c": "Prozent der maximalen Ladeleistung bei 20 °C und wärmer. Meist 100 %."
+        }
+      },
+      "reserve": {
+        "title": "Notstrom-Reserve",
+        "data": {
+          "backup_reserve": "Notstrom-Reserve (SoC für einen Stromausfall)",
+          "backup_reserve_entity": "Reserve-Entität (optional, überschreibt den Wert)",
+          "reserve_refill_hours": "Frist zum Auffüllen",
+          "reserve_block_discharge": "Entladen an der Reserve sperren (Rückfall)"
+        },
+        "data_description": {
+          "backup_reserve": "Arbitrage nutzt die Batterie nie unter diesem SoC, und ein SoC darunter wird bis zur Frist wieder aufgefüllt. Auf oder unter dem Mindest-SoC ist die Option aus. Jedes Steuer-Skript bekommt den Wert als reserve_soc – für einen echten Stromausfall sollte der Wechselrichter ihn halten.",
+          "backup_reserve_entity": "Eine Zahl oder ein Sensor in Prozent, z. B. ein input_number, das eine Automation bei einer Unwetterwarnung anhebt. Solange sie eine Zahl liefert, ersetzt sie den festen Wert.",
+          "reserve_refill_hours": "Stunden, in denen ein SoC unter der Reserve wieder aufgefüllt wird: zuerst mit PV, der Rest in den günstigsten Netz-Slots.",
+          "reserve_block_discharge": "Nur für Wechselrichter ohne eigene Reserve-Einstellung: Der Pilot schaltet auf „Entladen sperren“, sobald der SoC die Reserve erreicht. Wirkt nur, solange Home Assistant läuft."
         }
       }
     },

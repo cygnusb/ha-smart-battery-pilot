@@ -202,6 +202,7 @@
           "consumption": "Patēriņš & temperatūra",
           "pv": "Saules enerģijas prognoze",
           "derating": "Uzlāde aukstumā",
+          "reserve": "Rezerves jauda strāvas pārrāvumam",
           "apply": "💾 Saglabāt & aizvērt"
         },
         "description": "Izmaiņas zemāk esošajās sadaļās tiek apkopotas un saglabātas tikai ar „Saglabāt & aizvērt”."
@@ -225,6 +226,21 @@
           "derating_10c": "Procenti no maksimālās uzlādes jaudas, ko akumulators pieņem pie 10 °C.",
           "derating_15c": "Procenti no maksimālās uzlādes jaudas, ko akumulators pieņem pie 15 °C.",
           "derating_20c": "Procenti no maksimālās uzlādes jaudas pie 20 °C un siltākā laikā. Parasti 100 %."
+        }
+      },
+      "reserve": {
+        "title": "Rezerves jauda strāvas pārrāvumam",
+        "data": {
+          "backup_reserve": "Rezerve (SOC strāvas pārrāvumam)",
+          "backup_reserve_entity": "Rezerves entītija (neobligāta, aizstāj vērtību)",
+          "reserve_refill_hours": "Uzpildes termiņš",
+          "reserve_block_discharge": "Bloķēt izlādi pie rezerves (rezerves variants)"
+        },
+        "data_description": {
+          "backup_reserve": "Arbitrāža nekad neizmanto akumulatoru zem šī SOC, un zemāks SOC tiek atjaunots līdz termiņam. Pie minimālā SOC vai zemāk opcija ir izslēgta. Katrs vadības skripts saņem vērtību kā reserve_soc – īstam pārrāvumam to vajadzētu uzturēt invertorim.",
+          "backup_reserve_entity": "Skaitlis vai sensors procentos, piem., input_number, ko automatizācija paaugstina vētras brīdinājuma laikā. Kamēr tas sniedz skaitli, tas aizstāj fiksēto vērtību.",
+          "reserve_refill_hours": "Stundas, kurās SOC zem rezerves tiek atjaunots: vispirms ar saules enerģiju, pārējais lētākajos tīkla periodos.",
+          "reserve_block_discharge": "Tikai invertoriem bez savas rezerves iestatījuma: pilots pārslēdzas uz 'bloķēt izlādi', kad SOC sasniedz rezervi. Darbojas tikai, kamēr darbojas Home Assistant."
         }
       }
     },
