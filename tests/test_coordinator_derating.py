@@ -324,3 +324,14 @@ def test_a_new_sample_is_persisted():
     coord = _coordinator(hass, **LEARNING)
     _observed(hass, coord, kwh_end=101.5)
     assert coord._store._data["charge_rate"]["samples"]
+
+
+def test_saturation_compares_battery_side_with_battery_side():
+    """At 72 % roundtrip efficiency a battery taking everything it was asked
+    for stores 0.85 of the request on its side of the inverter. Comparing that
+    with the grid-side request called every such slot limited."""
+    hass = _hass_with_prices(temp=3.0)
+    coord = _coordinator(hass, **{**LEARNING, "efficiency": 72})
+    one_way = 0.72**0.5
+    [sample] = _observed(hass, coord, kwh_end=100.0 + 5.0 * one_way)
+    assert sample.saturated is False

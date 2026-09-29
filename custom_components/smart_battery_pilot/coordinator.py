@@ -810,7 +810,9 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         sample = ChargeSample(
             temperature=opened.temperature,
             ratio=achieved_kw / (max_kw * eta_one_way),
-            saturated=achieved_kw < SATURATION_SHARE * opened.requested_w / 1000.0,
+            # Both sides of the comparison on the battery side of the inverter:
+            # the meter counts what arrived, the request is what left the grid.
+            saturated=achieved_kw < SATURATION_SHARE * opened.requested_w / 1000.0 * eta_one_way,
             at=now,
         )
         self.charge_model.add_sample(sample)
