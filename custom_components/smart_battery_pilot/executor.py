@@ -189,18 +189,31 @@ class PlanExecutor:
         Waiting for the next refresh could let the battery run up to 30
         minutes below the reserve.
         """
-        if self._block_wanted(soc) != self._reserve_blocking:
+        # Only an auto slot the pilot really drives can be blocked; in charge,
+        # idle or export slots - a refill slot starts below the reserve by
+        # definition - SOC ticks must not re-run the script.
+        coordinator = self.coordinator
+        slot = self.current_slot()
+        if (
+            slot is None
+            or slot.action != ACTION_AUTO
+            or not coordinator.enabled
+            or coordinator.dry_run
+        ):
+            return
+        if self._block_wanted(soc, self._reserve_blocking) != self._reserve_blocking:
             _LOGGER.debug("SOC %s crosses the reserve block threshold - re-applying", soc)
             self._queue_apply()
 
-    def _block_wanted(self, soc: float | None) -> bool:
-        """Whether the fallback block should be in force at `soc` (hysteresis)."""
+    def _block_wanted(self, soc: float | None, blocking: bool) -> bool:
+        """Whether the fallback block should be in force at `soc`, given whether
+        it is in force now (hysteresis)."""
         if not self.coordinator.reserve_block_enabled():
             return False
         reserve, _, _ = self.coordinator.reserve_state()
         if reserve is None or soc is None:
             return False
-        if self._reserve_blocking:
+        if blocking:
             return soc < reserve + RESERVE_RELEASE_MARGIN
         return soc <= reserve
 
@@ -261,6 +274,9 @@ class PlanExecutor:
 
     async def _apply_locked(self) -> None:
         coordinator = self.coordinator
+        # Re-established below for an auto slot only; any other outcome ends
+        # the block, so a stale flag cannot drive the SOC listener.
+        was_blocking, self._reserve_blocking = self._reserve_blocking, False
         slot = self.current_slot()
         if slot is None or not self._plan_is_live():
             reason = self._why_no_live_plan()
@@ -304,7 +320,7 @@ class PlanExecutor:
 
         blocked = False
         if action == ACTION_AUTO:
-            self._reserve_blocking = self._block_wanted(coordinator.live_soc())
+            self._reserve_blocking = self._block_wanted(coordinator.live_soc(), was_blocking)
             if self._reserve_blocking:
                 _LOGGER.debug("SOC at the backup reserve - blocking discharge instead of auto")
                 action = ACTION_IDLE

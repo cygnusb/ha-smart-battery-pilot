@@ -131,3 +131,40 @@ def test_a_soc_change_queues_an_apply_only_when_the_block_flips():
     assert queued == []
     executor._handle_soc_change(30.0)
     assert queued == [True]
+
+
+def test_soc_changes_during_a_refill_charge_slot_do_not_re_apply():
+    """A refill slot starts below the reserve by definition; with the block on,
+    every SOC tick re-called the charge script."""
+    _hass, coord, executor = _live(ACTION_CHARGE)
+    coord.block, coord.reserve, coord.soc = True, 30, 20.0
+    _run(executor.async_apply_current())
+    queued = []
+    executor._queue_apply = lambda: queued.append(True)
+    for soc in (20.5, 22.0, 25.0):
+        executor._handle_soc_change(soc)
+    assert queued == []
+
+
+def test_a_block_does_not_linger_into_a_non_auto_slot():
+    _hass, coord, executor = _blocking(soc=30.0)
+    _run(executor.async_apply_current())
+    assert executor._reserve_blocking is True
+    coord.data.plan.slots[0].action = ACTION_CHARGE
+    _run(executor.async_apply_current())
+    assert executor._reserve_blocking is False
+    queued = []
+    executor._queue_apply = lambda: queued.append(True)
+    executor._handle_soc_change(31.0)
+    assert queued == []
+
+
+def test_no_soc_re_apply_while_disabled_or_in_dry_run():
+    _hass, coord, executor = _blocking(soc=40.0)
+    coord.dry_run = True
+    queued = []
+    executor._queue_apply = lambda: queued.append(True)
+    executor._handle_soc_change(30.0)
+    coord.dry_run, coord.enabled = False, False
+    executor._handle_soc_change(30.0)
+    assert queued == []
