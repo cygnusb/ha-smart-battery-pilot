@@ -147,3 +147,14 @@ def test_a_nan_reserve_entity_is_unreadable_not_max_soc():
     hass.states.set("input_number.reserve", "nan")
     coord = _coordinator(hass, **{CONF_BACKUP_RESERVE: 30, **ENTITY})
     assert coord.reserve_state() == (30.0, "fixed", None)
+
+
+def test_an_incomplete_refill_warns_once_while_it_persists(caplog):
+    coord = _coordinator(_hass(soc=10.0), **{CONF_BACKUP_RESERVE: 95, CONF_RESERVE_REFILL_HOURS: 1})
+    caplog.set_level(logging.DEBUG, logger="smart_battery_pilot.coordinator")
+    first = _run(coord._async_update_data())
+    coord.data = first
+    coord.data = _run(coord._async_update_data())
+    assert "reserve_refill_incomplete" in first.plan.warnings
+    warnings = [r for r in caplog.records if "cannot be refilled" in r.getMessage()]
+    assert [r.levelno for r in warnings] == [logging.WARNING, logging.DEBUG]

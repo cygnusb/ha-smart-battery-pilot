@@ -445,7 +445,11 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 config.spread_threshold,
             )
         if "reserve_refill_incomplete" in plan.warnings:
-            _LOGGER.warning(
+            # Once per episode: it stays true for every refresh until the
+            # battery catches up, and a warning twice an hour buries the log.
+            previous = self.data.plan.warnings if self.data is not None else []
+            _LOGGER.log(
+                logging.DEBUG if "reserve_refill_incomplete" in previous else logging.WARNING,
                 "The backup reserve of %.0f %% cannot be refilled within %.0f h at the "
                 "current charge limits; charging what fits.",
                 reserve,
