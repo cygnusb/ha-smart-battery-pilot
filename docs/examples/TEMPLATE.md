@@ -15,7 +15,11 @@ Integrations/hardware needed (e.g. Modbus hub config, MQTT broker, …).
 ## Scripts
 
 The four scripts Smart Battery Pilot calls. The charge and export scripts
-receive the variable `power_w`.
+receive the variable `power_w`. Every script receives `reserve_soc` (whole
+percent: the backup reserve, or the minimum SOC while none is set) — if your
+inverter has a minimum-reserve setting, write it there in the idle and auto
+scripts so the reserve holds even while Home Assistant is down. Scripts that
+ignore it keep working.
 
 ```yaml
 sbp_force_charge:

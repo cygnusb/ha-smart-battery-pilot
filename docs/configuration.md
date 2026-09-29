@@ -50,7 +50,10 @@ the house from the battery while it exports; see
 
 Ready-made scripts for specific hardware: see [examples](examples/).
 
-> Each script is awaited (`blocking: true`) and must return within **120 s**, or > the action counts as failed and the battery is handed back to auto mode. Give > any retry loop inside a script a bound of its own — an unbounded one would > otherwise hold up integration reloads and Home Assistant's shutdown.
+> Each script is awaited (`blocking: true`) and must return within **120 s**,
+> or the action counts as failed and the battery is handed back to auto mode.
+> Give any retry loop inside a script a bound of its own — an unbounded one
+> would otherwise hold up integration reloads and Home Assistant's shutdown.
 
 ### 4. Household consumption
 
@@ -126,8 +129,8 @@ slots have shown the battery taking clearly less than requested, the measured
 value replaces the slider curve for that band. Slots near max SOC (the battery
 tapers because it is full), shorter than 10 minutes, with requests below
 20 % of the max charge power, or with less than 0.2 kWh in under 30 minutes
-(too close to the resolution of typical energy meters) are ignored. Dry-run learns nothing, because no
-charge actually happens.
+(too close to the resolution of typical energy meters) are ignored. Dry-run
+learns nothing, because no charge actually happens.
 
 The configuration sensor shows `charge_factor`, its source (`curve`,
 `learned`, `no_temperature`), whether learning is `active` or has
@@ -161,8 +164,9 @@ savings — it is reported separately as `reserve_refill_kwh` and
 `reserve_refill_cost_eur` on the plan sensor. The battery benefit
 and pilot savings sensors count what the meters measured, so the energy bought
 for a refill does show up there (a refill charge is a pilot lot like any grid
-charge) — estimated and measured figures drift apart by the refill cost. A deadline too short for the
-charge power shows the plan warning `reserve_refill_incomplete`. The
+charge) — estimated and measured figures drift apart by the refill cost. A
+deadline too short for the charge power shows the plan warning
+`reserve_refill_incomplete`. The
 configuration sensor shows `reserve_soc`, its source (`fixed`, `entity`,
 `off`) and whether the discharge block is on.
 
@@ -174,8 +178,24 @@ configuration sensor shows `reserve_soc`, its source (`fixed`, `entity`,
 4. When the plan looks sensible, turn off `switch.…_dry_run`.
 
 If anything goes wrong (price entity unavailable, no prices, SOC missing),
-the integration calls your *auto mode* script once and stops interfering.
-Turning dry-run **on** after a live script was applied also restores auto.
+the integration calls your *auto mode* script once, logs one warning naming
+the reason, and stops interfering until planning works again. Turning dry-run
+**on** after a live script was applied also restores auto.
+
+## Troubleshooting
+
+* **Download diagnostics** (device page → ⋮) first. It holds the inputs of the
+  last plan, the first day of the plan and the executor's last 50 decisions
+  with their reasons — usually enough to see why a slot was charged, blocked
+  or left alone.
+* **Debug logging** (device page → *Enable debug logging*) adds every planning
+  run's inputs, how the price adapter parsed the entity, each charge/discharge
+  pairing the optimizer made or rejected (e.g. *spread not reached*, with the
+  arithmetic), the reserve refill pass and every executor decision.
+* **"Why does it show savings although the pilot did nothing?"** — *Battery
+  benefit* is what your battery is worth in self-consumption, pilot or not.
+  What the pilot added is *Pilot savings*, which stays at 0.00 while every
+  slot is `auto`.
 
 ## Dashboard
 
@@ -249,8 +269,10 @@ depth uses the panel's full height rather than a sliver along the top edge.
 
 The card's labels, tooltip and date/time formatting follow the Home Assistant
 user's language (`hass.locale.language`, falling back to the browser language
-and finally to English). English and German ship with the card; to add another
-language, extend the `TRANSLATIONS` table at the top of
+and finally to English). The card ships the same ten languages as the
+integration (English, German, Danish, Estonian, Finnish, Lithuanian, Latvian,
+Norwegian Bokmål, Dutch, Swedish); to add another, extend the `TRANSLATIONS`
+table at the top of
 `custom_components/smart_battery_pilot/frontend/smart-battery-pilot-card.js`
 with a new entry keyed by the language tag — any key missing from it falls back
 to the English string.
