@@ -101,7 +101,14 @@ class ChargeRateModel:
 
     def add_sample(self, sample: ChargeSample) -> None:
         self._samples.append(sample)
-        cutoff = sample.at - MAX_SAMPLE_AGE
+        self._prune()
+
+    def _prune(self) -> None:
+        """Drop samples past the age limit (from the newest one) and the cap."""
+        if not self._samples:
+            return
+        self._samples.sort(key=lambda s: s.at)
+        cutoff = self._samples[-1].at - MAX_SAMPLE_AGE
         self._samples = [s for s in self._samples if s.at >= cutoff][-MAX_SAMPLES:]
 
     def _in_band(self, band: float) -> list[ChargeSample]:
@@ -195,4 +202,5 @@ class ChargeRateModel:
             )
             for row in data.get("samples", [])
         ]
+        model._prune()
         return model

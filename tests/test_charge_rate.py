@@ -180,3 +180,25 @@ def test_bands_summary_for_diagnostics():
     assert bands[1]["band_c"] == 10.0
     assert bands[1]["learned"] is None
     assert model.learned_band_count == 1
+
+
+def test_loading_applies_the_cap_and_the_age_limit():
+    rows = [
+        {
+            "temperature": 3.0,
+            "ratio": 0.4,
+            "saturated": True,
+            "at": (AT - timedelta(days=800)).isoformat(),
+        }
+    ] + [
+        {
+            "temperature": 3.0,
+            "ratio": 0.4,
+            "saturated": True,
+            "at": (AT + timedelta(minutes=i)).isoformat(),
+        }
+        for i in range(MAX_SAMPLES + 5)
+    ]
+    model = ChargeRateModel.from_dict({"samples": rows}, DEFAULT)
+    assert len(model.samples) == MAX_SAMPLES
+    assert min(s.at for s in model.samples) == AT + timedelta(minutes=5)

@@ -365,3 +365,13 @@ def test_a_battery_taking_nothing_for_half_an_hour_is_a_real_sample():
     [sample] = _observed(hass, coord, kwh_end=100.0, minutes=30)
     assert sample.ratio == 0.0
     assert sample.saturated is True
+
+
+def test_a_mangled_charge_rate_store_entry_does_not_break_setup(caplog):
+    hass = _hass_with_prices(temp=2.5)
+    coord = _coordinator(hass, **DERATING)
+    coord._store._data = {"charge_rate": ["not", "a", "dict"]}
+    caplog.set_level(logging.WARNING)
+    _run(coord.async_setup())
+    assert coord.charge_model.samples == ()
+    assert "charge rate" in caplog.text

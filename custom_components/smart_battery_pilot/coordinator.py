@@ -278,7 +278,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 self.charge_model = ChargeRateModel.from_dict(
                     stored["charge_rate"], self._derating_curve()
                 )
-            except (KeyError, TypeError, ValueError) as err:
+            except (AttributeError, KeyError, TypeError, ValueError) as err:
                 _LOGGER.warning("Could not restore charge rate observations: %s", err)
 
         price_entity = self.conf(CONF_PRICE_ENTITY)
