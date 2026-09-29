@@ -143,6 +143,15 @@ class _OpenCharge:
     requested_w: float
 
 
+@dataclass(frozen=True, slots=True)
+class ChargeReading:
+    """Meter and SOC at one instant - the end point of a charge observation."""
+
+    at: datetime
+    kwh: float | None
+    soc: float | None
+
+
 @dataclass
 class SBPData:
     """Result of one coordinator update."""
@@ -736,7 +745,25 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
 
     # --- charge rate observation --------------------------------------------------
 
-    def charge_observation(self, requested_w: float | None, now: datetime | None = None) -> None:
+    def charge_reading(self, now: datetime | None = None) -> ChargeReading:
+        """Snapshot for closing an observation.
+
+        The executor takes it before calling the next action's script: that
+        script may run for minutes with no charge flowing, and timing the
+        sample after it returned would dilute the measured rate.
+        """
+        return ChargeReading(
+            at=now or dt_util.now(),
+            kwh=self._read_energy_kwh(self.conf(CONF_BATTERY_CHARGE_ENERGY_ENTITY)),
+            soc=self._read_float_state(self.conf(CONF_SOC_ENTITY)),
+        )
+
+    def charge_observation(
+        self,
+        requested_w: float | None,
+        now: datetime | None = None,
+        closing: ChargeReading | None = None,
+    ) -> None:
         """Close the watched charge slot and, if charging goes on, watch the next.
 
         Called by the executor after every decision: with the requested power
@@ -755,7 +782,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             and now - running.started < MAX_OBSERVATION
         ):
             return
-        self._close_charge_observation(now)
+        self._close_charge_observation(closing or self.charge_reading(now))
         if requested_w is not None:
             self._open_charge_observation(requested_w, now)
 
@@ -780,13 +807,12 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             return
         self._open_charge = _OpenCharge(now, kwh, temperature, requested_w)
 
-    def _close_charge_observation(self, now: datetime) -> None:
+    def _close_charge_observation(self, reading: ChargeReading) -> None:
         opened, self._open_charge = self._open_charge, None
         if opened is None:
             return
+        now, kwh, soc = reading.at, reading.kwh, reading.soc
         elapsed = now - opened.started
-        kwh = self._read_energy_kwh(self.conf(CONF_BATTERY_CHARGE_ENERGY_ENTITY))
-        soc = self._read_float_state(self.conf(CONF_SOC_ENTITY))
         max_soc = float(self.conf(CONF_MAX_SOC, DEFAULT_MAX_SOC))
         reason = None
         if elapsed < MIN_OBSERVATION:

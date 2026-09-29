@@ -205,3 +205,19 @@ def test_executor_reports_applied_charges_to_the_coordinator():
     _run(executor.async_apply_current())
     _run(executor.async_stop())
     assert coord.charge_requests == [3000.0, None, None]
+
+
+def test_the_executor_takes_the_close_reading_before_any_script():
+    hass = _FakeHass()
+    coord = _FakeCoordinator([_slot(ACTION_CHARGE, power=3000.0)], dry_run=False)
+    seen = []
+
+    def _reading():
+        seen.append(len(hass.services.calls))
+        return "reading"
+
+    coord.charge_reading = _reading
+    executor = PlanExecutor(hass, coord)
+    _run(executor.async_apply_current())
+    assert seen == [0]
+    assert coord.closings == ["reading"]

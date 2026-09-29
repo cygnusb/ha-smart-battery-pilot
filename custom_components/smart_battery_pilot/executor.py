@@ -23,7 +23,7 @@ from .const import (
     CONF_SCRIPT_IDLE,
     SCRIPT_CALL_TIMEOUT_SECONDS,
 )
-from .coordinator import SBPCoordinator
+from .coordinator import ChargeReading, SBPCoordinator
 from .optimizer import PlanSlot
 
 _LOGGER = logging.getLogger(__name__)
@@ -187,10 +187,13 @@ class PlanExecutor:
             if self._stopped:
                 return
             self._schedule_boundary()
+            # Before any script runs: the one that ends a charge slot may take
+            # minutes, and the observation must end when the charge did.
+            reading = self.coordinator.charge_reading()
             await self._apply_locked()
-            self._report_charge()
+            self._report_charge(reading)
 
-    def _report_charge(self) -> None:
+    def _report_charge(self, reading: ChargeReading) -> None:
         """Tell the coordinator whether a charge slot is really running.
 
         It watches those slots to learn how much a cold battery actually
@@ -200,7 +203,9 @@ class PlanExecutor:
         charging = (
             last is not None and last["outcome"] == "applied" and last["planned"] == ACTION_CHARGE
         )
-        self.coordinator.charge_observation(float(last["power_w"]) if charging else None)
+        self.coordinator.charge_observation(
+            float(last["power_w"]) if charging else None, closing=reading
+        )
 
     async def _apply_locked(self) -> None:
         coordinator = self.coordinator

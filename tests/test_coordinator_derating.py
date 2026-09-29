@@ -335,3 +335,17 @@ def test_saturation_compares_battery_side_with_battery_side():
     one_way = 0.72**0.5
     [sample] = _observed(hass, coord, kwh_end=100.0 + 5.0 * one_way)
     assert sample.saturated is False
+
+
+def test_the_close_reading_can_be_taken_before_the_next_script():
+    """The auto script after a charge slot may take two minutes, with no charge
+    flowing; timing the sample after it returned diluted the rate."""
+    hass = _hass_with_prices(temp=3.0)
+    coord = _coordinator(hass, **LEARNING)
+    _meter(hass, 100.0)
+    coord.charge_observation(5000.0, now=T0)
+    _meter(hass, 101.5)
+    reading = coord.charge_reading(now=T0 + timedelta(minutes=60))
+    coord.charge_observation(None, now=T0 + timedelta(minutes=62), closing=reading)
+    [sample] = coord.charge_model.samples
+    assert round(sample.ratio, 3) == 0.3

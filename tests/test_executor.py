@@ -54,6 +54,7 @@ class _FakeCoordinator:
         self.persisted = 0
         self.listener_updates = 0
         self.charge_requests: list = []
+        self.closings: list = []
         self._conf = {
             CONF_SCRIPT_CHARGE: "script.sbp_charge",
             CONF_SCRIPT_IDLE: "script.sbp_idle",
@@ -76,8 +77,12 @@ class _FakeCoordinator:
     def note_conditions(self):
         pass
 
-    def charge_observation(self, requested_w, now=None):
+    def charge_reading(self):
+        return None
+
+    def charge_observation(self, requested_w, now=None, closing=None):
         self.charge_requests.append(requested_w)
+        self.closings.append(closing)
 
     async def async_persist(self):
         self.persisted += 1
