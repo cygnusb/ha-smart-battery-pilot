@@ -138,3 +138,12 @@ def test_the_sensors_show_the_reserve():
     plan = _attrs(ChargePlanSensor, coord)
     assert plan["reserve_refill_kwh"] == coord.data.plan.reserve_refill_kwh
     assert plan["reserve_refill_cost_eur"] == coord.data.plan.reserve_refill_cost_eur
+
+
+def test_a_nan_reserve_entity_is_unreadable_not_max_soc():
+    """float('nan') parses, and clamping nan returned max_soc - the refill would
+    have charged the battery full from the grid."""
+    hass = _hass()
+    hass.states.set("input_number.reserve", "nan")
+    coord = _coordinator(hass, **{CONF_BACKUP_RESERVE: 30, **ENTITY})
+    assert coord.reserve_state() == (30.0, "fixed", None)

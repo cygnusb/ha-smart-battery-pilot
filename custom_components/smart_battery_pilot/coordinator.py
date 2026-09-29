@@ -624,9 +624,12 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         if state is None or state.state in ("unavailable", "unknown", ""):
             return None
         try:
-            return float(state.state)
+            value = float(state.state)
         except ValueError:
             return None
+        # "nan" and "inf" parse, and would poison every min/max downstream -
+        # a nan reserve clamped to max_soc charged the battery full.
+        return value if math.isfinite(value) else None
 
     def live_soc(self) -> float | None:
         """The SOC entity right now, not as of the last refresh."""
