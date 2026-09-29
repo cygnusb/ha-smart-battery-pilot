@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+import pytest
 from test_optimizer import BATTERY, CONFIG, make_slots
 
 from smart_battery_pilot.const import ACTION_CHARGE, ACTION_EXPORT, DISCHARGE_MODE_EXPORT
@@ -126,3 +127,28 @@ def test_no_export_below_the_reserve_while_it_is_still_being_refilled():
     battery = replace(BATTERY, soc=10.0, reserve_soc=50.0)
     plan = build_plan(make_slots(prices, demand_kwh=1.0), battery, config)
     assert _below_reserve(plan, 50.0) == []
+
+
+def test_the_all_auto_fallback_keeps_the_mandatory_refill(monkeypatch):
+    """The refill is excluded from the baseline check so it cannot be thrown
+    away as 'worse than doing nothing' - the fallback must not drop it either."""
+    from smart_battery_pilot import optimizer
+
+    real = optimizer._simulate_self_consumption
+
+    def perfect_baseline(n, demand, *args):
+        _, levels = real(n, demand, *args)
+        return list(demand), levels  # a baseline no plan can beat
+
+    monkeypatch.setattr(optimizer, "_simulate_self_consumption", perfect_baseline)
+    config = replace(CONFIG, reserve_refill_hours=6.0)
+    plan = build_plan(
+        make_slots([0.30, 0.12, 0.25, 0.11, 0.40, 0.40] + [0.50] * 6, 1.0),
+        replace(BATTERY, soc=20.0, reserve_soc=40.0),
+        config,
+    )
+    assert "plan_worse_than_baseline" in plan.warnings
+    assert _charges(plan) == [3]
+    assert plan.slots[3].power_w > 0
+    assert plan.reserve_refill_kwh > 0
+    assert plan.grid_charge_kwh == pytest.approx(plan.reserve_refill_kwh, abs=1e-3)

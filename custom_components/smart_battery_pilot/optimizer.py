@@ -420,6 +420,18 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
             assign_discharge(d, want_stored, export_stored)
 
     # --- build plan slots ----------------------------------------------------
+    def charge_request_w(i: int, stored: float) -> float:
+        """Power to ask the charge script for, to store `stored` kWh in slot i."""
+        if 0.0 < charge_factor < 1.0 and stored + pv_surplus_stored[i] >= charge_cap[i] - 1e-9:
+            # Filled to the cold limit: the planned power is that limit, and
+            # passing it on would make the pilot throttle the battery itself.
+            # Ask for the maximum and let the BMS cap it. A slot that needs
+            # less keeps its planned power - a cold BMS caps the current, it
+            # does not take a share of the request, so asking for more there
+            # would overshoot the plan (and max SOC).
+            return battery.max_charge_power_w
+        return stored / eta_one_way / hours[i] * 1000.0
+
     if export_spread_unreachable:
         warnings.append("export_spread_unreachable")
     plan = Plan(warnings=list(warnings))
@@ -433,18 +445,7 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
         if charge_stored[i] > 1e-9:
             action = ACTION_CHARGE
             grid_kwh = charge_stored[i] / eta_one_way
-            charge_power = grid_kwh / hours[i] * 1000.0
-            if (
-                0.0 < charge_factor < 1.0
-                and charge_stored[i] + pv_surplus_stored[i] >= charge_cap[i] - 1e-9
-            ):
-                # Filled to the cold limit: the planned power is that limit, and
-                # passing it on would make the pilot throttle the battery
-                # itself. Ask for the maximum and let the BMS cap it. A slot
-                # that needs less keeps its planned power - a cold BMS caps the
-                # current, it does not take a share of the request, so asking
-                # for more there would overshoot the plan (and max SOC).
-                charge_power = battery.max_charge_power_w
+            charge_power = charge_request_w(i, charge_stored[i])
             plan.grid_charge_kwh += grid_kwh
         elif export_stored[i] > 1e-9:
             action = ACTION_EXPORT
@@ -519,9 +520,23 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
                 cost_plan,
                 cost_baseline,
             )
+        # The refill stays: it was kept out of this check precisely so that
+        # "worse than doing nothing" cannot throw it away.
+        refill_power = [
+            charge_request_w(i, refill_stored[i]) if refill_stored[i] > 1e-9 else 0.0
+            for i in range(n)
+        ]
         fallback = _auto_plan(
-            slots, prices, baseline_delivered, baseline_levels, battery, floor, warnings
+            slots,
+            prices,
+            baseline_delivered,
+            baseline_levels,
+            battery,
+            floor,
+            warnings,
+            refill_power,
         )
+        fallback.grid_charge_kwh = refill_kwh
         fallback.reserve_refill_kwh = round(refill_kwh, 3)
         fallback.reserve_refill_cost_eur = round(refill_cost, 2)
         return fallback
@@ -555,16 +570,20 @@ def _auto_plan(
     battery: BatteryState,
     floor: float,
     warnings: list[str],
+    refill_power: list[float],
 ) -> Plan:
-    """The do-nothing plan: leave the inverter in auto mode all the way."""
+    """The do-nothing plan: leave the inverter in auto mode all the way -
+    except for the mandatory backup reserve refill (`refill_power` > 0)."""
     plan = Plan(warnings=list(warnings))
     for i, slot in enumerate(slots):
         plan.battery_discharge_kwh += delivered[i]
+        refill = refill_power[i] > 0.0
         plan.slots.append(
             PlanSlot(
                 start=slot.price_slot.start,
                 end=slot.price_slot.end,
-                action=ACTION_AUTO,
+                action=ACTION_CHARGE if refill else ACTION_AUTO,
+                power_w=round(refill_power[i], 1),
                 price=prices[i],
                 net_demand_kwh=slot.net_demand_kwh,
                 pv_kwh=slot.pv_kwh,
