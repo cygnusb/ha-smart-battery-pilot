@@ -20,8 +20,8 @@ over Modbus TCP (port 502) on its own. Keep these YAML scripts as the only
 writer. Do not also set the new core number/switch entities (AC power
 limit, battery charge/discharge limits, min reserve, grid charging) —
 same registers, they would override the SBP plan. Core entities are
-limits, not force-charge/force-export (StorCtl_Mod `1`/`2` is not
-exposed). Watch Modbus session count on the Gen24 (YAML hub + core +
+limits, not force-charge/force-export (the negative OutWRte/InWRte
+rates are not exposed). Watch Modbus session count on the Gen24 (YAML hub + core +
 often EVCC). Prefer core's `Battery charging/discharging energy total`
 DC counters for SBP actual-savings inputs.
 
@@ -36,10 +36,10 @@ Home Assistant
 
 | Register | Name | Description |
 |----------|------|-------------|
-| 40348 | StorCTL_Mod | Mode: `0` = auto, `1` = force charge, `2` = force discharge |
-| 40350 | Minimum reserve | Minimum SOC buffer (×100), e.g. `500` = 5%, `1000` = 10%, `2000` = 20%, `9900` = 99% (full reserve while force-charging) |
-| 40355 | Charge rate (InWRte) | Charge power as per-mille of max capacity (10000 = 100%). **Discharging:** write the rate directly. **Charging:** `65536 - value` (two's complement) |
-| 40356 | Discharge rate (OutWRte) | Discharge power as per-mille (10000 = 100%). **While charging:** set `0` to block discharge |
+| 40348 | StorCtl_Mod | **Bitfield** arming the rate limits: bit 0 = InWRte (charge limit), bit 1 = OutWRte (discharge limit). `0` = none, `1` = charge limit, `2` = discharge limit, `3` = both |
+| 40350 | Minimum reserve (MinRsvPct) | Minimum SOC buffer (×100), e.g. `500` = 5%, `1000` = 10%, `2000` = 20%, `9900` = 99% (full reserve while force-charging). Below it the Gen24 tops up from the grid at only ~500 W |
+| 40355 | Discharge limit (OutWRte) | % of max charge power ×100 (`10000` = 100%, signed). `0` blocks discharging. **Negative** (`65536 - value`) forces charging at that rate. Needs bit 1 (StorCtl_Mod `2`) |
+| 40356 | Charge limit (InWRte) | % of max charge power ×100 (`10000` = 100%, signed). `0` blocks charging. **Negative** forces discharging. Needs bit 0 (StorCtl_Mod `1`) |
 | 40232 | PV production stop | `0` = stop PV (write 40232 to 0, then 40236 to 1) |
 | 40236 | PV production enable | `0` = PV running, `1` = PV blocked |
 
@@ -57,9 +57,9 @@ value = (charging_power / max_capacity) * 10000
 
 | Script | Function | Modbus actions |
 |--------|----------|----------------|
-| `script.force_charging` | Force charge at configurable power | 40355 = charge rate (negatively encoded), 40356 = 0, 40350 = 9900, 40348 = 1 |
-| `script.force_discharge` | Force discharge | 40356 = 0, 40355 = discharge rate, 40348 = 2 |
-| `script.charge_limit` | Charge to a limit (without max reserve) | 40356 = charge rate, 40348 = 1 |
+| `script.force_charging` | Force charge at configurable power | 40355 = −charge rate (`65536 - rate`), 40356 = charge rate, 40350 = 9900, 40348 = 2 |
+| `script.force_discharge` | Limit discharging to a configurable power (does **not** force an export) | 40356 = 0, 40355 = discharge rate, 40348 = 2 |
+| `script.charge_limit` | Limit charging to a configurable power (without max reserve) | 40356 = charge rate, 40348 = 1 |
 | `script.reset_charging` | Back to auto mode, 5% reserve | 40348 = 0, 40355 = 10000, 40350 = 500, 40356 = 10000 |
 | `script.reset_charging_10` | Auto, 10% reserve | 40348 = 0, 40355 = 10000, 40350 = 1000, 40356 = 10000 |
 | `script.reset_charging_20` | Auto, 20% reserve | 40348 = 0, 40355 = 10000, 40350 = 2000, 40356 = 10000 |
@@ -75,7 +75,7 @@ value = (charging_power / max_capacity) * 10000
 | `sensor.byd_battery_box_premium_hv_spannung_dc` | DC voltage | V |
 | `sensor.byd_battery_box_premium_hv_stromstarke_dc` | DC current (negative = charging) | A |
 | `sensor.byd_battery_box_premium_hv_maximale_kapazitat` | Maximum capacity | Wh |
-| `sensor.byd_storctl_mod` | Current control mode | auto / 1 / 2 |
+| `sensor.byd_storctl_mod` | Armed rate limits (bitfield) | 0 / 1 / 2 / 3 |
 | `sensor.byd_minrsvpct` | Current min-reserve | % |
 | `sensor.byd_outwrte` | Discharge rate | % |
 | `sensor.byd_inwrte` | Charge rate | % |
@@ -402,7 +402,7 @@ sensor.nordpool_kwh_ger_eur_3_10_019   # raw_today, raw_tomorrow
 
 # Battery state:
 sensor.byd_battery_box_premium_hv_ladezustand  # SOC %
-sensor.byd_storctl_mod                          # auto / 1 / 2
+sensor.byd_storctl_mod                          # 0 / 1 / 2 / 3 (bitfield)
 sensor.solarnet_ladeleistung                    # charge W
 sensor.solarnet_entladeleistung                 # discharge W
 
