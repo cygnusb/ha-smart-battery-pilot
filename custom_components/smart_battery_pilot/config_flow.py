@@ -29,7 +29,9 @@ from .const import (
     CONF_EFFICIENCY,
     CONF_EV_BATTERY_POLICY,
     CONF_EV_POWER_ENTITIES,
+    CONF_EV_SOURCE,
     CONF_EV_THRESHOLD_W,
+    CONF_EVCC_URL,
     CONF_EXTERNAL_CONTROL_ENTITY,
     CONF_FEED_IN_TARIFF,
     CONF_HAS_HEAT_PUMP,
@@ -59,6 +61,7 @@ from .const import (
     DEFAULT_DRY_RUN,
     DEFAULT_EFFICIENCY,
     DEFAULT_EV_BATTERY_POLICY,
+    DEFAULT_EV_SOURCE,
     DEFAULT_EV_THRESHOLD_W,
     DEFAULT_FEED_IN_TARIFF,
     DEFAULT_MAX_SOC,
@@ -75,7 +78,10 @@ from .const import (
     EV_POLICY_ALLOW,
     EV_POLICY_BLOCK,
     EV_POLICY_EXTERNAL,
+    EV_SOURCE_EVCC,
+    EV_SOURCE_NONE,
 )
+from .evcc import EvccError, async_fetch_state, normalize_url
 from .forecast.charge_rate import is_non_decreasing
 from .price_adapters import detect_adapter
 
@@ -101,6 +107,7 @@ _EXTERNAL_CONTROL = selector.EntitySelector(
 # sensor is the "[CODE]" one (disabled by default): its sibling
 # sensor.evcc_battery_mode_value is translated and cannot be matched.
 EVCC_BATTERY_MODE_ENTITY = "sensor.evcc_battery_mode"
+EVCC_DOMAIN = "evcc_intg"
 EVCC_CHARGE_POWER_SUFFIX = "_charge_power"
 
 
@@ -323,6 +330,16 @@ def schema_ev(d: dict[str, Any]) -> vol.Schema:
                 CONF_EXTERNAL_CONTROL_ENTITY,
                 description=_sugg(d.get(CONF_EXTERNAL_CONTROL_ENTITY)),
             ): _EXTERNAL_CONTROL,
+            vol.Required(
+                CONF_EV_SOURCE, default=d.get(CONF_EV_SOURCE) or DEFAULT_EV_SOURCE
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[EV_SOURCE_NONE, EV_SOURCE_EVCC], translation_key="ev_source"
+                )
+            ),
+            vol.Optional(CONF_EVCC_URL, description=_sugg(d.get(CONF_EVCC_URL))): (
+                selector.TextSelector(selector.TextSelectorConfig(type="url"))
+            ),
         }
     )
 
@@ -356,6 +373,8 @@ STEP_FIELDS: dict[str, list[str]] = {
         CONF_EV_BATTERY_POLICY,
         CONF_EV_THRESHOLD_W,
         CONF_EXTERNAL_CONTROL_ENTITY,
+        CONF_EV_SOURCE,
+        CONF_EVCC_URL,
     ],
 }
 
@@ -424,9 +443,21 @@ def _evcc_suggestions(hass, current: dict[str, Any]) -> dict[str, Any]:
     Only suggestions: an EV section the user has filled in once is left alone,
     and nothing breaks without evcc.
     """
-    if any(current.get(key) for key in STEP_FIELDS["ev"] if key != CONF_EV_THRESHOLD_W):
-        return current
     suggested = dict(current)
+    # The URL on its own: a section filled in before planned sessions existed
+    # still gets it offered.
+    if not current.get(CONF_EVCC_URL):
+        evcc_entries = hass.config_entries.async_entries(EVCC_DOMAIN)
+        host = evcc_entries[0].data.get("host") if evcc_entries else None
+        if host:
+            suggested[CONF_EVCC_URL] = normalize_url(str(host))
+    if any(
+        current.get(key)
+        for key in (CONF_EV_POWER_ENTITIES, CONF_EXTERNAL_CONTROL_ENTITY, CONF_EV_SOURCE)
+    ):
+        return suggested
+    if suggested.get(CONF_EVCC_URL):
+        suggested[CONF_EV_SOURCE] = EV_SOURCE_EVCC
     power = sorted(
         entity_id
         for entity_id in hass.states.async_entity_ids("sensor")
@@ -683,12 +714,29 @@ class SBPOptionsFlow(OptionsFlow):
         errors: dict[str, str] = {}
         if user_input is not None:
             error = _ev_error(self._would_be("ev", user_input))
+            if error is None and user_input.get(CONF_EV_SOURCE) == EV_SOURCE_EVCC:
+                error = await self._evcc_error(user_input.get(CONF_EVCC_URL))
             if error:
                 errors["base"] = error
             else:
+                if user_input.get(CONF_EVCC_URL):
+                    user_input = {
+                        **user_input,
+                        CONF_EVCC_URL: normalize_url(user_input[CONF_EVCC_URL]),
+                    }
                 return await self._save_step("ev", user_input)
         return self.async_show_form(
             step_id="ev",
             data_schema=schema_ev(_evcc_suggestions(self.hass, self._merged)),
             errors=errors,
         )
+
+    async def _evcc_error(self, url: str | None) -> str | None:
+        """Error key when evcc cannot be read at `url`, or None."""
+        if not url:
+            return "evcc_url_required"
+        try:
+            await async_fetch_state(self.hass, normalize_url(url))
+        except EvccError:
+            return "evcc_unreachable"
+        return None

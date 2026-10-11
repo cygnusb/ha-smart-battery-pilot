@@ -357,11 +357,13 @@ class PlanExecutor:
                 _LOGGER.warning("Plan invalid (%s) - restoring battery auto mode", reason)
                 if await self._call_script(ACTION_AUTO, 0.0):
                     await self._remember(ACTION_AUTO)
+            self.coordinator.ev_hold_active = False
             self._record("no_live_plan", None, reason)
             return
 
         if not coordinator.enabled:
             _LOGGER.debug("Pilot disabled - leaving slot action '%s' unapplied", slot.action)
+            self.coordinator.ev_hold_active = False
             self._record("disabled", slot)
             return
 
@@ -378,6 +380,7 @@ class PlanExecutor:
                 slot.start.isoformat(),
                 slot.end.isoformat(),
             )
+            self.coordinator.ev_hold_active = False
             self._record("dry_run", slot)
             return
 
@@ -388,6 +391,7 @@ class PlanExecutor:
             # tug of war; the plan resumes when it lets go.
             _LOGGER.debug("External control active - leaving slot action '%s' to it", slot.action)
             self._reassert = True
+            self.coordinator.ev_hold_active = True
             self._record("external_control", slot)
             return
 
@@ -403,6 +407,9 @@ class PlanExecutor:
                 _LOGGER.debug("EV charging - blocking discharge instead of auto")
                 action = ACTION_IDLE
                 blocked = "ev_block"
+        # A hold for the car is the EV policy's doing; the pilot ledger must
+        # not book it as an arbitrage decision.
+        self.coordinator.ev_hold_active = blocked == "ev_block"
 
         if self._reassert:
             _LOGGER.debug("External control ended - re-sending action '%s'", action)

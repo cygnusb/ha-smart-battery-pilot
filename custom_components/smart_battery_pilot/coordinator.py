@@ -12,7 +12,10 @@ from homeassistant.components.recorder import get_instance
 from homeassistant.components.recorder.statistics import statistics_during_period
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.helpers.event import (
+    async_track_state_change_event,
+    async_track_time_interval,
+)
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -35,7 +38,9 @@ from .const import (
     CONF_EFFICIENCY,
     CONF_EV_BATTERY_POLICY,
     CONF_EV_POWER_ENTITIES,
+    CONF_EV_SOURCE,
     CONF_EV_THRESHOLD_W,
+    CONF_EVCC_URL,
     CONF_EXTERNAL_CONTROL_ENTITY,
     CONF_FEED_IN_TARIFF,
     CONF_HAS_HEAT_PUMP,
@@ -61,6 +66,7 @@ from .const import (
     DEFAULT_DRY_RUN,
     DEFAULT_EFFICIENCY,
     DEFAULT_EV_BATTERY_POLICY,
+    DEFAULT_EV_SOURCE,
     DEFAULT_EV_THRESHOLD_W,
     DEFAULT_FEED_IN_TARIFF,
     DEFAULT_MAX_SOC,
@@ -72,11 +78,16 @@ from .const import (
     DEFAULT_TRAINING_DAYS,
     DERATING_CURVE_KEYS,
     DOMAIN,
+    EV_POLICY_BLOCK,
+    EV_POLICY_EXTERNAL,
+    EV_SOURCE_EVCC,
     STORAGE_KEY,
     STORAGE_VERSION,
     STORE_SAVE_DELAY_SECONDS,
     UPDATE_INTERVAL_MINUTES,
 )
+from .ev_sessions import MIN_SESSION_KWH, EvForecast, derive, limit_on_price_basis, per_slot
+from .evcc import EvccError, async_fetch_plan_power, async_fetch_state, normalize_url
 from .forecast.charge_rate import (
     SOURCE_OFF,
     ChargeRateModel,
@@ -101,6 +112,12 @@ RETRAIN_INTERVAL = timedelta(hours=24)
 RETRAIN_RETRY_INTERVAL = timedelta(hours=6)
 # Price/mode samples kept for savings accounting; see _note_conditions.
 MAX_CONDITION_SAMPLES = 200
+
+# evcc is polled this often while it is the EV source; a re-plan follows only
+# when the expected sessions changed. A fetch younger than EVCC_MAX_AGE is
+# reused by a refresh instead of asking evcc again.
+EVCC_POLL_INTERVAL = timedelta(seconds=60)
+EVCC_MAX_AGE = timedelta(minutes=5)
 
 # Above this, a parsed price is not a price but a unit error - cents or öre
 # read as euros. The all-time EPEX spot record is well under 1 EUR/kWh, so
@@ -181,6 +198,9 @@ class _LedgerMark:
     action: str | None
     price: float
     demand_kw: float  # forecast net demand rate of the slot, for idle holds
+    # The battery is held for a car (EV block or another controller), not
+    # for arbitrage - nothing the pilot gets credit for.
+    ev_hold: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -217,6 +237,15 @@ class SBPData:
     # What the planner was fed, for the diagnostics dump: a plan is only
     # explainable next to the SOC, prices and limits it was built from.
     inputs: dict[str, Any] | None = None
+    # Planned EV sessions; ev_source stays None while no EV source is set.
+    ev_source: str | None = None
+    ev_sessions: list[dict[str, Any]] | None = None
+    ev_kwh_total: float = 0.0
+    # evcc's cheap-price limit on this plan's price basis, or None.
+    ev_price_limit: float | None = None
+    # What each plan slot's EV energy comes from (plan, smart_cost, now,
+    # charging), aligned with plan.slots.
+    ev_slot_sources: list[str | None] | None = None
 
 
 class SBPCoordinator(DataUpdateCoordinator[SBPData]):
@@ -279,6 +308,17 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         self._ledger_mark: _LedgerMark | None = None
         self._acc_charge_kwh: float = 0.0
         self._acc_discharge_kwh: float = 0.0
+
+        # Planned EV sessions from evcc: the last good fetch (time, state,
+        # plan power per loadpoint), why the last one failed, and the session
+        # signature the current plan was built with.
+        self._evcc_fetch: tuple[datetime, dict[str, Any], dict[int, float]] | None = None
+        self._evcc_error: str | None = None
+        self._ev_signature: tuple | None = None
+        self._unsub_evcc_poll = None
+        self._unsub_soc = None
+        # Set by the executor while the battery is held for a car.
+        self._ev_hold_active = False
 
     # --- config helpers -------------------------------------------------------
 
@@ -344,6 +384,15 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             self._unsub_reserve = async_track_state_change_event(
                 self.hass, [reserve_entity], self._handle_reserve_update
             )
+        soc_entity = self.conf(CONF_SOC_ENTITY)
+        if soc_entity:
+            self._unsub_soc = async_track_state_change_event(
+                self.hass, [soc_entity], self._handle_soc_update
+            )
+        if self.ev_source() == EV_SOURCE_EVCC:
+            self._unsub_evcc_poll = async_track_time_interval(
+                self.hass, self._async_poll_evcc, EVCC_POLL_INTERVAL
+            )
 
     async def async_shutdown(self) -> None:
         if self._unsub_price:
@@ -352,7 +401,30 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         if self._unsub_reserve:
             self._unsub_reserve()
             self._unsub_reserve = None
+        if self._unsub_soc:
+            self._unsub_soc()
+            self._unsub_soc = None
+        if self._unsub_evcc_poll:
+            self._unsub_evcc_poll()
+            self._unsub_evcc_poll = None
         await super().async_shutdown()
+
+    @callback
+    def _handle_soc_update(self, _event) -> None:
+        """Plan as soon as the SOC reads, when that is all the plan waited for.
+
+        Right after a restart the battery integration often comes up after
+        this one; without this the pilot sat on "no SOC" until the next
+        30-minute refresh.
+        """
+        if (
+            self.data is not None
+            and not self.data.valid
+            and self.data.error == "soc_unavailable"
+            and self.live_soc() is not None
+        ):
+            _LOGGER.debug("SOC readable again - requesting a re-plan")
+            self.hass.async_create_task(self.async_request_refresh())
 
     @callback
     def _handle_reserve_update(self, _event) -> None:
@@ -434,10 +506,16 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             reserve_source,
         )
 
+        ev_forecast = await self._ev_forecast(now)
+        ev_per_slot = (
+            per_slot(ev_forecast.windows, [(s.start, s.end) for s in slots])
+            if ev_forecast is not None
+            else [(0.0, None)] * len(slots)
+        )
         input_slots: list[InputSlot] = []
         consumption_24h = 0.0
         pv_24h = 0.0
-        for slot in slots:
+        for index, slot in enumerate(slots):
             consumption = self.forecaster.predict_kwh(slot.start, slot.hours, temperature)
             pv = pv_kwh_for_slot(
                 slot.start,
@@ -451,8 +529,15 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             if slot.start < now + timedelta(hours=24):
                 consumption_24h += consumption
                 pv_24h += pv
+            ev_kwh = ev_per_slot[index][0]
             input_slots.append(
-                InputSlot(price_slot=slot, net_demand_kwh=consumption - pv, pv_kwh=pv)
+                InputSlot(
+                    price_slot=slot,
+                    net_demand_kwh=consumption - pv,
+                    pv_kwh=pv,
+                    ev_kwh=ev_kwh,
+                    battery_blocked=self._ev_blocks_battery(ev_kwh, slot.hours, ev_forecast),
+                )
             )
 
         battery = BatteryState(
@@ -472,6 +557,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             feed_in_tariff=float(self.conf(CONF_FEED_IN_TARIFF, DEFAULT_FEED_IN_TARIFF)),
             price_offset=float(self.conf(CONF_PRICE_OFFSET, DEFAULT_PRICE_OFFSET)),
             reserve_refill_hours=refill_hours,
+            ev_no_grid_charge=ev_forecast is not None and self.ev_policy() == EV_POLICY_EXTERNAL,
         )
 
         plan = await self.hass.async_add_executor_job(build_plan, input_slots, battery, config)
@@ -536,7 +622,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 "refill_hours": refill_hours,
                 "block": self.reserve_block_enabled(),
             },
-            "ev": self.ev_inputs(),
+            "ev": self.ev_inputs(ev_forecast),
         }
         if self.data is not None and not self.data.valid:
             _LOGGER.info("Planning works again after '%s'", self.data.error)
@@ -554,6 +640,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             pv_power_w=pv_power,
             pv_power_entity=pv_entity,
             inputs=inputs,
+            **self._ev_fields(ev_forecast, slots, ev_per_slot),
             **self._savings_fields(),
         )
 
@@ -770,17 +857,166 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             return False
         return str(state.state).strip().lower() in EXTERNAL_ACTIVE_STATES
 
-    def ev_inputs(self) -> dict[str, Any]:
+    def ev_inputs(self, forecast: EvForecast | None = None) -> dict[str, Any]:
         """The EV section of the diagnostics and sensor attributes."""
         power = self.ev_power_w()
-        return {
+        inputs: dict[str, Any] = {
             "policy": self.ev_policy(),
             "power_entities": self.ev_power_entities(),
             "power_w": round(power) if power is not None else None,
             "threshold_w": self.ev_threshold_w(),
             "external_control_entity": self.conf(CONF_EXTERNAL_CONTROL_ENTITY),
             "external_control_active": self.external_control_active(),
+            "source": self.ev_source(),
         }
+        if self.ev_source() == EV_SOURCE_EVCC:
+            fetched = self._evcc_fetch
+            inputs["evcc"] = {
+                "status": "ok" if forecast is not None else "offline",
+                "error": self._evcc_error,
+                "fetched_at": fetched[0].isoformat() if fetched else None,
+                "version": fetched[1].get("version") if fetched else None,
+                "battery_discharge_control": forecast.battery_discharge_control
+                if forecast
+                else None,
+                "price_limit": forecast.price_limit if forecast else None,
+                # No vehicle names or loadpoint titles: dumps get posted publicly.
+                "loadpoints": forecast.loadpoints if forecast else [],
+                "sessions": len(forecast.sessions) if forecast else 0,
+            }
+        return inputs
+
+    def ev_source(self) -> str:
+        return self.conf(CONF_EV_SOURCE) or DEFAULT_EV_SOURCE
+
+    def _evcc_url(self) -> str | None:
+        url = self.conf(CONF_EVCC_URL)
+        return normalize_url(str(url)) if url else None
+
+    async def _async_fetch_evcc(self, now: datetime) -> bool:
+        """Fetch evcc's state; False (and the reason kept) when it failed."""
+        url = self._evcc_url()
+        if not url:
+            self._evcc_error = "no_url"
+            return False
+        try:
+            state = await async_fetch_state(self.hass, url)
+            power = await async_fetch_plan_power(self.hass, url, state)
+        except EvccError as err:
+            if self._evcc_error is None:
+                _LOGGER.warning(
+                    "evcc is not readable (%s) - planning without EV sessions until it is", err
+                )
+            else:
+                _LOGGER.debug("evcc still not readable: %s", err)
+            self._evcc_error = str(err)
+            return False
+        if self._evcc_error is not None:
+            _LOGGER.info("evcc is readable again")
+        self._evcc_error = None
+        self._evcc_fetch = (now, state, power)
+        return True
+
+    async def _ev_forecast(self, now: datetime) -> EvForecast | None:
+        """Planned EV sessions, or None without a (readable) EV source."""
+        if self.ev_source() != EV_SOURCE_EVCC:
+            return None
+        fresh = self._evcc_fetch is not None and now - self._evcc_fetch[0] < EVCC_MAX_AGE
+        if not fresh and not await self._async_fetch_evcc(now):
+            return None
+        _, state, power = self._evcc_fetch
+        return derive(state, power, now)
+
+    def _ev_blocks_battery(self, ev_kwh: float, hours: float, forecast: EvForecast | None) -> bool:
+        """Whether the EV policy will hold the battery in a planned EV slot.
+
+        Mirrors what the live mechanisms do, or plan and inverter disagree:
+        the wallbox block engages above its threshold only, and evcc holds
+        whatever the power - if it is allowed to hold at all.
+        """
+        if forecast is None or ev_kwh < MIN_SESSION_KWH:
+            return False
+        policy = self.ev_policy()
+        if policy == EV_POLICY_BLOCK:
+            return hours > 0 and ev_kwh / hours * 1000.0 > self.ev_threshold_w()
+        if policy == EV_POLICY_EXTERNAL:
+            return forecast.battery_discharge_control is not False
+        return False
+
+    def _ev_fields(
+        self,
+        forecast: EvForecast | None,
+        slots: list[PriceSlot],
+        ev_per_slot: list[tuple[float, str | None]],
+    ) -> dict[str, Any]:
+        """Plan-level EV attributes; empty without an EV source."""
+        if self.ev_source() != EV_SOURCE_EVCC:
+            return {}
+        sessions = []
+        for session in forecast.sessions if forecast else []:
+            sessions.append(
+                {
+                    "start": session.windows[0].start.isoformat(),
+                    "end": session.windows[-1].end.isoformat(),
+                    "energy_kwh": round(session.energy_kwh, 2),
+                    "source": session.source,
+                }
+            )
+        limit = None
+        if forecast is not None and forecast.price_limit is not None:
+            limit = limit_on_price_basis(
+                forecast.price_limit,
+                forecast.rates,
+                [(s.start, s.end, s.price) for s in slots],
+            )
+        self._ev_signature = self._signature(slots)
+        return {
+            "ev_source": EV_SOURCE_EVCC,
+            "ev_sessions": sessions,
+            "ev_kwh_total": round(sum(kwh for kwh, _ in ev_per_slot), 2),
+            "ev_price_limit": limit,
+            "ev_slot_sources": [source for _, source in ev_per_slot],
+        }
+
+    def _signature(self, slots: list[Any]) -> tuple:
+        """The expected EV energy per slot, stable while a session runs.
+
+        Windows keep their real start here, so the slot in progress counts
+        in full instead of shrinking with every poll.
+        """
+        if self._evcc_fetch is None or not slots:
+            return ()
+        _, state, power = self._evcc_fetch
+        forecast = derive(state, power, dt_util.now(), trim=False)
+        bounds = [(s.start, s.end) for s in slots]
+        return tuple(round(kwh, 1) for kwh, _ in per_slot(forecast.windows, bounds))
+
+    async def _async_poll_evcc(self, _now: datetime | None = None) -> None:
+        """Re-plan when evcc's expected sessions changed since the plan was made."""
+        if self.data is None or not self.data.valid:
+            return
+        if not await self._async_fetch_evcc(dt_util.now()):
+            if self._ev_signature:
+                self._ev_signature = ()
+                self.hass.async_create_task(self.async_request_refresh())
+            return
+        signature = self._signature(self.data.plan.slots)
+        if signature != self._ev_signature:
+            _LOGGER.debug("evcc sessions changed - requesting a re-plan")
+            self.hass.async_create_task(self.async_request_refresh())
+
+    @property
+    def ev_hold_active(self) -> bool:
+        """The executor holds the battery for a car right now."""
+        return self._ev_hold_active
+
+    @ev_hold_active.setter
+    def ev_hold_active(self, active: bool) -> None:
+        # A change splits the ledger segment, like a mode change does.
+        changed = active != self._ev_hold_active
+        self._ev_hold_active = active
+        if changed and self.data is not None:
+            self._note_conditions(self.data.plan, dt_util.now())
 
     def _read_temperature_c(self, entity_id: str | None) -> float | None:
         """A temperature in °C, whatever unit the entity reports in."""
@@ -1297,6 +1533,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             action=self._effective_action(),
             price=slot.price if slot else 0.0,
             demand_kw=max(0.0, slot.net_demand_kwh) / hours if slot and hours > 0 else 0.0,
+            ev_hold=self._ev_hold_active,
         )
         prev, self._ledger_mark = self._ledger_mark, mark
         if prev is None:
@@ -1313,7 +1550,9 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         stored = self._stored_kwh()
         if prev.action == ACTION_CHARGE and d_charge > 0:
             self.pilot_ledger.book_charge(d_charge, prev.price, eta)
-        elif prev.action == ACTION_IDLE and elapsed_h > 0 and stored is not None:
+        elif (
+            prev.action == ACTION_IDLE and elapsed_h > 0 and stored is not None and not prev.ev_hold
+        ):
             self.pilot_ledger.book_hold(prev.demand_kw * elapsed_h, prev.price, eta, stored)
         if d_discharge > 0:
             value = self._export_value(prev.price) if prev.action == ACTION_EXPORT else prev.price

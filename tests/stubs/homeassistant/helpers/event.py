@@ -2,6 +2,10 @@ def async_track_state_change_event(hass, entity_ids, action):
     return lambda: None
 
 
+def async_track_time_interval(hass, action, interval):
+    return lambda: None
+
+
 # Timers registered by async_track_point_in_time, newest last. Tests fire them
 # by hand to exercise slot-boundary behaviour; the real helper would need the
 # clock to advance.

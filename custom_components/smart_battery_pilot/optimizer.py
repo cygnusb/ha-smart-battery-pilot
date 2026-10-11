@@ -73,6 +73,9 @@ class OptimizerConfig:
     price_offset: float = 0.0
     # Deadline for refilling a backup reserve the SOC is below.
     reserve_refill_hours: float = 12.0
+    # Another controller holds the battery while the car charges (EV policy
+    # "external"): the pilot's charge script would not run there either.
+    ev_no_grid_charge: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,8 +83,12 @@ class InputSlot:
     """One price slot with the forecasted net demand (consumption - PV)."""
 
     price_slot: PriceSlot
-    net_demand_kwh: float
+    net_demand_kwh: float  # the house alone, never the car
     pv_kwh: float = 0.0  # forecasted PV production in this slot (for display/simulation)
+    # Energy a planned EV session draws in this slot (AC side).
+    ev_kwh: float = 0.0
+    # The EV policy keeps the house battery out of this slot's session.
+    battery_blocked: bool = False
 
 
 @dataclass(slots=True)
@@ -100,6 +107,8 @@ class PlanSlot:
     power_w: float = 0.0
     discharge_kwh: float = 0.0  # energy delivered (to load or grid)
     soc_forecast: float = 0.0  # SOC at end of slot, percent
+    ev_kwh: float = 0.0
+    battery_blocked: bool = False
 
     # Both comparisons go through timestamps on purpose. Comparing two aware
     # datetimes that share one tzinfo object is documented to ignore the
@@ -152,7 +161,15 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
 
     hours = [s.price_slot.hours for s in slots]
     prices = [s.price_slot.price for s in slots]
-    demand = [max(0.0, s.net_demand_kwh) for s in slots]
+    # The car is a load on the same AC bus: it takes PV surplus first, and
+    # whatever it draws from the grid beyond that is demand the battery may
+    # serve - unless the EV policy keeps the battery out of the session.
+    blocked = [s.battery_blocked and s.ev_kwh > 0 for s in slots]
+    ev_from_pv = [min(max(0.0, s.ev_kwh), max(0.0, -s.net_demand_kwh)) for s in slots]
+    demand = [
+        max(0.0, s.net_demand_kwh) + (0.0 if blocked[i] else max(0.0, s.ev_kwh) - ev_from_pv[i])
+        for i, s in enumerate(slots)
+    ]
     charge_factor = max(0.0, min(1.0, battery.charge_factor))
     # The pairing loop runs thousands of times on a 15-minute horizon; the
     # messages are only formatted when someone is actually listening.
@@ -190,18 +207,26 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
     discharge_stored = [0.0] * n
     export_stored = [0.0] * n
 
-    charge_cap = [
+    power_cap = [
         battery.max_charge_power_w * charge_factor / 1000.0 * h * eta_one_way for h in hours
     ]
-    discharge_cap = [battery.max_discharge_power_w / 1000.0 * h for h in hours]
+    # What the pilot may charge from the grid. PV keeps charging a battery
+    # another controller holds - a hold only stops discharging.
+    charge_cap = [
+        0.0 if blocked[i] and config.ev_no_grid_charge else power_cap[i] for i in range(n)
+    ]
+    discharge_cap = [
+        0.0 if blocked[i] else battery.max_discharge_power_w / 1000.0 * h
+        for i, h in enumerate(hours)
+    ]
 
     # PV surplus (negative net demand) charges the battery in auto mode -
     # model it so summer days don't trigger needless reservations (idle) or
     # grid charging, and the SOC forecast rises with the sun.
     pv_surplus_stored = [
         min(
-            max(0.0, -slots[i].net_demand_kwh) * eta_one_way,
-            charge_cap[i],
+            (max(0.0, -slots[i].net_demand_kwh) - ev_from_pv[i]) * eta_one_way,
+            power_cap[i],
         )
         for i in range(n)
     ]
@@ -456,7 +481,7 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
                 )
         elif discharge_stored[i] > 1e-9:
             action = ACTION_AUTO
-        elif demand[i] > 1e-9 and levels[i] > 1e-9:
+        elif demand[i] > 1e-9 and levels[i] > 1e-9 and not blocked[i]:
             # The battery holds energy and the house is drawing, so the
             # inverter would discharge here - but the assignment did not spend
             # this slot's energy, which means it is reserved for a pricier slot
@@ -465,6 +490,10 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
             # the cost model and the inverter disagree. Surplus slots (no
             # demand) stay in auto mode: the inverter charges from PV and won't
             # discharge anyway.
+            # A slot held for a car stays auto on purpose: the wallbox block or
+            # the other controller holds the battery exactly while the car
+            # really draws. An idle here would keep it blocked for a session
+            # that ends early or never starts.
             action = ACTION_IDLE
 
         if delivered > 0:
@@ -481,6 +510,8 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
                 power_w=round(charge_power, 1),
                 discharge_kwh=round(delivered, 3),
                 soc_forecast=round(floor + levels[i] / capacity * 100.0, 1),
+                ev_kwh=round(slot.ev_kwh, 3),
+                battery_blocked=blocked[i],
             )
         )
 
@@ -589,6 +620,8 @@ def _auto_plan(
                 pv_kwh=slot.pv_kwh,
                 discharge_kwh=round(delivered[i], 3),
                 soc_forecast=round(floor + levels[i] / battery.capacity_kwh * 100.0, 1),
+                ev_kwh=round(slot.ev_kwh, 3),
+                battery_blocked=slot.battery_blocked and slot.ev_kwh > 0,
             )
         )
     return plan

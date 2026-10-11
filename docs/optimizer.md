@@ -28,6 +28,9 @@ same inputs always produce the same plan.
   the spread. The refill is mandatory, so its cost is excluded from the savings
   estimate, and the do-nothing baseline gets the same refill — both sides
   compare arbitrage against arbitrage.
+* Planned EV sessions (off by default, evcc only): the energy the car is
+  expected to draw per slot, and whether the EV policy holds the battery in
+  that slot. See [EV sessions in the plan](#ev-sessions-in-the-plan).
 
 ## Algorithm
 
@@ -87,6 +90,29 @@ The plan is recomputed every 30 minutes, whenever the price entity or the
 backup-reserve entity updates (e.g. tomorrow's prices arriving around 14:00),
 on option changes, and via the `smart_battery_pilot.replan` service. Only the *current* slot's action is
 ever executed, so plan revisions take effect immediately.
+
+## EV sessions in the plan
+
+With planned EV sessions (see [EV charging](ev-charging.md#planned-sessions-evcc))
+each slot carries the energy the car is expected to draw. The car sits on the
+same AC bus as the house:
+
+* It takes **PV surplus first.** That share no longer reaches the battery, so
+  the SOC forecast does not rise on PV the car eats.
+* Whatever it draws beyond that comes from the grid, or from the battery when
+  the EV policy is *Allow*: then it is ordinary demand, and the planner decides
+  whether the battery serves it or saves its energy for a pricier slot.
+* With *Block* (above the threshold) or *External* (evcc may hold the
+  battery), the slot is **held**: no discharge there, and the car's grid energy
+  is not demand the battery could cover. It costs the same with or without the
+  plan, so it is left out of both sides of the savings estimate.
+* With *External* the pilot cannot grid charge in a held slot either: it calls
+  no script while evcc holds the battery. PV still charges it, since a hold
+  only stops discharging.
+
+A held slot stays **auto** in the plan rather than turning `idle`. The wallbox
+block or evcc holds the battery exactly while the car really draws; an `idle`
+would keep it blocked for a session that ends early or never starts.
 
 ## What an export slot assumes
 

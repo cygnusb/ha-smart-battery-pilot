@@ -250,13 +250,17 @@
           "ev_power_entities": "Wallbox-Leistungssensoren (optional)",
           "ev_battery_policy": "Hausbatterie während das E-Auto lädt",
           "ev_threshold_w": "Schwelle für E-Auto-Laden",
-          "external_control_entity": "Entität für Fremdsteuerung (optional)"
+          "external_control_entity": "Entität für Fremdsteuerung (optional)",
+          "ev_source": "Geplante E-Auto-Ladungen",
+          "evcc_url": "evcc-Adresse"
         },
         "data_description": {
           "ev_power_entities": "Ein oder mehrere Sensoren (W oder kW) mit der Leistung jeder Wallbox, z. B. die Ladeleistung je evcc-Ladepunkt. Ihre Energie wird aus dem Verbrauchsverlauf herausgerechnet, damit die Prognose das Haus ohne das Auto lernt.",
           "ev_battery_policy": "Erlauben: nichts Besonderes, der Wechselrichter darf ins Auto entladen. Sperren: der Pilot blockiert das Entladen, solange die Wallboxen mehr als die Schwelle ziehen. Extern: eine andere Steuerung wie evcc entscheidet, solange sie aktiv ist - der Pilot pausiert und setzt danach seinen Plan wieder durch.",
           "ev_threshold_w": "Ab dieser gesamten Wallbox-Leistung greift die Richtlinie 'Sperren'; sie löst unter der Hälfte davon wieder, damit Rampen und Phasenumschaltung den Wechselrichter nicht hin- und herschalten.",
-          "external_control_entity": "Zeigt an, wann eine andere Steuerung die Batterie hat: ein Binärsensor, Helfer oder Schalter, der an ist, oder evccs Batteriemodus-Code-Sensor (sensor.evcc_battery_mode), solange er hold, charge oder holdcharge meldet. Jeder andere Zustand gilt als inaktiv. Solange sie aktiv ist, ruft der Pilot kein Skript auf."
+          "external_control_entity": "Zeigt an, wann eine andere Steuerung die Batterie hat: ein Binärsensor, Helfer oder Schalter, der an ist, oder evccs Batteriemodus-Code-Sensor (sensor.evcc_battery_mode), solange er hold, charge oder holdcharge meldet. Jeder andere Zustand gilt als inaktiv. Solange sie aktiv ist, ruft der Pilot kein Skript auf.",
+          "ev_source": "Optional. Mit evcc lässt der Plan Platz für Ladungen, die evcc geplant hat: den Ladeplan, günstiges Laden unter der Preisgrenze und Sofortladen. In diesen Slots wird die Batterie gemäß der Richtlinie oben gehalten. Lege auch die Wallbox-Leistungssensoren fest, sonst zählt das Auto doppelt, wenn dein Hauszähler die Wallbox enthält.",
+          "evcc_url": "Wo evcc läuft, z. B. http://evcc.local:7070. Wird aus der evcc-Integration vorbelegt, wenn sie installiert ist. Wird nur gelesen, nie beschrieben."
         }
       }
     },
@@ -270,7 +274,9 @@
       "derating_not_monotonic": "Die Ladeleistung darf mit steigender Temperatur nicht sinken. Bitte die Schieberegler prüfen.",
       "derating_needs_temperature": "Laden bei Kälte braucht eine Entität für die Batterietemperatur.",
       "ev_block_needs_power": "Die Richtlinie 'Sperren' braucht mindestens einen Wallbox-Leistungssensor.",
-      "ev_external_needs_entity": "Die Richtlinie 'Extern' braucht eine Entität für die Fremdsteuerung."
+      "ev_external_needs_entity": "Die Richtlinie 'Extern' braucht eine Entität für die Fremdsteuerung.",
+      "evcc_url_required": "Gib die evcc-Adresse ein.",
+      "evcc_unreachable": "evcc hat unter dieser Adresse nicht geantwortet. Prüfe die Adresse und ob evcc läuft."
     }
   },
   "selector": {
@@ -285,6 +291,12 @@
         "allow": "Entladen ins Auto erlauben",
         "block": "Entladen sperren, während das E-Auto lädt",
         "external": "Einer externen Steuerung überlassen (z. B. evcc)"
+      }
+    },
+    "ev_source": {
+      "options": {
+        "none": "Keine",
+        "evcc": "evcc"
       }
     }
   },
