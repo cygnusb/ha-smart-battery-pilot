@@ -260,7 +260,7 @@
           "ev_threshold_w": "Pārsniedzot šo kopējo staciju jaudu, stājas spēkā politika 'Bloķēt'; tā atlaižas zem puses no tās, lai jaudas maiņa un fāžu pārslēgšana nepārslēgtu invertoru turp un atpakaļ.",
           "external_control_entity": "Norāda, kad akumulatoru vada cita vadība: ieslēgts binārais sensors, palīgs vai slēdzis vai evcc akumulatora režīma koda sensors (sensor.evcc_battery_mode), kamēr tas rāda hold, charge vai holdcharge. Jebkurš cits stāvoklis tiek uzskatīts par neaktīvu. Kamēr tā ir aktīva, pilots neizsauc nevienu skriptu.",
           "ev_source": "Neobligāti. Ar evcc plāns atstāj vietu uzlādēm, ko evcc ir ieplānojis: uzlādes plānam, lētai uzlādei zem cenas robežas un ātrajai uzlādei. Šajos slotos akumulators tiek turēts saskaņā ar iepriekš norādīto politiku. Norādi arī uzlādes stacijas jaudas sensorus, citādi automašīna tiek skaitīta divreiz, ja mājas skaitītājs ietver staciju.",
-          "evcc_url": "Kur darbojas evcc, piem., http://evcc.local:7070. Aizpilda no evcc integrācijas, ja tā ir instalēta. Tikai lasa, nekad neraksta."
+          "evcc_url": "evcc resursdatora nosaukums vai IP adrese ar portu (noklusējums 7070). Aizpilda no evcc integrācijas, ja tā ir instalēta. Tikai lasa, nekad neraksta."
         }
       }
     },

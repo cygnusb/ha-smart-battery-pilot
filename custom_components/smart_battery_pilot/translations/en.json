@@ -260,7 +260,7 @@
           "ev_threshold_w": "Above this total wallbox power the 'Block' policy engages; it releases below half of it, so ramping and phase switching do not flip the inverter.",
           "external_control_entity": "Tells when another controller has the battery: a binary sensor, helper or switch that is on, or evcc's battery mode code sensor (sensor.evcc_battery_mode) while it reads hold, charge or holdcharge. Every other state counts as inactive. While it is active the pilot calls no script.",
           "ev_source": "Optional. With evcc, the plan leaves room for charging evcc has planned: its charge plan, cheap-price charging below its limit and fast charging. The battery is held in those slots according to the policy above. Set wallbox power sensors too, or the car is counted twice if your house meter includes the wallbox.",
-          "evcc_url": "Where evcc runs, e.g. http://evcc.local:7070. Pre-filled from the evcc integration when it is installed. Only read, never written to."
+          "evcc_url": "evcc's host name or IP address with its port (7070 by default). Pre-filled from the evcc integration when it is installed. Only read, never written to."
         }
       }
     },

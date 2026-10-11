@@ -17,6 +17,7 @@ from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_capture_events
 
+from custom_components.smart_battery_pilot import evcc
 from custom_components.smart_battery_pilot.const import (
     CONF_CAPACITY_KWH,
     CONF_CONSUMPTION_ENTITY,
@@ -258,9 +259,12 @@ async def test_the_ev_options_step_renders_and_saves(sbp_hass: HomeAssistant) ->
 
 
 async def test_planned_sessions_from_evcc_reach_the_plan(
-    sbp_hass: HomeAssistant, aioclient_mock
+    sbp_hass: HomeAssistant, monkeypatch
 ) -> None:
-    """The real HTTP path, the real interval tracker and the options form."""
+    """The evcc reader, the real interval tracker and the options form.
+
+    The HTTP layer itself is replaced: aioclient_mock leaves a thread behind
+    on HA 2024.11 that its lingering-thread check then fails on."""
     start = dt_util.now().replace(minute=0, second=0, microsecond=0)
     state = {
         "version": "0.300.0",
@@ -291,8 +295,15 @@ async def test_planned_sessions_from_evcc_reach_the_plan(
         ],
         "power": 11000,
     }
-    aioclient_mock.get("http://evcc.test:7070/api/state", json=state)
-    aioclient_mock.get("http://evcc.test:7070/api/loadpoints/1/plan", json=plan)
+    responses = {
+        "http://evcc.test:7070/api/state": state,
+        "http://evcc.test:7070/api/loadpoints/1/plan": {"result": plan},
+    }
+
+    async def get_json(hass, url):
+        return responses[url]
+
+    monkeypatch.setattr(evcc, "_get_json", get_json)
     entry = await _setup(sbp_hass)
     options = sbp_hass.config_entries.options
 

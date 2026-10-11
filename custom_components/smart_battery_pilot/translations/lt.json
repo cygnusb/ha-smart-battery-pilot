@@ -260,7 +260,7 @@
           "ev_threshold_w": "Viršijus šią bendrą stotelių galią, įsijungia politika 'Blokuoti'; ji atsileidžia nukritus žemiau pusės, kad galios kitimas ir fazių perjungimas nevartytų keitiklio pirmyn atgal.",
           "external_control_entity": "Rodo, kada baterija yra kito valdiklio žinioje: įjungtas dvejetainis jutiklis, pagalbininkas ar jungiklis arba evcc baterijos režimo kodo jutiklis (sensor.evcc_battery_mode), kai jis rodo hold, charge arba holdcharge. Bet kuri kita būsena laikoma neaktyvia. Kol jis aktyvus, pilotas nekviečia jokio scenarijaus.",
           "ev_source": "Neprivaloma. Su evcc planas palieka vietos įkrovimams, kuriuos suplanavo evcc: įkrovimo planui, pigiam įkrovimui žemiau kainos ribos ir greitajam įkrovimui. Šiuose intervaluose baterija laikoma pagal aukščiau nurodytą politiką. Taip pat nurodykite stotelės galios jutiklius, kitaip automobilis bus skaičiuojamas du kartus, jei namų skaitiklis apima stotelę.",
-          "evcc_url": "Kur veikia evcc, pvz., http://evcc.local:7070. Užpildoma iš evcc integracijos, kai ji įdiegta. Tik skaitoma, niekada nerašoma."
+          "evcc_url": "evcc pagrindinio kompiuterio vardas arba IP adresas su prievadu (numatytasis 7070). Užpildoma iš evcc integracijos, kai ji įdiegta. Tik skaitoma, niekada nerašoma."
         }
       }
     },

@@ -260,7 +260,7 @@
           "ev_threshold_w": "Tämän latausasemien kokonaistehon ylittyessä 'Estä'-käytäntö kytkeytyy; se vapautuu alle puolikkaan, jotta tehon säätö ja vaiheiden vaihto eivät kytke invertteriä edestakaisin.",
           "external_control_entity": "Kertoo, milloin akku on toisen ohjauksen hallinnassa: päällä oleva binäärianturi, apuri tai kytkin, tai evcc:n akkutilan koodianturi (sensor.evcc_battery_mode), kun se näyttää hold, charge tai holdcharge. Kaikki muut tilat katsotaan passiivisiksi. Sen ollessa aktiivinen pilotti ei kutsu skriptejä.",
           "ev_source": "Valinnainen. evcc:n kanssa suunnitelma jättää tilaa latauksille, jotka evcc on suunnitellut: latausuunnitelma, edullinen lataus hintarajan alla ja pikalataus. Akkua pidetään näissä jaksoissa yllä olevan käytännön mukaan. Määritä myös latausaseman tehoanturit, muuten auto lasketaan kahdesti, jos talon mittari sisältää latausaseman.",
-          "evcc_url": "Missä evcc toimii, esim. http://evcc.local:7070. Täytetään evcc-integraatiosta, kun se on asennettu. Vain luetaan, ei koskaan kirjoiteta."
+          "evcc_url": "evcc:n isäntänimi tai IP-osoite porttinumeroineen (oletus 7070). Täytetään evcc-integraatiosta, kun se on asennettu. Vain luetaan, ei koskaan kirjoiteta."
         }
       }
     },

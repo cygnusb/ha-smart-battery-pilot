@@ -260,7 +260,7 @@
           "ev_threshold_w": "Ab dieser gesamten Wallbox-Leistung greift die Richtlinie 'Sperren'; sie löst unter der Hälfte davon wieder, damit Rampen und Phasenumschaltung den Wechselrichter nicht hin- und herschalten.",
           "external_control_entity": "Zeigt an, wann eine andere Steuerung die Batterie hat: ein Binärsensor, Helfer oder Schalter, der an ist, oder evccs Batteriemodus-Code-Sensor (sensor.evcc_battery_mode), solange er hold, charge oder holdcharge meldet. Jeder andere Zustand gilt als inaktiv. Solange sie aktiv ist, ruft der Pilot kein Skript auf.",
           "ev_source": "Optional. Mit evcc lässt der Plan Platz für Ladungen, die evcc geplant hat: den Ladeplan, günstiges Laden unter der Preisgrenze und Sofortladen. In diesen Slots wird die Batterie gemäß der Richtlinie oben gehalten. Lege auch die Wallbox-Leistungssensoren fest, sonst zählt das Auto doppelt, wenn dein Hauszähler die Wallbox enthält.",
-          "evcc_url": "Wo evcc läuft, z. B. http://evcc.local:7070. Wird aus der evcc-Integration vorbelegt, wenn sie installiert ist. Wird nur gelesen, nie beschrieben."
+          "evcc_url": "Hostname oder IP-Adresse von evcc mit Port (Standard 7070). Wird aus der evcc-Integration vorbelegt, wenn sie installiert ist. Wird nur gelesen, nie beschrieben."
         }
       }
     },

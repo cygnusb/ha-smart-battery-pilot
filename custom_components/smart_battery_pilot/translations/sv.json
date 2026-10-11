@@ -260,7 +260,7 @@
           "ev_threshold_w": "Över denna sammanlagda laddeffekt träder policyn 'Blockera' i kraft; den släpper under hälften, så att rampning och fasbyte inte får växelriktaren att slå fram och tillbaka.",
           "external_control_entity": "Visar när en annan styrning har batteriet: en binär sensor, hjälpare eller brytare som är på, eller evccs kodsensor för batteriläge (sensor.evcc_battery_mode) medan den visar hold, charge eller holdcharge. Alla andra tillstånd räknas som inaktiva. Medan den är aktiv anropar piloten inga skript.",
           "ev_source": "Valfritt. Med evcc lämnar planen plats för laddningar som evcc har planerat: laddplanen, billig laddning under prisgränsen och snabbladdning. Batteriet hålls i de perioderna enligt policyn ovan. Ange även effektsensorer för laddboxen, annars räknas bilen två gånger om husmätaren omfattar laddboxen.",
-          "evcc_url": "Där evcc körs, t.ex. http://evcc.local:7070. Fylls i från evcc-integrationen när den är installerad. Läses bara, skrivs aldrig."
+          "evcc_url": "evccs värdnamn eller IP-adress med port (standard 7070). Fylls i från evcc-integrationen när den är installerad. Läses bara, skrivs aldrig."
         }
       }
     },

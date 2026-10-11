@@ -260,7 +260,7 @@
           "ev_threshold_w": "Over denne samlede ladeeffekt træder politikken 'Bloker' i kraft; den slipper under halvdelen, så rampning og faseskift ikke får inverteren til at skifte frem og tilbage.",
           "external_control_entity": "Viser, hvornår en anden styring har batteriet: en binær sensor, hjælper eller kontakt, der er tændt, eller evcc's sensor for batteritilstandskode (sensor.evcc_battery_mode), mens den viser hold, charge eller holdcharge. Alle andre tilstande regnes som inaktive. Mens den er aktiv, kalder piloten ingen script.",
           "ev_source": "Valgfri. Med evcc giver planen plads til opladninger, som evcc har planlagt: ladeplanen, billig opladning under prisgrænsen og hurtig opladning. Batteriet holdes i disse slots efter politikken ovenfor. Angiv også effektsensorer for ladeboksen, ellers tælles bilen dobbelt, hvis din husmåler omfatter ladeboksen.",
-          "evcc_url": "Hvor evcc kører, f.eks. http://evcc.local:7070. Udfyldes fra evcc-integrationen, når den er installeret. Læses kun, skrives aldrig."
+          "evcc_url": "evcc's værtsnavn eller IP-adresse med port (standard 7070). Udfyldes fra evcc-integrationen, når den er installeret. Læses kun, skrives aldrig."
         }
       }
     },
