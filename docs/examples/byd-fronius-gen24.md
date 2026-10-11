@@ -179,6 +179,9 @@ same inverter, set the EV section to policy *External* with
 `sensor.evcc_battery_mode` (the "[CODE]" sensor of the evcc integration,
 disabled by default). The pilot then pauses during EVCC's hold and
 re-applies its own mode afterwards ([EV charging](../ev-charging.md)).
+Set *Planned EV sessions* to evcc as well: the plan then shows EVCC's coming
+holds ahead of time and plans no grid charge into them, since the pilot would
+not be allowed to run it there anyway.
 
 `sbp_force_discharge` follows from the register semantics above (negative
 InWRte, the mirror image of the verified charge script) but has not been
