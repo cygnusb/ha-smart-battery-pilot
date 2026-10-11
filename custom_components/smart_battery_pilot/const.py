@@ -68,6 +68,7 @@ CONF_EV_THRESHOLD_W = "ev_threshold_w"
 CONF_EXTERNAL_CONTROL_ENTITY = "external_control_entity"
 CONF_EV_SOURCE = "ev_source"
 CONF_EVCC_URL = "evcc_url"
+CONF_GRID_IMPORT_LIMIT_W = "grid_import_limit_w"
 
 # Where planned EV sessions come from.
 EV_SOURCE_NONE = "none"

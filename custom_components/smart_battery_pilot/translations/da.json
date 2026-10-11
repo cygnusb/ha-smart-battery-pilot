@@ -252,7 +252,8 @@
           "ev_threshold_w": "Tærskel for elbilsopladning",
           "external_control_entity": "Entitet for ekstern styring (valgfri)",
           "ev_source": "Planlagte elbilsopladninger",
-          "evcc_url": "evcc-adresse"
+          "evcc_url": "evcc-adresse",
+          "grid_import_limit_w": "Grænse for netimport (valgfri)"
         },
         "data_description": {
           "ev_power_entities": "En eller flere sensorer (W eller kW) med det, hver ladeboks trækker, f.eks. evcc's ladeeffekt pr. ladepunkt. Deres energi trækkes ud af forbrugshistorikken, så prognosen lærer huset uden bilen.",
@@ -260,7 +261,8 @@
           "ev_threshold_w": "Over denne samlede ladeeffekt træder politikken 'Bloker' i kraft; den slipper under halvdelen, så rampning og faseskift ikke får inverteren til at skifte frem og tilbage.",
           "external_control_entity": "Viser, hvornår en anden styring har batteriet: en binær sensor, hjælper eller kontakt, der er tændt, eller evcc's sensor for batteritilstandskode (sensor.evcc_battery_mode), mens den viser hold, charge eller holdcharge. Alle andre tilstande regnes som inaktive. Mens den er aktiv, kalder piloten ingen script.",
           "ev_source": "Valgfri. Med evcc giver planen plads til opladninger, som evcc har planlagt: ladeplanen, billig opladning under prisgrænsen og hurtig opladning. Batteriet holdes i disse slots efter politikken ovenfor. Angiv også effektsensorer for ladeboksen, ellers tælles bilen dobbelt, hvis din husmåler omfatter ladeboksen.",
-          "evcc_url": "evcc's værtsnavn eller IP-adresse med port (standard 7070). Udfyldes fra evcc-integrationen, når den er installeret. Læses kun, skrives aldrig."
+          "evcc_url": "evcc's værtsnavn eller IP-adresse med port (standard 7070). Udfyldes fra evcc-integrationen, når den er installeret. Læses kun, skrives aldrig.",
+          "grid_import_limit_w": "Grænsen for din nettilslutning. Pilotens netopladning bruger kun det, huset og en bil, der lader, efterlader under den; ingen af dem bliver droslet. Tom: ingen grænse."
         }
       }
     },

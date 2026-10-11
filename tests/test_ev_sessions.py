@@ -181,15 +181,34 @@ def test_malformed_state_yields_no_sessions():
     assert derive({"loadpoints": [None, 3]}, {}, NOW).sessions == []
 
 
+def _slots(prices: list[float]):
+    q = timedelta(seconds=Q)
+    return [(NOW + i * q, NOW + (i + 1) * q, p) for i, p in enumerate(prices)]
+
+
 def test_the_limit_moves_onto_the_planner_price_basis():
-    rates = parse_rates(_rates([0.10, 0.12, 0.30]))
-    hour_q = timedelta(seconds=Q)
-    slots = [
-        (NOW + i * hour_q, NOW + (i + 1) * hour_q, p) for i, p in enumerate([0.29, 0.31, 0.49])
-    ]
+    rates = parse_rates(_rates([0.10, 0.12, 0.30, 0.20]))
+    # A fixed 0.19 EUR/kWh on top, with a cent of rounding noise.
+    slots = _slots([0.29, 0.31, 0.49, 0.40])
     assert limit_on_price_basis(0.20, rates, slots) == pytest.approx(0.39)
     assert limit_on_price_basis(None, rates, slots) is None
     assert limit_on_price_basis(0.20, [], slots) is None
+
+
+def test_equal_tariffs_keep_the_limit():
+    rates = parse_rates(_rates([0.10, 0.12, 0.30, 0.20]))
+    assert limit_on_price_basis(0.20, rates, _slots([0.10, 0.12, 0.30, 0.20])) == 0.20
+
+
+def test_no_line_when_the_tariffs_are_not_a_constant_offset_apart():
+    """A percentage VAT on one side: no single line separates evcc's slots."""
+    rates = parse_rates(_rates([0.10, 0.20, 0.30, 0.40]))
+    assert limit_on_price_basis(0.20, rates, _slots([0.12, 0.24, 0.36, 0.48])) is None
+
+
+def test_no_line_on_too_little_overlap():
+    rates = parse_rates(_rates([0.10, 0.12, 0.30]))
+    assert limit_on_price_basis(0.20, rates, _slots([0.29, 0.31, 0.49])) is None
 
 
 def test_the_plan_endpoint_supplies_the_slots_when_the_state_has_none():

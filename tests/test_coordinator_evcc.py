@@ -17,6 +17,7 @@ from smart_battery_pilot.const import (
     CONF_EV_SOURCE,
     CONF_EVCC_URL,
     CONF_EXTERNAL_CONTROL_ENTITY,
+    CONF_GRID_IMPORT_LIMIT_W,
     EV_POLICY_ALLOW,
     EV_POLICY_BLOCK,
     EV_POLICY_EXTERNAL,
@@ -262,3 +263,29 @@ def test_holding_for_a_car_books_no_pilot_savings():
     _meters(hass, 0.0, 1.0)
     _step(coord, plan, ACTION_AUTO, T0 + timedelta(hours=2))
     assert coord.pilot_ledger.savings_eur == 0.0
+
+
+def test_evccs_own_limit_is_kept_when_no_line_fits(monkeypatch):
+    """The planner's prices are flat, evcc's are not: no constant offset."""
+    now = coordinator_module.dt_util.now()
+    start = now.replace(minute=0, second=0, microsecond=0).timestamp()
+    planner = [[start + i * 3600, start + (i + 1) * 3600, 0.05 * (i % 5)] for i in range(24)]
+    state = _evcc_state(mode="pv", charging=False, chargePower=0, smartCostLimit=0.15)
+    state["forecast"] = {"planner": planner}
+    _Evcc(monkeypatch, state)
+    coord = _coord()
+    coord.data = _run(coord._async_update_data())
+    assert coord.data.ev_price_limit is None
+    assert coord.data.ev_price_limit_evcc == 0.15
+    sensor = object.__new__(ChargePlanSensor)
+    sensor.coordinator = coord
+    attrs = sensor.extra_state_attributes
+    assert attrs["ev_price_limit"] is None
+    assert attrs["ev_price_limit_evcc"] == 0.15
+
+
+@pytest.mark.parametrize(("value", "expected"), [(None, None), (0, None), (11000, 11000.0)])
+def test_the_grid_import_limit_reaches_the_planner(monkeypatch, value, expected):
+    _Evcc(monkeypatch)
+    data = _run(_coord(**{CONF_GRID_IMPORT_LIMIT_W: value})._async_update_data())
+    assert data.inputs["config"]["grid_import_limit_w"] == expected

@@ -260,7 +260,7 @@ strong PV day.
 |---|---|
 | `tracks` *(default)* | Three panels sharing one time axis: price, PV against consumption, SOC. |
 | `balance` | Same three panels, but the middle one shows PV **minus** consumption as an area diverging around zero — the quantity the optimizer plans against. |
-| `compact` | Status line, three figures (SOC now → at horizon end, next change, planned discharge) and a smaller SOC + price chart. Roughly two thirds the height; below 420 px the three figures are set smaller so they stay on one line. |
+| `compact` | Status line, three figures (SOC now → at horizon end, next change, planned discharge) and a smaller SOC + price chart. Roughly two thirds the height; below 420 px the three figures are set smaller so they stay on one line. With an EV charging session on the plan a fourth figure shows it (energy, time span, why evcc charges) in place of the status-line summary; below 420 px the four go two by two. |
 
 An unrecognised value falls back to `tracks`. The button at the right of the
 legend flips between `tracks` and `balance` without editing the dashboard;

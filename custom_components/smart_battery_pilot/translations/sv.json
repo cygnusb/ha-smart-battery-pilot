@@ -252,7 +252,8 @@
           "ev_threshold_w": "Tröskel för elbilsladdning",
           "external_control_entity": "Entitet för extern styrning (valfritt)",
           "ev_source": "Planerade elbilsladdningar",
-          "evcc_url": "evcc-adress"
+          "evcc_url": "evcc-adress",
+          "grid_import_limit_w": "Gräns för nätimport (valfri)"
         },
         "data_description": {
           "ev_power_entities": "En eller flera sensorer (W eller kW) med effekten varje laddbox drar, t.ex. evccs laddeffekt per laddpunkt. Deras energi dras bort från förbrukningshistoriken så att prognosen lär sig huset utan bilen.",
@@ -260,7 +261,8 @@
           "ev_threshold_w": "Över denna sammanlagda laddeffekt träder policyn 'Blockera' i kraft; den släpper under hälften, så att rampning och fasbyte inte får växelriktaren att slå fram och tillbaka.",
           "external_control_entity": "Visar när en annan styrning har batteriet: en binär sensor, hjälpare eller brytare som är på, eller evccs kodsensor för batteriläge (sensor.evcc_battery_mode) medan den visar hold, charge eller holdcharge. Alla andra tillstånd räknas som inaktiva. Medan den är aktiv anropar piloten inga skript.",
           "ev_source": "Valfritt. Med evcc lämnar planen plats för laddningar som evcc har planerat: laddplanen, billig laddning under prisgränsen och snabbladdning. Batteriet hålls i de perioderna enligt policyn ovan. Ange även effektsensorer för laddboxen, annars räknas bilen två gånger om husmätaren omfattar laddboxen.",
-          "evcc_url": "evccs värdnamn eller IP-adress med port (standard 7070). Fylls i från evcc-integrationen när den är installerad. Läses bara, skrivs aldrig."
+          "evcc_url": "evccs värdnamn eller IP-adress med port (standard 7070). Fylls i från evcc-integrationen när den är installerad. Läses bara, skrivs aldrig.",
+          "grid_import_limit_w": "Gränsen för din nätanslutning. Pilotens nätladdning använder bara det som huset och en bil som laddar lämnar under den; ingen av dem stryps. Tom: ingen gräns."
         }
       }
     },

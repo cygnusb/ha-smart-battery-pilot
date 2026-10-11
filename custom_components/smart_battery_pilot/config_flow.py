@@ -34,6 +34,7 @@ from .const import (
     CONF_EVCC_URL,
     CONF_EXTERNAL_CONTROL_ENTITY,
     CONF_FEED_IN_TARIFF,
+    CONF_GRID_IMPORT_LIMIT_W,
     CONF_HAS_HEAT_PUMP,
     CONF_MAX_CHARGE_POWER_W,
     CONF_MAX_DISCHARGE_POWER_W,
@@ -340,6 +341,13 @@ def schema_ev(d: dict[str, Any]) -> vol.Schema:
             vol.Optional(CONF_EVCC_URL, description=_sugg(d.get(CONF_EVCC_URL))): (
                 selector.TextSelector(selector.TextSelectorConfig(type="url"))
             ),
+            vol.Optional(
+                CONF_GRID_IMPORT_LIMIT_W, description=_sugg(d.get(CONF_GRID_IMPORT_LIMIT_W))
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=1000, max=100000, step=100, unit_of_measurement="W", mode="box"
+                )
+            ),
         }
     )
 
@@ -375,6 +383,7 @@ STEP_FIELDS: dict[str, list[str]] = {
         CONF_EXTERNAL_CONTROL_ENTITY,
         CONF_EV_SOURCE,
         CONF_EVCC_URL,
+        CONF_GRID_IMPORT_LIMIT_W,
     ],
 }
 

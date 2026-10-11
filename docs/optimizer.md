@@ -109,6 +109,9 @@ same AC bus as the house:
 * With *External* the pilot cannot grid charge in a held slot either: it calls
   no script while evcc holds the battery. PV still charges it, since a hold
   only stops discharging.
+* With a **grid import limit**, a slot's grid charge is capped at the limit
+  minus the forecast house demand and the car's grid energy. PV surplus is not
+  grid import and is not capped.
 
 A held slot stays **auto** in the plan rather than turning `idle`. The wallbox
 block or evcc holds the battery exactly while the car really draws; an `idle`

@@ -252,7 +252,8 @@
           "ev_threshold_w": "Elektriauto laadimise lävi",
           "external_control_entity": "Välise juhtimise olem (valikuline)",
           "ev_source": "Planeeritud elektriauto laadimised",
-          "evcc_url": "evcc aadress"
+          "evcc_url": "evcc aadress",
+          "grid_import_limit_w": "Võrgust tarbimise piir (valikuline)"
         },
         "data_description": {
           "ev_power_entities": "Üks või mitu andurit (W või kW) iga laadija tarbitava võimsusega, nt evcc laadimisvõimsus iga laadimispunkti kohta. Nende energia arvatakse tarbimisajaloost maha, et prognoos õpiks maja ilma autota.",
@@ -260,7 +261,8 @@
           "ev_threshold_w": "Selle laadijate koguvõimsuse ületamisel rakendub poliitika 'Blokeeri'; see vabaneb alla poole sellest, et võimsuse muutmine ja faaside vahetus inverterit edasi-tagasi ei lülitaks.",
           "external_control_entity": "Näitab, millal aku on teise juhtimise käes: sisse lülitatud binaarandur, abiline või lüliti või evcc aku režiimi koodiandur (sensor.evcc_battery_mode), kui see näitab hold, charge või holdcharge. Iga muu olek loetakse mitteaktiivseks. Kuni see on aktiivne, ei kutsu piloot ühtegi skripti.",
           "ev_source": "Valikuline. evcc-ga jätab plaan ruumi laadimistele, mille evcc on planeerinud: laadimisplaan, odav laadimine allapoole hinnapiiri ja kiirlaadimine. Neis slottides hoitakse akut vastavalt ülaltoodud poliitikale. Määra ka laadija võimsusandurid, muidu loetakse autot kaks korda, kui su maja arvesti hõlmab laadijat.",
-          "evcc_url": "evcc hostinimi või IP-aadress koos pordiga (vaikimisi 7070). Täidetakse evcc integratsioonist, kui see on paigaldatud. Ainult loetakse, kunagi ei kirjutata."
+          "evcc_url": "evcc hostinimi või IP-aadress koos pordiga (vaikimisi 7070). Täidetakse evcc integratsioonist, kui see on paigaldatud. Ainult loetakse, kunagi ei kirjutata.",
+          "grid_import_limit_w": "Sinu võrguühenduse piir. Piloot laeb võrgust ainult nii palju, kui maja ja laadiv auto selle piirini üle jätavad; kumbagi ei piirata. Tühi: piirangut pole."
         }
       }
     },

@@ -252,7 +252,8 @@
           "ev_threshold_w": "EV charging threshold",
           "external_control_entity": "External control entity (optional)",
           "ev_source": "Planned EV sessions",
-          "evcc_url": "evcc address"
+          "evcc_url": "evcc address",
+          "grid_import_limit_w": "Grid import limit (optional)"
         },
         "data_description": {
           "ev_power_entities": "One or more sensors (W or kW) with what each wallbox draws, e.g. evcc's charge power per loadpoint. Their energy is taken out of the consumption history, so the forecast learns the house without the car.",
@@ -260,7 +261,8 @@
           "ev_threshold_w": "Above this total wallbox power the 'Block' policy engages; it releases below half of it, so ramping and phase switching do not flip the inverter.",
           "external_control_entity": "Tells when another controller has the battery: a binary sensor, helper or switch that is on, or evcc's battery mode code sensor (sensor.evcc_battery_mode) while it reads hold, charge or holdcharge. Every other state counts as inactive. While it is active the pilot calls no script.",
           "ev_source": "Optional. With evcc, the plan leaves room for charging evcc has planned: its charge plan, cheap-price charging below its limit and fast charging. The battery is held in those slots according to the policy above. Set wallbox power sensors too, or the car is counted twice if your house meter includes the wallbox.",
-          "evcc_url": "evcc's host name or IP address with its port (7070 by default). Pre-filled from the evcc integration when it is installed. Only read, never written to."
+          "evcc_url": "evcc's host name or IP address with its port (7070 by default). Pre-filled from the evcc integration when it is installed. Only read, never written to.",
+          "grid_import_limit_w": "Your grid connection's limit. The pilot's grid charge only uses what the house and a charging car leave below it; it never throttles either of them. Empty: no limit."
         }
       }
     },
