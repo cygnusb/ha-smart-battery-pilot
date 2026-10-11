@@ -1,0 +1,94 @@
+# The documentation pages of the project site, built from docs/ by
+# .github/workflows/pages.yml and served under /docs/. The Markdown files stay
+# the single source: they read the same on GitHub and on the site.
+site_name: Smart Battery Pilot
+site_description: Documentation of Smart Battery Pilot, the Home Assistant integration that plans your home battery a day ahead.
+site_url: https://cygnusb.github.io/ha-smart-battery-pilot/docs/
+repo_url: https://github.com/cygnusb/ha-smart-battery-pilot
+repo_name: cygnusb/ha-smart-battery-pilot
+edit_uri: edit/main/docs/
+copyright: MIT licensed
+
+docs_dir: docs
+# Never the default `site/`: MkDocs empties site_dir before every build, and
+# site/ holds the hand-written project page.
+site_dir: _site/docs
+
+# Internal plans and specs, and the blank template for new examples.
+exclude_docs: |
+  superpowers/
+  examples/TEMPLATE.md
+
+nav:
+  - Overview: README.md
+  - Configuration: configuration.md
+  - How the optimizer works: optimizer.md
+  - EV charging: ev-charging.md
+  - Energy-system reference: energy-system.md
+  - Examples:
+      - examples/README.md
+      - BYD + Fronius Gen24: examples/byd-fronius-gen24.md
+
+# A broken link or anchor fails `mkdocs build --strict`, and with it CI.
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+hooks:
+  - tools/mkdocs_hooks.py
+
+theme:
+  name: material
+  logo: assets/icon.svg
+  favicon: assets/icon.svg
+  font:
+    text: Manrope
+    code: JetBrains Mono
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Light mode
+  features:
+    - content.action.edit
+    - content.code.copy
+    - navigation.footer
+    - navigation.top
+    - search.highlight
+    - toc.follow
+
+extra:
+  # The logo leads back to the project page.
+  homepage: https://cygnusb.github.io/ha-smart-battery-pilot/
+  generator: false
+
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - attr_list
+  # Keeps the optimizer's step list starting at 0, as on GitHub.
+  - sane_lists
+  - tables
+  - toc:
+      permalink: true
+      # GitHub's anchors: "EV charging & other controllers" becomes
+      # ev-charging--other-controllers, so links from the README and from
+      # one page to another work on both.
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.highlight
+  - pymdownx.superfences

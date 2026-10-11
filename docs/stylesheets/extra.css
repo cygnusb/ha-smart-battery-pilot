@@ -1,0 +1,116 @@
+/* The project page's "winter night" look on top of Material for MkDocs:
+   night-blue header, amber accents, Instrument Serif headlines over Manrope. */
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap");
+
+:root {
+  --sbp-night: #0b1530;
+  --sbp-night-2: #1a2a52;
+  --sbp-on-night: #e6ecf8;
+  --sbp-on-night-soft: #b7c4dd;
+  --sbp-amber: #ffc46b;
+  --sbp-display: "Instrument Serif", Georgia, "Times New Roman", serif;
+}
+
+[data-md-color-primary="custom"] {
+  --md-primary-fg-color: var(--sbp-night);
+  --md-primary-fg-color--light: var(--sbp-night-2);
+  --md-primary-fg-color--dark: #070e22;
+  --md-primary-bg-color: var(--sbp-on-night);
+  --md-primary-bg-color--light: var(--sbp-on-night-soft);
+}
+
+[data-md-color-accent="custom"] {
+  --md-accent-fg-color: #b8741a;
+  --md-accent-fg-color--transparent: rgba(255, 196, 107, 0.16);
+  --md-accent-bg-color: var(--sbp-night);
+}
+
+[data-md-color-scheme="default"] {
+  --md-default-fg-color: #1b2440;
+  --md-default-fg-color--light: #4a5778;
+  --md-typeset-color: #1b2440;
+  --md-typeset-a-color: #2a54b0;
+  --md-code-bg-color: #f3f5f9;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-default-bg-color: #0f1730;
+  --md-default-fg-color: #e6ecf8;
+  --md-default-fg-color--light: #b7c4dd;
+  --md-default-fg-color--lighter: #8ea0c4;
+  --md-default-fg-color--lightest: #26355e;
+  --md-typeset-color: #e6ecf8;
+  --md-typeset-a-color: var(--sbp-amber);
+  --md-accent-fg-color: #ffd28c;
+  --md-code-bg-color: #16213f;
+  --md-code-fg-color: #dfe6f4;
+  --md-footer-bg-color: #0b1530;
+  --md-footer-bg-color--dark: #070e22;
+}
+
+/* The header and footer are night bands on both schemes, as on the project page. */
+.md-header,
+.md-tabs {
+  background-color: var(--sbp-night);
+}
+
+.md-header__button.md-logo img {
+  height: 1.6rem;
+}
+
+.md-header__topic:first-child {
+  font-weight: 700;
+}
+
+.md-footer {
+  background-color: var(--sbp-night);
+}
+
+.md-footer-meta {
+  background-color: #070e22;
+}
+
+/* Headlines in the display serif. */
+.md-typeset h1,
+.md-typeset h2 {
+  font-family: var(--sbp-display);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  color: var(--md-typeset-color);
+}
+
+.md-typeset h1 {
+  font-size: 2.4em;
+  line-height: 1.1;
+  margin-bottom: 0.8em;
+}
+
+.md-typeset h2 {
+  font-size: 1.75em;
+  line-height: 1.15;
+}
+
+.md-typeset h3 {
+  font-weight: 700;
+}
+
+/* Quoted notes read as callouts with an amber rule. */
+.md-typeset blockquote {
+  border-left: 0.2rem solid var(--sbp-amber);
+  background: var(--md-accent-fg-color--transparent);
+  color: var(--md-typeset-color);
+  padding: 0.6em 1em;
+  border-radius: 0 0.3rem 0.3rem 0;
+}
+
+.md-typeset blockquote > :first-child {
+  margin-top: 0;
+}
+
+.md-typeset blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.md-typeset table:not([class]) th {
+  background-color: var(--md-code-bg-color);
+}

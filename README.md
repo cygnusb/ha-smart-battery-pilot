@@ -15,7 +15,7 @@
 
 **Charge your home battery when electricity is cheap — use it when it's expensive.**
 
-[Project website](https://cygnusb.github.io/ha-smart-battery-pilot/) · [Documentation](docs/configuration.md) · [Releases](https://github.com/cygnusb/ha-smart-battery-pilot/releases)
+[Project website](https://cygnusb.github.io/ha-smart-battery-pilot/) · [Documentation](https://cygnusb.github.io/ha-smart-battery-pilot/docs/) · [Releases](https://github.com/cygnusb/ha-smart-battery-pilot/releases)
 
 Smart Battery Pilot is a Home Assistant integration for households with a home
 battery and a dynamic electricity tariff (Tibber, aWATTar, Octopus Energy,

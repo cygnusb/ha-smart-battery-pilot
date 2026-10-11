@@ -48,7 +48,7 @@ only answer with a warning and a fallback to auto mode. It must keep covering
 the house from the battery while it exports; see
 [what an export slot assumes](optimizer.md#what-an-export-slot-assumes).
 
-Ready-made scripts for specific hardware: see [examples](examples/).
+Ready-made scripts for specific hardware: see [examples](examples/README.md).
 
 > Each script is awaited (`blocking: true`) and must return within **120 s**,
 > or the action counts as failed and the battery is handed back to auto mode.

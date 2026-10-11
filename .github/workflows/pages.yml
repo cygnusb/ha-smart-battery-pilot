@@ -2,7 +2,8 @@ name: Pages
 
 # The project site at https://cygnusb.github.io/ha-smart-battery-pilot/.
 # site/ holds the page; the logo and the card screenshots are copied in from
-# assets/, so the README and the site always show the same images.
+# assets/, so the README and the site always show the same images. The pages
+# under /docs/ are built from docs/ with MkDocs (mkdocs.yml).
 
 on:
   push:
@@ -10,6 +11,10 @@ on:
     paths:
       - "site/**"
       - "assets/**"
+      - "docs/**"
+      - "mkdocs.yml"
+      - "tools/mkdocs_hooks.py"
+      - "tools/docs-requirements.txt"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -39,6 +44,15 @@ jobs:
           cp -r site/. _site/
           cp assets/icon.svg assets/logo.svg _site/assets/
           cp -r assets/screenshots _site/assets/
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r tools/docs-requirements.txt
+      - name: Build the documentation
+        # Into _site/docs; MkDocs empties only that directory.
+        run: mkdocs build --strict
+        env:
+          NO_MKDOCS_2_WARNING: "true"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
