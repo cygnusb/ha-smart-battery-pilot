@@ -203,6 +203,7 @@
           "pv": "Solstrømprognose",
           "derating": "Lading i kulde",
           "reserve": "Nødstrømsreserve",
+          "ev": "Elbillading og andre styringer",
           "apply": "💾 Lagre & lukk"
         },
         "description": "Endringer i seksjonene nedenfor samles opp og lagres først via «Lagre & lukk»."
@@ -242,6 +243,21 @@
           "reserve_refill_hours": "Timer der en SOC under reserven bringes opp igjen: først med solstrøm, resten i de billigste nettperiodene.",
           "reserve_block_discharge": "Bare for vekselrettere uten egen reserveinnstilling: piloten bytter til 'sperr utlading' når SOC når reserven. Virker bare mens Home Assistant kjører."
         }
+      },
+      "ev": {
+        "title": "Elbillading og andre styringer",
+        "data": {
+          "ev_power_entities": "Effektsensorer for ladebokser (valgfritt)",
+          "ev_battery_policy": "Husbatteri mens en elbil lader",
+          "ev_threshold_w": "Terskel for elbillading",
+          "external_control_entity": "Entitet for ekstern styring (valgfritt)"
+        },
+        "data_description": {
+          "ev_power_entities": "Én eller flere sensorer (W eller kW) med effekten hver ladeboks trekker, f.eks. evccs ladeeffekt per ladepunkt. Energien deres trekkes ut av forbrukshistorikken, slik at prognosen lærer huset uten bilen.",
+          "ev_battery_policy": "Tillat: ingenting spesielt, vekselretteren kan lade ut til bilen. Blokker: piloten blokkerer utlading mens ladeboksene trekker mer enn terskelen. Ekstern: en annen styring som evcc bestemmer mens den er aktiv - piloten tar pause og bruker planen sin igjen etterpå.",
+          "ev_threshold_w": "Over denne samlede ladeeffekten slår policyen 'Blokker' inn; den slipper under halvparten, slik at ramping og fasebytte ikke får vekselretteren til å skifte frem og tilbake.",
+          "external_control_entity": "Viser når en annen styring har batteriet: en binærsensor, hjelper eller bryter som er på, eller evccs kodesensor for batterimodus (sensor.evcc_battery_mode) mens den viser hold, charge eller holdcharge. Alle andre tilstander regnes som inaktive. Mens den er aktiv, kaller piloten ingen skript."
+        }
       }
     },
     "error": {
@@ -252,7 +268,9 @@
       "export_spread_unreachable": "Innmatingsmodusen kan ikke gjøre noe med disse verdiene: innmatingstariffen ligger på eller under den minste prisspreaden, så ingen time kan noen gang kvalifisere. Øk tariffen, senk spreaden, eller sett tariffen til 0 for å selge til markedspris.",
       "export_script_missing": "Eksportmodus krever et skript for tvungen utlading. Legg til ett under styringsskript, eller sett utladingsmodus tilbake til eget forbruk.",
       "derating_not_monotonic": "Ladeeffekten skal ikke synke når temperaturen stiger. Kontroller glidebryterne.",
-      "derating_needs_temperature": "Lading i kulde krever en entitet for batteritemperaturen."
+      "derating_needs_temperature": "Lading i kulde krever en entitet for batteritemperaturen.",
+      "ev_block_needs_power": "Policyen 'Blokker' trenger minst én effektsensor for en ladeboks.",
+      "ev_external_needs_entity": "Policyen 'Ekstern' trenger en entitet for ekstern styring."
     }
   },
   "selector": {
@@ -260,6 +278,13 @@
       "options": {
         "self_consumption": "Kun eget forbruk",
         "export": "Eget forbruk + innmating til nettet ved topp-priser"
+      }
+    },
+    "ev_battery_policy": {
+      "options": {
+        "allow": "Tillat utlading til bilen",
+        "block": "Blokker utlading mens elbilen lader",
+        "external": "Overlat det til en ekstern styring (f.eks. evcc)"
       }
     }
   },

@@ -203,6 +203,7 @@
           "pv": "Saules enerģijas prognoze",
           "derating": "Uzlāde aukstumā",
           "reserve": "Rezerves jauda strāvas pārrāvumam",
+          "ev": "Elektroauto uzlāde un citas vadības",
           "apply": "💾 Saglabāt & aizvērt"
         },
         "description": "Izmaiņas zemāk esošajās sadaļās tiek apkopotas un saglabātas tikai ar „Saglabāt & aizvērt”."
@@ -242,6 +243,21 @@
           "reserve_refill_hours": "Stundas, kurās SOC zem rezerves tiek atjaunots: vispirms ar saules enerģiju, pārējais lētākajos tīkla periodos.",
           "reserve_block_discharge": "Tikai invertoriem bez savas rezerves iestatījuma: pilots pārslēdzas uz 'bloķēt izlādi', kad SOC sasniedz rezervi. Darbojas tikai, kamēr darbojas Home Assistant."
         }
+      },
+      "ev": {
+        "title": "Elektroauto uzlāde un citas vadības",
+        "data": {
+          "ev_power_entities": "Uzlādes staciju jaudas sensori (neobligāti)",
+          "ev_battery_policy": "Mājas akumulators elektroauto uzlādes laikā",
+          "ev_threshold_w": "Elektroauto uzlādes slieksnis",
+          "external_control_entity": "Ārējās vadības entītija (neobligāti)"
+        },
+        "data_description": {
+          "ev_power_entities": "Viens vai vairāki sensori (W vai kW) ar katras uzlādes stacijas patērēto jaudu, piem., evcc uzlādes jauda katram uzlādes punktam. To enerģija tiek atņemta no patēriņa vēstures, lai prognoze iemācītos māju bez automašīnas.",
+          "ev_battery_policy": "Atļaut: nekas īpašs, invertors drīkst izlādēt automašīnā. Bloķēt: pilots bloķē izlādi, kamēr stacijas patērē vairāk par slieksni. Ārējā: cita vadība, piem., evcc, lemj, kamēr tā ir aktīva - pilots pauzē un pēc tam atkal piemēro savu plānu.",
+          "ev_threshold_w": "Pārsniedzot šo kopējo staciju jaudu, stājas spēkā politika 'Bloķēt'; tā atlaižas zem puses no tās, lai jaudas maiņa un fāžu pārslēgšana nepārslēgtu invertoru turp un atpakaļ.",
+          "external_control_entity": "Norāda, kad akumulatoru vada cita vadība: ieslēgts binārais sensors, palīgs vai slēdzis vai evcc akumulatora režīma koda sensors (sensor.evcc_battery_mode), kamēr tas rāda hold, charge vai holdcharge. Jebkurš cits stāvoklis tiek uzskatīts par neaktīvu. Kamēr tā ir aktīva, pilots neizsauc nevienu skriptu."
+        }
       }
     },
     "error": {
@@ -252,7 +268,9 @@
       "export_spread_unreachable": "Pārdošanas režīms ar šīm vērtībām neko nevar izdarīt: atlīdzība ir vienāda ar minimālo cenu starpību vai zemāka, tāpēc neviena stunda nekad nekvalificēsies. Palielini atlīdzību, samazini starpību vai iestati atlīdzību uz 0, lai pārdotu par tirgus cenu.",
       "export_script_missing": "Eksporta režīmam nepieciešams piespiedu izlādes skripts. Pievienojiet to vadības skriptos vai iestatiet izlādes režīmu atpakaļ uz pašpatēriņu.",
       "derating_not_monotonic": "Uzlādes jauda nedrīkst samazināties, temperatūrai pieaugot. Pārbaudiet slīdņus.",
-      "derating_needs_temperature": "Uzlādei aukstumā nepieciešama akumulatora temperatūras entītija."
+      "derating_needs_temperature": "Uzlādei aukstumā nepieciešama akumulatora temperatūras entītija.",
+      "ev_block_needs_power": "Politikai 'Bloķēt' nepieciešams vismaz viens stacijas jaudas sensors.",
+      "ev_external_needs_entity": "Politikai 'Ārējā' nepieciešama ārējās vadības entītija."
     }
   },
   "selector": {
@@ -260,6 +278,13 @@
       "options": {
         "self_consumption": "Tikai pašpatēriņš",
         "export": "Pašpatēriņš + pārdošana tīklā maksimālo cenu laikā"
+      }
+    },
+    "ev_battery_policy": {
+      "options": {
+        "allow": "Atļaut izlādi automašīnā",
+        "block": "Bloķēt izlādi elektroauto uzlādes laikā",
+        "external": "Atstāt ārējai vadībai (piem., evcc)"
       }
     }
   },

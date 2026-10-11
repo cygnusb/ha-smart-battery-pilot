@@ -203,6 +203,7 @@
           "pv": "Saulės energijos prognozė",
           "derating": "Įkrovimas šaltyje",
           "reserve": "Avarinio maitinimo rezervas",
+          "ev": "Elektromobilio įkrovimas ir kiti valdikliai",
           "apply": "💾 Įrašyti & uždaryti"
         },
         "description": "Toliau esančiuose skyriuose atlikti pakeitimai kaupiami ir įrašomi tik paspaudus „Įrašyti & uždaryti“."
@@ -242,6 +243,21 @@
           "reserve_refill_hours": "Valandos, per kurias žemiau rezervo esantis SOC vėl pakeliamas: pirmiausia saulės energija, likusi dalis pigiausiais tinklo intervalais.",
           "reserve_block_discharge": "Tik inverteriams be savo rezervo nustatymo: pilotas perjungia į „blokuoti iškrovimą“, kai SOC pasiekia rezervą. Veikia tik tol, kol veikia Home Assistant."
         }
+      },
+      "ev": {
+        "title": "Elektromobilio įkrovimas ir kiti valdikliai",
+        "data": {
+          "ev_power_entities": "Įkrovimo stotelių galios jutikliai (neprivaloma)",
+          "ev_battery_policy": "Namų baterija, kol kraunasi elektromobilis",
+          "ev_threshold_w": "Elektromobilio įkrovimo slenkstis",
+          "external_control_entity": "Išorinio valdymo objektas (neprivaloma)"
+        },
+        "data_description": {
+          "ev_power_entities": "Vienas ar keli jutikliai (W arba kW), rodantys kiekvienos įkrovimo stotelės galią, pvz., evcc įkrovimo galia kiekvienam įkrovimo taškui. Jų energija atimama iš suvartojimo istorijos, kad prognozė išmoktų namą be automobilio.",
+          "ev_battery_policy": "Leisti: nieko ypatingo, keitiklis gali iškrauti į automobilį. Blokuoti: pilotas blokuoja iškrovimą, kol stotelės ima daugiau nei slenkstis. Išorinis: kitas valdiklis, pvz., evcc, sprendžia, kol jis aktyvus - pilotas sustoja ir vėliau vėl pritaiko savo planą.",
+          "ev_threshold_w": "Viršijus šią bendrą stotelių galią, įsijungia politika 'Blokuoti'; ji atsileidžia nukritus žemiau pusės, kad galios kitimas ir fazių perjungimas nevartytų keitiklio pirmyn atgal.",
+          "external_control_entity": "Rodo, kada baterija yra kito valdiklio žinioje: įjungtas dvejetainis jutiklis, pagalbininkas ar jungiklis arba evcc baterijos režimo kodo jutiklis (sensor.evcc_battery_mode), kai jis rodo hold, charge arba holdcharge. Bet kuri kita būsena laikoma neaktyvia. Kol jis aktyvus, pilotas nekviečia jokio scenarijaus."
+        }
       }
     },
     "error": {
@@ -252,7 +268,9 @@
       "export_spread_unreachable": "Pardavimo režimas su šiomis reikšmėmis nieko negali padaryti: atlygis yra lygus mažiausiam kainų skirtumui arba už jį mažesnis, todėl nė viena valanda niekada netiks. Padidink atlygį, sumažink skirtumą arba nustatyk atlygį į 0, kad parduotum rinkos kaina.",
       "export_script_missing": "Eksporto režimui reikia priverstinio iškrovimo scenarijaus. Pridėkite jį prie valdymo scenarijų arba grąžinkite iškrovimo režimą į savo suvartojimą.",
       "derating_not_monotonic": "Įkrovimo galia neturi mažėti kylant temperatūrai. Patikrinkite slankiklius.",
-      "derating_needs_temperature": "Įkrovimui šaltyje reikia baterijos temperatūros objekto."
+      "derating_needs_temperature": "Įkrovimui šaltyje reikia baterijos temperatūros objekto.",
+      "ev_block_needs_power": "Politikai 'Blokuoti' reikia bent vieno stotelės galios jutiklio.",
+      "ev_external_needs_entity": "Politikai 'Išorinis' reikia išorinio valdymo objekto."
     }
   },
   "selector": {
@@ -260,6 +278,13 @@
       "options": {
         "self_consumption": "Tik savo suvartojimas",
         "export": "Savo suvartojimas + pardavimas į tinklą piko kainomis"
+      }
+    },
+    "ev_battery_policy": {
+      "options": {
+        "allow": "Leisti iškrauti į automobilį",
+        "block": "Blokuoti iškrovimą, kol kraunasi elektromobilis",
+        "external": "Palikti išoriniam valdikliui (pvz., evcc)"
       }
     }
   },

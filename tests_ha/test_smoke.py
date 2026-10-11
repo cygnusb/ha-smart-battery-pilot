@@ -218,6 +218,45 @@ async def test_the_reserve_options_step_renders_and_saves(sbp_hass: HomeAssistan
     assert entry.runtime_data.coordinator.data.inputs["reserve"]["soc"] == 30.0
 
 
+async def test_the_ev_options_step_renders_and_saves(sbp_hass: HomeAssistant) -> None:
+    """A multi-entity selector and a mixed-domain selector are new here."""
+    sbp_hass.states.async_set(
+        "sensor.evcc_carport_charge_power", "3.7", {"unit_of_measurement": "kW"}
+    )
+    sbp_hass.states.async_set("sensor.evcc_battery_mode", "hold")
+    entry = await _setup(sbp_hass)
+    options = sbp_hass.config_entries.options
+
+    menu = await options.async_init(entry.entry_id)
+    assert "ev" in menu["menu_options"]
+    form = await options.async_configure(menu["flow_id"], {"next_step_id": "ev"})
+    assert form["step_id"] == "ev"
+    for selector in form["data_schema"].schema.values():
+        assert "selector" in cv.custom_serializer(selector)
+
+    refused = await options.async_configure(
+        form["flow_id"], {"ev_battery_policy": "external", "ev_threshold_w": 1000}
+    )
+    assert refused["errors"] == {"base": "ev_external_needs_entity"}
+
+    saved = await options.async_configure(
+        refused["flow_id"],
+        {
+            "ev_power_entities": ["sensor.evcc_carport_charge_power"],
+            "ev_battery_policy": "external",
+            "ev_threshold_w": 1000,
+            "external_control_entity": "sensor.evcc_battery_mode",
+        },
+    )
+    assert saved["type"] == "menu"
+    done = await options.async_configure(saved["flow_id"], {"next_step_id": "apply"})
+    await sbp_hass.async_block_till_done()
+    assert done["type"] == "create_entry"
+    ev = entry.runtime_data.coordinator.data.inputs["ev"]
+    assert ev["power_w"] == 3700
+    assert ev["external_control_active"] is True
+
+
 async def test_a_real_script_receives_reserve_soc(sbp_hass: HomeAssistant) -> None:
     """HA scripts accept variables they do not declare; the reserve must arrive."""
     assert await async_setup_component(

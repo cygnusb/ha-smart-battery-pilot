@@ -59,6 +59,11 @@ class _FakeCoordinator:
         self.block = False
         self.soc = None
         self.last_reserve_sent = None
+        self.ev_policy_value = "allow"
+        self.ev_entities: list[str] = []
+        self.ev_power = None
+        self.ev_threshold = 1000.0
+        self.external = False
         self._conf = {
             CONF_SCRIPT_CHARGE: "script.sbp_charge",
             CONF_SCRIPT_IDLE: "script.sbp_idle",
@@ -97,6 +102,21 @@ class _FakeCoordinator:
 
     def live_soc(self):
         return self.soc
+
+    def ev_policy(self):
+        return self.ev_policy_value
+
+    def ev_power_entities(self):
+        return self.ev_entities
+
+    def ev_power_w(self):
+        return self.ev_power
+
+    def ev_threshold_w(self):
+        return self.ev_threshold
+
+    def external_control_active(self):
+        return self.external
 
     def charge_observation(self, requested_w, now=None, closing=None):
         self.charge_requests.append(requested_w)

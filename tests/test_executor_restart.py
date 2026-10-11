@@ -92,6 +92,21 @@ class _Coordinator:
     def live_soc(self):
         return None
 
+    def ev_policy(self):
+        return "allow"
+
+    def ev_power_entities(self):
+        return []
+
+    def ev_power_w(self):
+        return None
+
+    def ev_threshold_w(self):
+        return 1000.0
+
+    def external_control_active(self):
+        return False
+
     def charge_observation(self, requested_w, now=None, closing=None):
         pass
 

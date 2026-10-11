@@ -27,6 +27,10 @@ from .const import (
     CONF_DISCHARGE_MODE,
     CONF_DRY_RUN,
     CONF_EFFICIENCY,
+    CONF_EV_BATTERY_POLICY,
+    CONF_EV_POWER_ENTITIES,
+    CONF_EV_THRESHOLD_W,
+    CONF_EXTERNAL_CONTROL_ENTITY,
     CONF_FEED_IN_TARIFF,
     CONF_HAS_HEAT_PUMP,
     CONF_MAX_CHARGE_POWER_W,
@@ -54,6 +58,8 @@ from .const import (
     DEFAULT_DISCHARGE_MODE,
     DEFAULT_DRY_RUN,
     DEFAULT_EFFICIENCY,
+    DEFAULT_EV_BATTERY_POLICY,
+    DEFAULT_EV_THRESHOLD_W,
     DEFAULT_FEED_IN_TARIFF,
     DEFAULT_MAX_SOC,
     DEFAULT_MIN_SOC,
@@ -66,6 +72,9 @@ from .const import (
     DISCHARGE_MODE_EXPORT,
     DISCHARGE_MODE_SELF_CONSUMPTION,
     DOMAIN,
+    EV_POLICY_ALLOW,
+    EV_POLICY_BLOCK,
+    EV_POLICY_EXTERNAL,
 )
 from .forecast.charge_rate import is_non_decreasing
 from .price_adapters import detect_adapter
@@ -77,6 +86,22 @@ _SCRIPT = selector.EntitySelector(selector.EntitySelectorConfig(domain="script")
 # No device-class filter: Modbus and template battery sensors often carry
 # none, and the filter would hide exactly them. The unit is read at runtime.
 _BATTERY_TEMPERATURE = selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor"))
+# Same reasoning: wallbox power sensors from Modbus, MQTT or templates often
+# carry no device class. W or kW is read from the unit at runtime.
+_EV_POWER = selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor", multiple=True))
+# Whatever tells that another controller has the battery right now: a binary
+# sensor, a helper, a switch - or evcc's battery mode code sensor, which reads
+# hold or charge while evcc steers the battery.
+_EXTERNAL_CONTROL = selector.EntitySelector(
+    selector.EntitySelectorConfig(domain=["binary_sensor", "input_boolean", "switch", "sensor"])
+)
+
+# evcc's Home Assistant integration names its entities like this; they only
+# pre-fill the EV step, nothing depends on evcc being installed. The mode
+# sensor is the "[CODE]" one (disabled by default): its sibling
+# sensor.evcc_battery_mode_value is translated and cannot be matched.
+EVCC_BATTERY_MODE_ENTITY = "sensor.evcc_battery_mode"
+EVCC_CHARGE_POWER_SUFFIX = "_charge_power"
 
 
 def _percent_slider() -> selector.NumberSelector:
@@ -271,6 +296,37 @@ def schema_reserve(d: dict[str, Any]) -> vol.Schema:
     )
 
 
+def schema_ev(d: dict[str, Any]) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Optional(
+                CONF_EV_POWER_ENTITIES, description=_sugg(d.get(CONF_EV_POWER_ENTITIES))
+            ): _EV_POWER,
+            vol.Required(
+                CONF_EV_BATTERY_POLICY,
+                default=d.get(CONF_EV_BATTERY_POLICY) or DEFAULT_EV_BATTERY_POLICY,
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[EV_POLICY_ALLOW, EV_POLICY_BLOCK, EV_POLICY_EXTERNAL],
+                    translation_key="ev_battery_policy",
+                )
+            ),
+            vol.Required(
+                CONF_EV_THRESHOLD_W,
+                default=d.get(CONF_EV_THRESHOLD_W) or DEFAULT_EV_THRESHOLD_W,
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=100, max=50000, step=100, unit_of_measurement="W", mode="box"
+                )
+            ),
+            vol.Optional(
+                CONF_EXTERNAL_CONTROL_ENTITY,
+                description=_sugg(d.get(CONF_EXTERNAL_CONTROL_ENTITY)),
+            ): _EXTERNAL_CONTROL,
+        }
+    )
+
+
 STEP_FIELDS: dict[str, list[str]] = {
     "prices": [CONF_PRICE_ENTITY, CONF_PRICE_OFFSET, CONF_FEED_IN_TARIFF],
     "battery": [
@@ -294,6 +350,12 @@ STEP_FIELDS: dict[str, list[str]] = {
         CONF_BACKUP_RESERVE_ENTITY,
         CONF_RESERVE_REFILL_HOURS,
         CONF_RESERVE_BLOCK_DISCHARGE,
+    ],
+    "ev": [
+        CONF_EV_POWER_ENTITIES,
+        CONF_EV_BATTERY_POLICY,
+        CONF_EV_THRESHOLD_W,
+        CONF_EXTERNAL_CONTROL_ENTITY,
     ],
 }
 
@@ -340,6 +402,42 @@ def _derating_error(merged: dict[str, Any]) -> str | None:
     if merged.get(CONF_CHARGE_DERATING) and not merged.get(CONF_BATTERY_TEMPERATURE_ENTITY):
         return "derating_needs_temperature"
     return None
+
+
+def _ev_error(merged: dict[str, Any]) -> str | None:
+    """Error key for the EV section, or None.
+
+    Each policy names what it acts on; without it the setting would look
+    active while doing nothing.
+    """
+    policy = merged.get(CONF_EV_BATTERY_POLICY) or DEFAULT_EV_BATTERY_POLICY
+    if policy == EV_POLICY_BLOCK and not merged.get(CONF_EV_POWER_ENTITIES):
+        return "ev_block_needs_power"
+    if policy == EV_POLICY_EXTERNAL and not merged.get(CONF_EXTERNAL_CONTROL_ENTITY):
+        return "ev_external_needs_entity"
+    return None
+
+
+def _evcc_suggestions(hass, current: dict[str, Any]) -> dict[str, Any]:
+    """Pre-fill the EV step from evcc's entities while it is still empty.
+
+    Only suggestions: an EV section the user has filled in once is left alone,
+    and nothing breaks without evcc.
+    """
+    if any(current.get(key) for key in STEP_FIELDS["ev"] if key != CONF_EV_THRESHOLD_W):
+        return current
+    suggested = dict(current)
+    power = sorted(
+        entity_id
+        for entity_id in hass.states.async_entity_ids("sensor")
+        if entity_id.startswith("sensor.evcc_") and entity_id.endswith(EVCC_CHARGE_POWER_SUFFIX)
+    )
+    if power:
+        suggested[CONF_EV_POWER_ENTITIES] = power
+    if hass.states.get(EVCC_BATTERY_MODE_ENTITY) is not None:
+        suggested[CONF_EXTERNAL_CONTROL_ENTITY] = EVCC_BATTERY_MODE_ENTITY
+        suggested[CONF_EV_BATTERY_POLICY] = EV_POLICY_EXTERNAL
+    return suggested
 
 
 def _validate_price_entity(hass, entity_id: str) -> str | None:
@@ -465,6 +563,7 @@ class SBPOptionsFlow(OptionsFlow):
                 "pv",
                 "derating",
                 "reserve",
+                "ev",
                 "apply",
             ],
         )
@@ -578,4 +677,18 @@ class SBPOptionsFlow(OptionsFlow):
                 return await self._save_step("tuning", user_input)
         return self.async_show_form(
             step_id="tuning", data_schema=schema_tuning(self._merged), errors=errors
+        )
+
+    async def async_step_ev(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            error = _ev_error(self._would_be("ev", user_input))
+            if error:
+                errors["base"] = error
+            else:
+                return await self._save_step("ev", user_input)
+        return self.async_show_form(
+            step_id="ev",
+            data_schema=schema_ev(_evcc_suggestions(self.hass, self._merged)),
+            errors=errors,
         )

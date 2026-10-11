@@ -203,6 +203,7 @@
           "pv": "PV forecast",
           "derating": "Cold-weather charging",
           "reserve": "Backup reserve",
+          "ev": "EV charging & other controllers",
           "apply": "💾 Save & close"
         },
         "description": "Changes in the sections below are collected and only saved via “Save & close”."
@@ -242,6 +243,21 @@
           "reserve_refill_hours": "Hours within which a SOC below the reserve is brought back up: PV first, the rest in the cheapest grid slots.",
           "reserve_block_discharge": "Only for inverters without their own reserve setting: the pilot switches to 'block discharge' when the SOC reaches the reserve. Works only while Home Assistant runs."
         }
+      },
+      "ev": {
+        "title": "EV charging & other controllers",
+        "data": {
+          "ev_power_entities": "Wallbox power sensors (optional)",
+          "ev_battery_policy": "House battery while an EV charges",
+          "ev_threshold_w": "EV charging threshold",
+          "external_control_entity": "External control entity (optional)"
+        },
+        "data_description": {
+          "ev_power_entities": "One or more sensors (W or kW) with what each wallbox draws, e.g. evcc's charge power per loadpoint. Their energy is taken out of the consumption history, so the forecast learns the house without the car.",
+          "ev_battery_policy": "Allow: nothing special, the inverter may discharge into the car. Block: the pilot blocks discharging while the wallboxes draw more than the threshold. External: another controller such as evcc decides while it is active - the pilot pauses and re-applies its plan afterwards.",
+          "ev_threshold_w": "Above this total wallbox power the 'Block' policy engages; it releases below half of it, so ramping and phase switching do not flip the inverter.",
+          "external_control_entity": "Tells when another controller has the battery: a binary sensor, helper or switch that is on, or evcc's battery mode code sensor (sensor.evcc_battery_mode) while it reads hold, charge or holdcharge. Every other state counts as inactive. While it is active the pilot calls no script."
+        }
       }
     },
     "error": {
@@ -252,7 +268,9 @@
       "export_spread_unreachable": "Export mode cannot do anything with these values: the feed-in tariff is at or below the minimum price spread, so no slot can ever qualify. Raise the feed-in tariff, lower the spread, or set the feed-in tariff to 0 to export at the market price.",
       "export_script_missing": "Export mode needs a force-discharge script. Configure one in the control scripts step, or set the discharge mode back to self-consumption.",
       "derating_not_monotonic": "The charge power must not fall as the temperature rises. Check the sliders.",
-      "derating_needs_temperature": "Cold-weather charging needs a battery temperature entity."
+      "derating_needs_temperature": "Cold-weather charging needs a battery temperature entity.",
+      "ev_block_needs_power": "The 'Block' policy needs at least one wallbox power sensor.",
+      "ev_external_needs_entity": "The 'External' policy needs an external control entity."
     }
   },
   "selector": {
@@ -260,6 +278,13 @@
       "options": {
         "self_consumption": "Self-consumption only",
         "export": "Self-consumption + grid export at peak prices"
+      }
+    },
+    "ev_battery_policy": {
+      "options": {
+        "allow": "Allow discharging into the car",
+        "block": "Block discharging while the EV charges",
+        "external": "Leave it to an external controller (e.g. evcc)"
       }
     }
   },

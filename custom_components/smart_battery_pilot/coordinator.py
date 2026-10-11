@@ -33,6 +33,10 @@ from .const import (
     CONF_DISCHARGE_MODE,
     CONF_DRY_RUN,
     CONF_EFFICIENCY,
+    CONF_EV_BATTERY_POLICY,
+    CONF_EV_POWER_ENTITIES,
+    CONF_EV_THRESHOLD_W,
+    CONF_EXTERNAL_CONTROL_ENTITY,
     CONF_FEED_IN_TARIFF,
     CONF_HAS_HEAT_PUMP,
     CONF_MAX_CHARGE_POWER_W,
@@ -56,6 +60,8 @@ from .const import (
     DEFAULT_DISCHARGE_MODE,
     DEFAULT_DRY_RUN,
     DEFAULT_EFFICIENCY,
+    DEFAULT_EV_BATTERY_POLICY,
+    DEFAULT_EV_THRESHOLD_W,
     DEFAULT_FEED_IN_TARIFF,
     DEFAULT_MAX_SOC,
     DEFAULT_MIN_SOC,
@@ -109,6 +115,13 @@ DEFAULT_SUNSET_HOUR = 21.0
 
 # Charge factor source while derating is on but the temperature cannot be read.
 SOURCE_NO_TEMPERATURE = "no_temperature"
+
+# States that mean "another controller has the battery": on for binary
+# sensors, helpers and switches, plus evcc's battery mode codes. A list of
+# active states, not of idle ones - integrations translate their states
+# (evcc's readable mode sensor says "Unbekannt" in German), and a state nobody
+# anticipated must not pause the pilot for good.
+EXTERNAL_ACTIVE_STATES = frozenset({"on", "true", "hold", "charge", "holdcharge"})
 
 # Observation rules for learning the cold charge limit (see the spec).
 MIN_OBSERVATION = timedelta(minutes=10)
@@ -523,6 +536,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 "refill_hours": refill_hours,
                 "block": self.reserve_block_enabled(),
             },
+            "ev": self.ev_inputs(),
         }
         if self.data is not None and not self.data.valid:
             _LOGGER.info("Planning works again after '%s'", self.data.error)
@@ -713,6 +727,61 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             reserve = float(self.conf(CONF_MIN_SOC, DEFAULT_MIN_SOC))
         return round(reserve)
 
+    # --- EV charging and other controllers ------------------------------------------
+
+    def ev_power_entities(self) -> list[str]:
+        entities = self.conf(CONF_EV_POWER_ENTITIES) or []
+        if isinstance(entities, str):
+            entities = [entities]
+        return [entity_id for entity_id in entities if entity_id]
+
+    def ev_policy(self) -> str:
+        return self.conf(CONF_EV_BATTERY_POLICY) or DEFAULT_EV_BATTERY_POLICY
+
+    def ev_threshold_w(self) -> float:
+        return float(self.conf(CONF_EV_THRESHOLD_W) or DEFAULT_EV_THRESHOLD_W)
+
+    def _read_power_w(self, entity_id: str) -> float | None:
+        """A power sensor in W, whatever of W or kW it reports in."""
+        value = self._read_float_state(entity_id)
+        if value is None:
+            return None
+        state = self.hass.states.get(entity_id)
+        unit = str(state.attributes.get("unit_of_measurement") or "") if state else ""
+        return value * 1000.0 if unit == "kW" else value
+
+    def ev_power_w(self) -> float | None:
+        """What all configured wallboxes draw right now, or None without a reading."""
+        readings = [self._read_power_w(entity_id) for entity_id in self.ev_power_entities()]
+        known = [max(0.0, value) for value in readings if value is not None]
+        return sum(known) if known else None
+
+    def external_control_active(self) -> bool:
+        """True while another controller (evcc, an automation ...) has the battery.
+
+        An entity that is unavailable counts as inactive: the pilot would rather
+        steer than leave the battery to a controller nobody can see.
+        """
+        entity_id = self.conf(CONF_EXTERNAL_CONTROL_ENTITY)
+        if not entity_id:
+            return False
+        state = self.hass.states.get(entity_id)
+        if state is None:
+            return False
+        return str(state.state).strip().lower() in EXTERNAL_ACTIVE_STATES
+
+    def ev_inputs(self) -> dict[str, Any]:
+        """The EV section of the diagnostics and sensor attributes."""
+        power = self.ev_power_w()
+        return {
+            "policy": self.ev_policy(),
+            "power_entities": self.ev_power_entities(),
+            "power_w": round(power) if power is not None else None,
+            "threshold_w": self.ev_threshold_w(),
+            "external_control_entity": self.conf(CONF_EXTERNAL_CONTROL_ENTITY),
+            "external_control_active": self.external_control_active(),
+        }
+
     def _read_temperature_c(self, entity_id: str | None) -> float | None:
         """A temperature in °C, whatever unit the entity reports in."""
         value = self._read_float_state(entity_id)
@@ -785,7 +854,8 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         days = int(self.conf(CONF_TRAINING_DAYS, DEFAULT_TRAINING_DAYS))
         start = now - timedelta(days=days)
         temp_entity = self.conf(CONF_TEMPERATURE_ENTITY)
-        ids = [entity_id] + ([temp_entity] if temp_entity else [])
+        ev_entities = self.ev_power_entities()
+        ids = [entity_id] + ([temp_entity] if temp_entity else []) + ev_entities
 
         try:
             stats = await self._fetch_statistics(start, now, ids)
@@ -793,12 +863,24 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             _LOGGER.warning("Fetching statistics failed: %s", err)
             return
 
-        samples = self._build_samples(stats.get(entity_id, []), stats.get(temp_entity or "", []))
+        ev_rows = {ev: stats.get(ev, []) for ev in ev_entities}
+        for ev, rows in ev_rows.items():
+            if not rows:
+                _LOGGER.warning(
+                    "No statistics found for wallbox sensor %s - its energy stays in "
+                    "the consumption history. It needs a state_class to be recorded.",
+                    ev,
+                )
+        samples = self._build_samples(
+            stats.get(entity_id, []), stats.get(temp_entity or "", []), ev_rows
+        )
         _LOGGER.debug(
-            "Statistics since %s: %d consumption rows, %d temperature rows -> %d samples",
+            "Statistics since %s: %d consumption rows, %d temperature rows, "
+            "%d EV rows -> %d samples",
             start.isoformat(),
             len(stats.get(entity_id, [])),
             len(stats.get(temp_entity or "", [])),
+            sum(len(rows) for rows in ev_rows.values()),
             len(samples),
         )
         if not samples:
@@ -833,24 +915,54 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             {"mean", "change"},
         )
 
+    def _unit(self, entity_id: str | None) -> str | None:
+        state = self.hass.states.get(entity_id) if entity_id else None
+        return state.attributes.get("unit_of_measurement") if state else None
+
+    @staticmethod
+    def _row_kwh(row: dict[str, Any], unit: str | None) -> float | None:
+        """One hourly statistics row as kWh.
+
+        Power sensors (W, kW) provide `mean`; energy sensors provide `change`
+        (kWh or Wh) per hour.
+        """
+        if unit in ("W", "kW"):
+            mean = row.get("mean")
+            if mean is None:
+                return None
+            return float(mean) / (1000.0 if unit == "W" else 1.0)
+        change = row.get("change")
+        if change is None or float(change) < 0:
+            return None
+        return float(change) / (1000.0 if unit == "Wh" else 1.0)
+
     def _build_samples(
-        self, rows: list[dict[str, Any]], temp_rows: list[dict[str, Any]]
+        self,
+        rows: list[dict[str, Any]],
+        temp_rows: list[dict[str, Any]],
+        ev_rows: dict[str, list[dict[str, Any]]] | None = None,
     ) -> list[TrainingSample]:
         """Convert recorder statistics rows into training samples.
 
-        Power sensors (W) provide `mean` -> kWh = mean/1000; energy sensors
-        provide `change` (kWh or Wh) per hour.
+        A whole-house meter counts the wallbox too, and a single charging
+        session outweighs a day of household load. Whatever the configured EV
+        sensors drew in an hour is taken off that hour, so the model learns the
+        house alone - EV sessions follow the car, not the clock.
         """
-        unit = None
-        entity_id = self.conf(CONF_CONSUMPTION_ENTITY)
-        state = self.hass.states.get(entity_id) if entity_id else None
-        if state:
-            unit = state.attributes.get("unit_of_measurement")
+        unit = self._unit(self.conf(CONF_CONSUMPTION_ENTITY))
 
         temps: dict[Any, float] = {}
         for row in temp_rows:
             if row.get("mean") is not None:
                 temps[row["start"]] = float(row["mean"])
+
+        ev_kwh: dict[Any, float] = {}
+        for ev_entity, entity_rows in (ev_rows or {}).items():
+            ev_unit = self._unit(ev_entity)
+            for row in entity_rows:
+                kwh = self._row_kwh(row, ev_unit)
+                if kwh is not None and kwh > 0:
+                    ev_kwh[row["start"]] = ev_kwh.get(row["start"], 0.0) + kwh
 
         samples: list[TrainingSample] = []
         for row in rows:
@@ -861,19 +973,13 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 start_dt = start
             start_dt = dt_util.as_local(start_dt)
 
-            kwh: float | None = None
-            if unit in ("W", "kW"):
-                mean = row.get("mean")
-                if mean is not None:
-                    kwh = float(mean) / (1000.0 if unit == "W" else 1.0)
-            else:
-                change = row.get("change")
-                if change is not None and float(change) >= 0:
-                    kwh = float(change)
-                    if unit == "Wh":
-                        kwh /= 1000.0
+            kwh = self._row_kwh(row, unit)
             if kwh is None or kwh < 0 or kwh > 50:  # discard outliers
                 continue
+            if row["start"] in ev_kwh:
+                # Meter resolution and averaging can leave the EV share a
+                # little above the house total; the house never draws < 0.
+                kwh = max(0.0, kwh - ev_kwh[row["start"]])
             samples.append(
                 TrainingSample(start=start_dt, kwh=kwh, temperature=temps.get(row["start"]))
             )
