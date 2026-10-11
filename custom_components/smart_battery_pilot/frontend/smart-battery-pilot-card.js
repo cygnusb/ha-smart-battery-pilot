@@ -1400,6 +1400,9 @@ class SmartBatteryPilotCard extends HTMLElement {
     if (panel.key === "price") {
       if (scale.limit !== null) {
         const y = scale.y(scale.limit);
+        // The line sits on this card's price axis, the label quotes the
+        // limit as set in evcc - the number the tooltip quotes too.
+        const named = typeof ev.limitEvcc === "number" ? ev.limitEvcc : scale.limit;
         // A limit along the top edge takes its label underneath instead.
         const ly = y - 4 < panel.y + 9 ? y + 11 : y - 4;
         out +=
@@ -1408,7 +1411,7 @@ class SmartBatteryPilotCard extends HTMLElement {
           )}" class="evlimit"/>` +
           `<text x="${padL + plotW - 4}" y="${ly.toFixed(1)}" class="dirlbl ev" text-anchor="end">${esc(
             this._tr("ev_limit")
-          )} ${scale.limit.toFixed(2)}</text>`;
+          )} ${named.toFixed(2)}</text>`;
       }
       // Like the peak label: a strip as short as the compact view's has no
       // room under the curve, and the status line carries the figure anyway.

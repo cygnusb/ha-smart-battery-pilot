@@ -613,6 +613,12 @@ const plans = {
   ev_nosessions: Object.assign({ slots: evSlots }, baseAttrs, {
     ev_source: "evcc", ev_kwh_total: 13.0, ev_price_limit: null, ev_sessions: [],
   }),
+  // A 1.2.1 backend with both figures: the line on the plan's axis, the
+  // label quoting evcc's own limit.
+  ev_both: Object.assign({ slots: evSlots }, baseAttrs, {
+    ev_source: "evcc", ev_kwh_total: 13.0, ev_price_limit: 0.12, ev_price_limit_evcc: 0.22,
+    ev_sessions: [],
+  }),
   // A 1.2.1 backend whose two price series are not a constant offset apart:
   // no limit on the plan's axis, but evcc's own figure, and one slot that evcc
   // charges for its plan rather than for the price.
@@ -746,6 +752,15 @@ def test_the_price_panel_shows_the_limit_and_the_window_energy(ev_views):
     assert 'class="evlimit"' not in nolimit
     assert 'class="li evlim-i"' not in nolimit
     assert '<i class="ev-i"></i>' in nolimit
+
+
+def test_the_limit_line_quotes_evccs_own_figure(ev_views):
+    """The line sits on the card's price axis; its label and the tooltip both
+    name the limit as set in evcc, so the two never disagree."""
+    html = ev_views["ev_both"]["tracks"]["html"]
+    assert html.count('class="evlimit"') == 1
+    assert ">evcc limit 0.22</text>" in html
+    assert ">evcc limit 0.12</text>" not in html
 
 
 def test_the_soc_panel_marks_the_held_battery(ev_views):
