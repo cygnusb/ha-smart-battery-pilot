@@ -29,6 +29,30 @@
 <link rel="preload" href="{{ root }}assets/fonts/atkinson-next-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="{{ root }}assets/fonts/fonts.css">
 <script type="application/ld+json">{{ json_ld }}</script>
+{%- if lang.code == "en" %}
+<script>
+// A first visit with a browser set to one of the other languages goes to that
+// page. A language picked in the menu wins, and so does arriving from one of
+// this site's own pages, e.g. by choosing English there. Crawlers report en-US
+// and stay here.
+(function () {
+  var pages = {{ languages | map(attribute="code") | list | tojson }};
+  var aliases = { no: "nb", nn: "nb" };
+  function go(code) { if (code !== "en" && pages.indexOf(code) >= 0) location.replace(code + "/" + location.hash); }
+  try {
+    if (document.referrer && new URL(document.referrer).href.indexOf(new URL(".", location.href).href) === 0) return;
+    var chosen = localStorage.getItem("sbp-lang");
+    if (chosen) return go(chosen);
+  } catch (e) { /* no storage: fall through to the browser languages */ }
+  var wanted = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+  for (var i = 0; i < wanted.length; i++) {
+    var code = String(wanted[i]).toLowerCase().split("-")[0];
+    code = aliases[code] || code;
+    if (pages.indexOf(code) >= 0) return go(code);
+  }
+})();
+</script>
+{%- endif %}
 <style>
 /* A daylight price board: cool paper, white boards with hairlines, the plan's four actions as the only colours. */
 :root {
@@ -429,6 +453,13 @@ footer.foot nav a { color: var(--ink); }
 <script>
 (function () {
   document.documentElement.classList.add("js");
+
+  // The language picked in the menu, for the next visit to the English page.
+  document.querySelectorAll(".lang a[hreflang]").forEach(function (a) {
+    a.addEventListener("click", function () {
+      try { localStorage.setItem("sbp-lang", a.getAttribute("hreflang")); } catch (e) { /* not remembered */ }
+    });
+  });
 
   // Card viewer: one screenshot at a time, chosen from the list.
   var buttons = document.querySelectorAll(".views button");
