@@ -613,13 +613,25 @@ const plans = {
   ev_nosessions: Object.assign({ slots: evSlots }, baseAttrs, {
     ev_source: "evcc", ev_kwh_total: 13.0, ev_price_limit: null, ev_sessions: [],
   }),
+  // A 1.2.1 backend whose two price series are not a constant offset apart:
+  // no limit on the plan's axis, but evcc's own figure, and one slot that evcc
+  // charges for its plan rather than for the price.
+  ev_offset: Object.assign(
+    { slots: evSlots.map((s, i) => (i === 11 ? Object.assign({}, s, { ev_source: "plan" }) : s)) },
+    baseAttrs,
+    {
+      ev_source: "evcc", ev_kwh_total: 13.0, ev_price_limit: null, ev_price_limit_evcc: 0.22,
+      ev_sessions: [],
+    },
+  ),
 };
 
 Date.now = () => T0 + 30 * 60000;
 
-const draw = (plan, view) => {
+const draw = (plan, view, width) => {
   const card = new Card();
   card.setConfig({ entity: "sensor.plan", view });
+  if (width) card.clientWidth = width;
   card.hass = {
     states: { "sensor.plan": { state: "4", attributes: plan } },
     config: { time_zone: "UTC" },
@@ -646,6 +658,17 @@ out.tips = {
   expensive: ev._tipRows(ev._slots[19]),
   plain: plain._tipRows(plain._slots[2]),
 };
+const offset = draw(plans.ev_offset, "tracks");
+out.tips.offset_smart_cost = offset._tipRows(offset._slots[2]);
+out.tips.offset_plan = offset._tipRows(offset._slots[11]);
+// The compact view's tile strip on a regular and on a narrow card.
+out.compact = {};
+for (const [name, plan] of [["ev", plans.ev], ["plain", plans.plain], ["idle", plans.idle]]) {
+  for (const width of [480, 320]) {
+    const card = draw(plan, "compact", width);
+    out.compact[`${name}_${width}`] = { html: card.innerHTML, size: card.getCardSize() };
+  }
+}
 console.log(JSON.stringify(out));
 """
 
@@ -733,7 +756,7 @@ def test_the_soc_panel_marks_the_held_battery(ev_views):
 
 def test_the_status_line_names_the_next_session(ev_views):
     """The charger's own session list first; the past session is skipped."""
-    for view in ("tracks", "balance", "compact"):
+    for view in ("tracks", "balance"):
         html = ev_views["ev"][view]["html"]
         assert '<span class="next ev">EV: 12.3 kWh · 01:00 AM\u201305:00 AM</span>' in html, view
     # Without a session list the first window on the plan stands in.
@@ -771,3 +794,62 @@ def test_the_tooltip_explains_ev_slots(ev_views):
     # Above the limit and without EV energy: nothing EV about the slot.
     for rows in (tips["expensive"], tips["plain"]):
         assert not any("EV" in row or "limit" in row for row in rows)
+
+
+def test_the_tooltip_quotes_evccs_own_limit_for_cheap_price_slots(ev_views):
+    """evcc chose a smart_cost slot by its own price against its own limit.
+
+    That holds whether or not the limit could be moved onto the plan's price
+    axis, so the figure shows even with `ev_price_limit` null - and it is
+    evcc's figure, not a comparison with the plan's price on the same row.
+    """
+    tips = ev_views["tips"]
+    assert tips["offset_smart_cost"][1].endswith(" ≤ evcc limit 0.22")
+    # Charged for evcc's plan, not for the price: no limit to quote.
+    assert "EV: <b>1.00 kWh</b> · plan" in tips["offset_plan"]
+    assert "limit" not in tips["offset_plan"][1]
+    # With no limit on the plan's axis there is still no line to draw.
+    assert 'class="evlimit"' not in ev_views["ev_offset"]["tracks"]["html"]
+
+
+def tiles(html: str) -> list[str]:
+    """The class attribute of every tile in the compact view's strip."""
+    return re.findall(r'<div class="(tile(?: [^"]*)?)">', html)
+
+
+def test_the_compact_view_gives_the_session_a_tile(ev_views):
+    """A fourth tile carries the session, so the status line leaves it out."""
+    html = ev_views["compact"]["ev_480"]["html"]
+    assert '<div class="tiles four">' in html
+    assert tiles(html) == ["tile", "tile", "tile", "tile ev"]
+    assert (
+        '<div class="tile ev"><div class="tl">EV</div><div class="tv">12.3 kWh</div>'
+        '<div class="ts">01:00 AM\u201305:00 AM · cheap price</div></div>'
+    ) in html
+    # Said once: the compact status line has no EV summary, the others keep it.
+    assert 'class="next ev"' not in html
+    assert 'class="next ev"' not in ev_views["ev"]["compact"]["html"]
+    assert 'class="next ev"' in ev_views["ev"]["tracks"]["html"]
+
+
+def test_four_tiles_go_two_by_two_on_a_narrow_card(ev_views):
+    compact = ev_views["compact"]
+    assert '<div class="tiles four narrow">' in compact["ev_320"]["html"]
+    assert (
+        ".tiles.four.narrow { grid-template-columns: repeat(2, 1fr); }" in compact["ev_320"]["html"]
+    )
+    # The second row is one more row of card.
+    assert compact["ev_320"]["size"] > compact["plain_320"]["size"]
+    # On one row the strip costs what three tiles did.
+    assert compact["ev_480"]["size"] == compact["plain_480"]["size"]
+
+
+def test_no_ev_tile_without_a_session(ev_views):
+    compact = ev_views["compact"]
+    for name in ("plain_480", "plain_320", "idle_480", "idle_320"):
+        html = compact[name]["html"]
+        assert tiles(html) == ["tile", "tile", "tile"], name
+        assert "tiles four" not in html, name
+        assert 'class="next ev"' not in html, name
+    assert unnumbered(compact["idle_320"]["html"]) == unnumbered(compact["plain_320"]["html"])
+    assert compact["idle_320"]["size"] == compact["plain_320"]["size"]

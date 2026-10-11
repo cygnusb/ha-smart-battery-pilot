@@ -6,7 +6,8 @@
  *   tracks  (default) price / PV + consumption / SOC, stacked
  *   balance           price / PV minus consumption / SOC - what the optimizer
  *                     actually plans against
- *   compact           status, three tiles, SOC and a price sparkline
+ *   compact           status, three tiles (four with a car session), SOC and
+ *                     a price sparkline
  *
  * type: custom:smart-battery-pilot-card
  * entity: sensor.<...>_charge_plan   (auto-discovered if omitted/wrong)
@@ -425,6 +426,7 @@ const FALLBACK_W = 480; // nothing to measure yet: first paint, or a test shim
 const MIN_W = 220; // and a card narrower than this is drawn as if it were
 const NARROW_W = 360; // below this the y-axis gutter gives back some width
 const TILES_NARROW_W = 420; // and below this the compact view's figures shrink
+const TILE_ROW_H = 54; // one row of the narrow tile strip, for getCardSize
 const MIN_TICK_PX = 30; // horizontal room one hour label needs to stand alone
 const DATE_LABEL_PX = 48; // and what the date under a day separator needs
 const TICK_STEPS_H = [1, 2, 3, 6, 12];
@@ -585,18 +587,23 @@ function slotRuns(slots, test) {
 }
 
 // Shipped only with a plan that has EV charging on it. Teal sits between the
-// consumption green and the SOC blue, and is darker than both: as a 12 % wash
-// with dashed edges it does not read as either curve.
+// consumption green and the SOC blue; leaning towards the blue keeps the
+// charging band apart from the green consumption curve running through it,
+// and as a 12 % wash with dashed edges it does not read as the SOC either.
+// The fourth tile only exists with a car session, so its grid lives here too.
 const EV_STYLES = `
-          .evwin { fill: #0f8f8f; fill-opacity: 0.12; stroke: none; }
-          .evedge { stroke: #0f8f8f; stroke-width: 1; stroke-dasharray: 3 2; opacity: 0.75; }
-          .evlimit { stroke: #0f8f8f; stroke-width: 1.2; stroke-dasharray: 5 3; }
+          .evwin { fill: #0f9fb5; fill-opacity: 0.12; stroke: none; }
+          .evedge { stroke: #0f9fb5; stroke-width: 1; stroke-dasharray: 3 2; opacity: 0.75; }
+          .evlimit { stroke: #0f9fb5; stroke-width: 1.2; stroke-dasharray: 5 3; }
           .evheld { fill: none; stroke: #2a78d6; stroke-width: 3.5; stroke-linecap: round;
                     stroke-linejoin: round; }
-          .dirlbl.ev { fill: #0f8f8f; }
-          .next.ev { color: #0f8f8f; }
-          .ev-i { background: rgba(15, 143, 143, 0.12); border: 1px solid #0f8f8f; }
-          .lg .evlim-i { width: 14px; height: 0; border-top: 2px dashed #0f8f8f; border-radius: 0; }`;
+          .dirlbl.ev { fill: #0f9fb5; }
+          .next.ev { color: #0f9fb5; }
+          .ev-i { background: rgba(15, 159, 181, 0.12); border: 1px solid #0f9fb5; }
+          .lg .evlim-i { width: 14px; height: 0; border-top: 2px dashed #0f9fb5; border-radius: 0; }
+          .tiles.four { grid-template-columns: repeat(4, 1fr); }
+          .tiles.four.narrow { grid-template-columns: repeat(2, 1fr); }
+          .tile.ev .tl { color: #0f9fb5; }`;
 
 class SmartBatteryPilotCard extends HTMLElement {
   setConfig(config) {
@@ -805,8 +812,10 @@ class SmartBatteryPilotCard extends HTMLElement {
     const spec = LAYOUTS[view];
     const chart = this._chartHeight(spec, this._renderedWidth || FALLBACK_W);
     // Status line and legend either side of the chart, plus the tile strip
-    // the compact view leads with. Home Assistant counts in 50px rows.
-    const around = view === "compact" ? 96 : 48;
+    // the compact view leads with. Home Assistant counts in 50px rows. Four
+    // tiles on a narrow card wrap into two rows, which costs one more.
+    let around = view === "compact" ? 96 : 48;
+    if (view === "compact" && this._tilesWrap) around += TILE_ROW_H;
     return Math.max(3, Math.round((chart + around) / 50));
   }
 
@@ -856,6 +865,7 @@ class SmartBatteryPilotCard extends HTMLElement {
     // Cleared first: the empty states below must not inherit the EV styles of
     // an earlier pass.
     this._ev = null;
+    this._tilesWrap = false;
     if (!state) {
       this._html(
         title,
@@ -953,8 +963,12 @@ class SmartBatteryPilotCard extends HTMLElement {
         })}</span>`
       );
     }
-    const evStatus = ev ? this._evStatus(ev, state.attributes, nowMs) : "";
-    if (evStatus) statusBits.push(`<span class="next ev">${evStatus}</span>`);
+    // The compact view gives the session a tile of its own, so the status
+    // line leaves it out there rather than saying it twice.
+    const evSession = ev ? this._evSession(ev, state.attributes, nowMs) : null;
+    if (evSession && view !== "compact") {
+      statusBits.push(`<span class="next ev">${this._evStatus(evSession)}</span>`);
+    }
     const pvState = this._livePvState(state);
     if (pvState && pvState.state !== "unavailable" && pvState.state !== "unknown") {
       const pvNum = Number(pvState.state);
@@ -970,7 +984,11 @@ class SmartBatteryPilotCard extends HTMLElement {
       title,
       `
       <div class="status">${statusBits.join(" ")}</div>
-      ${view === "compact" ? this._tiles(slots, state.attributes, current || slots[0], width) : ""}
+      ${
+        view === "compact"
+          ? this._tiles(slots, state.attributes, current || slots[0], width, evSession)
+          : ""
+      }
       <div class="chartwrap">
         <svg viewBox="0 0 ${layout.width} ${H}" width="${layout.width}" height="${H}" preserveAspectRatio="xMidYMid meet">
           ${chrome}${ev ? this._evWindows(ev, layout) : ""}
@@ -1336,6 +1354,11 @@ class SmartBatteryPilotCard extends HTMLElement {
       windows: slotRuns(slots, (s) => slotEv(s) > EV_MIN_KWH),
       held: slotRuns(slots, (s) => s.battery_blocked === true),
       limit: finiteOrNull(attrs.ev_price_limit),
+      // evcc's own limit, on evcc's price axis. Missing (undefined) on a
+      // backend older than 1.2.1, which the tooltip treats differently from
+      // a newer one reporting no limit (null).
+      limitEvcc:
+        attrs.ev_price_limit_evcc === undefined ? undefined : finiteOrNull(attrs.ev_price_limit_evcc),
       limitShown: false,
     };
   }
@@ -1421,29 +1444,40 @@ class SmartBatteryPilotCard extends HTMLElement {
 
   // The next charging session that has not ended yet: the charger's own
   // session list when it has one, otherwise the first window on the plan.
-  _evStatus(ev, attrs, nowMs) {
-    let start = null;
-    let end = null;
-    let kwh = null;
+  // { start, end, kwh, source }, or null when nothing is left to charge.
+  _evSession(ev, attrs, nowMs) {
     const sessions = Array.isArray(attrs.ev_sessions) ? attrs.ev_sessions : [];
     for (const session of sessions) {
       if (!session) continue;
       const s = Date.parse(session.start);
       const e = Date.parse(session.end);
       if (Number.isFinite(s) && Number.isFinite(e) && e > nowMs) {
-        [start, end, kwh] = [s, e, finiteOrNull(session.energy_kwh)];
-        break;
+        return {
+          start: s,
+          end: e,
+          kwh: finiteOrNull(session.energy_kwh),
+          source: session.source || null,
+        };
       }
     }
-    if (start === null) {
-      const run = ev.windows.find((r) => r[r.length - 1].endMs > nowMs);
-      if (!run) return "";
-      start = run[0].startMs;
-      end = run[run.length - 1].endMs;
-      kwh = run.reduce((sum, s) => sum + slotEv(s), 0);
-    }
-    const energy = kwh !== null ? ` ${kwh.toFixed(1)} kWh ·` : "";
-    return `${esc(this._tr("ev"))}:${energy} ${this._fmtTime(start)}–${this._fmtTime(end)}`;
+    const run = ev.windows.find((r) => r[r.length - 1].endMs > nowMs);
+    if (!run) return null;
+    return {
+      start: run[0].startMs,
+      end: run[run.length - 1].endMs,
+      kwh: run.reduce((sum, s) => sum + slotEv(s), 0),
+      source: run[0].ev_source || null,
+    };
+  }
+
+  _evSpan(session) {
+    return `${this._fmtTime(session.start)}–${this._fmtTime(session.end)}`;
+  }
+
+  // The session as the status line puts it.
+  _evStatus(session) {
+    const energy = session.kwh !== null ? ` ${session.kwh.toFixed(1)} kWh ·` : "";
+    return `${esc(this._tr("ev"))}:${energy} ${this._evSpan(session)}`;
   }
 
   // Why the car charges in a slot. An unknown reason from a newer backend is
@@ -1457,8 +1491,9 @@ class SmartBatteryPilotCard extends HTMLElement {
 
   // `width` is the card's, not the tiles': three 19px figures side by side
   // need about 420px between them, and below that "01:00 PM" wraps onto two
-  // lines and the strip grows taller than the chart under it.
-  _tiles(slots, attrs, current, width) {
+  // lines and the strip grows taller than the chart under it. A car session
+  // adds a fourth tile; on a card that narrow the four go two by two.
+  _tiles(slots, attrs, current, width, evSession = null) {
     const last = slots[slots.length - 1];
     const now = Date.now();
     const next = slots.find((s) => s.startMs > now && s.action !== current.action);
@@ -1483,12 +1518,23 @@ class SmartBatteryPilotCard extends HTMLElement {
           : "",
       },
     ];
+    if (evSession) {
+      const source = evSession.source ? ` · ${this._evSourceLabel(evSession.source)}` : "";
+      cells.push({
+        cls: " ev",
+        label: this._tr("ev"),
+        value: evSession.kwh !== null ? `${evSession.kwh.toFixed(1)} kWh` : "—",
+        sub: `${this._evSpan(evSession)}${source}`,
+      });
+    }
+    const narrow = width < TILES_NARROW_W;
+    this._tilesWrap = Boolean(evSession) && narrow;
     return (
-      `<div class="tiles${width < TILES_NARROW_W ? " narrow" : ""}">` +
+      `<div class="tiles${evSession ? " four" : ""}${narrow ? " narrow" : ""}">` +
       cells
         .map(
           (c) =>
-            `<div class="tile"><div class="tl">${esc(c.label)}</div>` +
+            `<div class="tile${c.cls || ""}"><div class="tl">${esc(c.label)}</div>` +
             `<div class="tv">${esc(c.value)}</div>` +
             `<div class="ts">${esc(c.sub)}</div></div>`
         )
@@ -1531,7 +1577,16 @@ class SmartBatteryPilotCard extends HTMLElement {
     const ev = this._ev;
     const evKwh = ev ? slotEv(slot) : 0;
     let price = `${this._tr("price")}: <b>${slot.price.toFixed(4)} €/kWh</b>`;
-    if (evKwh > EV_MIN_KWH && ev.limit !== null && slot.price <= ev.limit) {
+    if (evKwh > EV_MIN_KWH && ev.limitEvcc !== undefined) {
+      // evcc picked a smart_cost slot because its own price was at or below
+      // its own limit. That price is not the one on this row (the plan's may
+      // include fees evcc's leaves out), so the tag is the evidence, not a
+      // comparison - and evcc's figure is the one worth quoting.
+      if (slot.ev_source === "smart_cost" && ev.limitEvcc !== null) {
+        price += ` ≤ ${esc(this._tr("ev_limit"))} ${ev.limitEvcc.toFixed(2)}`;
+      }
+    } else if (evKwh > EV_MIN_KWH && ev.limit !== null && slot.price <= ev.limit) {
+      // A backend before 1.2.1 reports only the limit on the plan's axis.
       price += ` ≤ ${esc(this._tr("ev_limit"))} ${ev.limit.toFixed(2)}`;
     }
     const rows = [
