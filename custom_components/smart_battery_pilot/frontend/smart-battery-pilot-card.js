@@ -1405,13 +1405,18 @@ class SmartBatteryPilotCard extends HTMLElement {
         const named = typeof ev.limitEvcc === "number" ? ev.limitEvcc : scale.limit;
         // A limit along the top edge takes its label underneath instead.
         const ly = y - 4 < panel.y + 9 ? y + 11 : y - 4;
-        out +=
-          `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${padL + plotW}" y2="${y.toFixed(
+        out += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${padL + plotW}" y2="${y.toFixed(
+          1
+        )}" class="evlimit"/>`;
+        // The compact view's price strip is too short for a label that
+        // misses the curve; the legend names the line there.
+        if (panel.h >= 50) {
+          out += `<text x="${padL + plotW - 4}" y="${ly.toFixed(
             1
-          )}" class="evlimit"/>` +
-          `<text x="${padL + plotW - 4}" y="${ly.toFixed(1)}" class="dirlbl ev" text-anchor="end">${esc(
-            this._tr("ev_limit")
-          )} ${named.toFixed(2)}</text>`;
+          )}" class="dirlbl ev" text-anchor="end">${esc(this._tr("ev_limit"))} ${named.toFixed(
+            2
+          )}</text>`;
+        }
       }
       // Like the peak label: a strip as short as the compact view's has no
       // room under the curve, and the status line carries the figure anyway.
@@ -1419,7 +1424,14 @@ class SmartBatteryPilotCard extends HTMLElement {
         const { x0, width } = this._runSpan(run);
         if (width < 46) continue;
         const kwh = run.reduce((sum, s) => sum + slotEv(s), 0);
-        out += `<text x="${(x0 + width / 2).toFixed(1)}" y="${(panel.y + panel.h - 4).toFixed(
+        // Above the price curve: evcc charges where prices are low, so the
+        // space over the window is free. At the bottom if the curve is high.
+        const marks = run.map((s) => scale.y(s.price));
+        // ...and above evcc's limit line, which runs just over those prices.
+        if (scale.limit !== null) marks.push(scale.y(scale.limit));
+        const top = Math.min(...marks) - 6;
+        const ly = top < panel.y + 20 ? panel.y + panel.h - 4 : top;
+        out += `<text x="${(x0 + width / 2).toFixed(1)}" y="${ly.toFixed(
           1
         )}" class="dirlbl ev" text-anchor="middle">${esc(this._tr("ev"))} ${kwh.toFixed(
           1

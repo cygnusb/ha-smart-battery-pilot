@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Smart Battery Pilot</title>
+<meta name="description" content="A Home Assistant integration that charges your home battery when electricity is cheap and uses it when it is expensive, planned a day ahead from dynamic prices, your consumption and the PV forecast.">
+<meta property="og:title" content="Smart Battery Pilot for Home Assistant">
+<meta property="og:description" content="Charge your home battery when electricity is cheap, use it when it is expensive. Planned a day ahead, locally, with any inverter Home Assistant can control.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://cygnusb.github.io/ha-smart-battery-pilot/">
+<meta property="og:image" content="https://cygnusb.github.io/ha-smart-battery-pilot/assets/screenshots/card_dunkelflaute_light.png">
+<meta name="theme-color" content="#0b1530">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a night-blue hero with the 24-hour dial, then light content sections, night-blue install band. */
+:root {
+  --night: #0b1530;
+  --night-2: #1a2a52;
+  --night-line: #3a4f80;
+  --on-night: #e6ecf8;
+  --on-night-soft: #b7c4dd;
+  --on-night-dim: #8ea0c4;
+  --amber: #ffc46b;
+  --bg: #f3f5f9;
+  --surface: #ffffff;
+  --ink: #1b2440;
+  --ink-soft: #4a5778;
+  --rule: #dfe4ee;
+  --shadow: 0 1px 2px rgba(11, 21, 48, 0.06), 0 8px 24px rgba(11, 21, 48, 0.06);
+  --c-charge: #58c08a;
+  --c-cover: #ff8a5c;
+  --c-hold: #8f86ff;
+  --c-auto: #2a3b66;
+  --c-auto-light: #e3e8f2;
+  --c-pv: #f2b33d;
+  --c-export: #e5534b;
+  --display: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --body: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1730;
+    --surface: #16213f;
+    --ink: #e6ecf8;
+    --ink-soft: #b7c4dd;
+    --rule: #26355e;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --c-auto-light: #2a3b66;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.6; }
+img { max-width: 100%; height: auto; display: block; }
+a { color: inherit; }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; border-radius: 6px; }
+.wrap { max-width: 1200px; margin: 0 auto; padding-inline: 24px; }
+.serif { font-family: var(--display); font-weight: 400; }
+h1, h2, h3 { text-wrap: balance; }
+
+/* night bands */
+.night { background: var(--night); color: var(--on-night); }
+.night a { color: var(--on-night); }
+nav.top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; padding-block: 20px; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 700; font-size: 17px; }
+.brand img { width: 30px; height: 30px; }
+.links { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 26px; font-size: 15px; }
+.links a { text-decoration: none; color: var(--on-night-soft); }
+.links a:hover { color: var(--on-night); }
+.btn { display: inline-flex; align-items: center; min-height: 44px; padding: 12px 22px; border-radius: 8px; font-weight: 700; text-decoration: none; }
+.btn-amber { background: var(--amber); color: var(--night) !important; }
+.btn-amber:hover { background: #ffd28c; }
+.btn-ghost { border: 1px solid var(--night-line); color: var(--on-night) !important; font-weight: 600; }
+.btn-ghost:hover { border-color: var(--on-night-soft); }
+.links .btn { padding: 10px 18px; }
+
+.hero { display: flex; flex-wrap: wrap; align-items: center; gap: 56px; padding-block: 48px 96px; }
+.hero-text { flex: 1 1 440px; min-width: 0; display: flex; flex-direction: column; gap: 22px; }
+.eyebrow { font-size: 14px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--amber); }
+.hero h1 { margin: 0; font-size: clamp(46px, 7vw, 78px); line-height: 1.0; letter-spacing: -0.01em; color: #f4f7fd; }
+.hero h1 em { color: var(--amber); }
+.hero p { margin: 0; font-size: 19px; color: var(--on-night-soft); max-width: 33em; }
+.ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 14px; color: var(--on-night-dim); }
+
+.dial-fig { flex: 1 1 380px; min-width: 0; margin: 0; display: flex; flex-direction: column; align-items: center; gap: 30px; }
+.dial { position: relative; width: min(380px, 78vw); aspect-ratio: 1 / 1; }
+.dial-ring { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(var(--c-auto) 0.6deg 14.4deg, var(--night) 14.4deg 15.6deg, var(--c-auto) 15.6deg 29.4deg, var(--night) 29.4deg 30.6deg, var(--c-charge) 30.6deg 44.4deg, var(--night) 44.4deg 45.6deg, var(--c-charge) 45.6deg 59.4deg, var(--night) 59.4deg 60.6deg, var(--c-charge) 60.6deg 74.4deg, var(--night) 74.4deg 75.6deg, var(--c-charge) 75.6deg 89.4deg, var(--night) 89.4deg 90.6deg, var(--c-cover) 90.6deg 104.4deg, var(--night) 104.4deg 105.6deg, var(--c-cover) 105.6deg 119.4deg, var(--night) 119.4deg 120.6deg, var(--c-cover) 120.6deg 134.4deg, var(--night) 134.4deg 135.6deg, var(--c-hold) 135.6deg 149.4deg, var(--night) 149.4deg 150.6deg, var(--c-hold) 150.6deg 164.4deg, var(--night) 164.4deg 165.6deg, var(--c-hold) 165.6deg 179.4deg, var(--night) 179.4deg 180.6deg, var(--c-hold) 180.6deg 194.4deg, var(--night) 194.4deg 195.6deg, var(--c-hold) 195.6deg 209.4deg, var(--night) 209.4deg 210.6deg, var(--c-hold) 210.6deg 224.4deg, var(--night) 224.4deg 225.6deg, var(--c-hold) 225.6deg 239.4deg, var(--night) 239.4deg 240.6deg, var(--c-hold) 240.6deg 254.4deg, var(--night) 254.4deg 255.6deg, var(--c-cover) 255.6deg 269.4deg, var(--night) 269.4deg 270.6deg, var(--c-cover) 270.6deg 284.4deg, var(--night) 284.4deg 285.6deg, var(--c-cover) 285.6deg 299.4deg, var(--night) 299.4deg 300.6deg, var(--c-cover) 300.6deg 314.4deg, var(--night) 314.4deg 315.6deg, var(--c-auto) 315.6deg 329.4deg, var(--night) 329.4deg 330.6deg, var(--c-auto) 330.6deg 344.4deg, var(--night) 344.4deg 345.6deg, var(--c-auto) 345.6deg 359.4deg, var(--night) 359.4deg 360.6deg); }
+.dial-core { position: absolute; inset: 18%; border-radius: 50%; background: var(--night); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 2px; padding: 8px; }
+.dial-core b { font-family: var(--display); font-weight: 400; font-size: clamp(40px, 7vw, 58px); line-height: 1; color: #f4f7fd; }
+.dial-core span { font-size: 13px; color: var(--on-night-soft); max-width: 12em; }
+.tick { position: absolute; font-size: 12px; color: var(--on-night-dim); font-variant-numeric: tabular-nums; }
+.t0 { top: -24px; left: 50%; transform: translateX(-50%); }
+.t6 { right: -24px; top: 50%; transform: translateY(-50%); }
+.t12 { bottom: -24px; left: 50%; transform: translateX(-50%); }
+.t18 { left: -24px; top: 50%; transform: translateY(-50%); }
+.legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 18px; font-size: 14px; color: var(--on-night-soft); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: 0 0 auto; }
+
+/* content sections */
+section.block { padding-block: 88px 24px; display: flex; flex-direction: column; gap: 32px; }
+.lede { display: flex; flex-direction: column; gap: 10px; max-width: 46em; }
+.lede h2 { margin: 0; font-size: clamp(36px, 5vw, 52px); line-height: 1.05; }
+.lede p { margin: 0; color: var(--ink-soft); font-size: 18px; }
+
+.seasons { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(290px, 100%), 1fr)); gap: 20px; }
+.season { background: var(--surface); border-radius: 16px; padding: 26px; display: flex; flex-direction: column; gap: 14px; box-shadow: var(--shadow); }
+.season h3 { margin: 0; font-size: 30px; line-height: 1.1; }
+.season p { margin: 0; color: var(--ink-soft); }
+.strip { display: flex; gap: 2px; height: 14px; }
+.strip i { flex: 1 1 0; border-radius: 2px; }
+.s-c { background: var(--c-charge); } .s-o { background: var(--c-cover); } .s-h { background: var(--c-hold); }
+.s-a { background: var(--c-auto-light); } .s-p { background: var(--c-pv); } .s-e { background: var(--c-export); }
+.strip-key { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; color: var(--ink-soft); }
+.strip-key span { display: inline-flex; align-items: center; gap: 6px; }
+
+.card-shots { display: flex; flex-direction: column; gap: 28px; }
+.shot-hero { margin: 0 auto; width: 100%; max-width: 880px; display: flex; flex-direction: column; gap: 12px; }
+.shot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(440px, 100%), 1fr)); gap: 36px 32px; }
+.shot { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.shot figcaption, .shot-hero figcaption { color: var(--ink-soft); font-size: 15px; }
+.shot figcaption b, .shot-hero figcaption b { color: var(--ink); }
+
+.steps { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 0 40px; counter-reset: step; }
+.steps li { padding: 22px 0; border-top: 1px solid var(--rule); display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 4px 12px; counter-increment: step; }
+.steps li::before { content: counter(step, decimal-leading-zero); grid-row: span 2; font-variant-numeric: tabular-nums; color: var(--ink-soft); font-size: 14px; padding-top: 3px; }
+.steps strong { font-size: 18px; }
+.steps span { color: var(--ink-soft); }
+
+.features { display: flex; flex-wrap: wrap; gap: 40px 64px; padding-block: 88px; }
+.features-intro { flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.features-intro h2 { margin: 0; font-size: clamp(34px, 4.5vw, 46px); line-height: 1.05; }
+.features-intro p { margin: 0; color: var(--ink-soft); }
+.features ul { flex: 2 1 560px; min-width: 0; margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); gap: 26px 36px; }
+.features li { display: flex; flex-direction: column; gap: 4px; }
+.features li strong { font-size: 18px; }
+.features li span { color: var(--ink-soft); font-size: 16px; }
+
+.sources { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); color: var(--ink-soft); font-size: 15px; }
+.sources b { color: var(--ink); }
+
+.install { display: flex; flex-wrap: wrap; gap: 40px 64px; align-items: flex-start; padding-block: 80px; }
+.install > div { flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.install h2 { margin: 0; font-size: clamp(36px, 5vw, 50px); line-height: 1.05; color: #f4f7fd; }
+.install p { margin: 0; color: var(--on-night-soft); }
+.install ol { flex: 1 1 480px; min-width: 0; margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 14px; color: #dfe6f4; }
+.repo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.repo code { background: var(--night-2); color: var(--amber); padding: 6px 10px; border-radius: 6px; font-family: var(--mono); font-size: 14px; overflow-wrap: anywhere; }
+.copy { min-height: 36px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--night-line); background: transparent; color: var(--on-night); font: inherit; font-size: 14px; cursor: pointer; }
+.copy:hover { border-color: var(--on-night-soft); }
+footer.foot { border-top: 1px solid #1d2c55; }
+footer.foot .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding-block: 24px; font-size: 14px; color: var(--on-night-dim); }
+footer.foot nav { display: flex; gap: 22px; }
+footer.foot a { color: var(--on-night-soft); }
+</style>
+</head>
+<body>
+
+<div class="night">
+<div class="wrap">
+<nav class="top" aria-label="Main">
+<a class="brand" href="#top"><img src="assets/icon.svg" alt="" width="30" height="30"><span>Smart Battery Pilot</span></a>
+<div class="links">
+<a href="#seasons">How it plans</a>
+<a href="#card">The card</a>
+<a href="#features">Features</a>
+<a href="#install">Install</a>
+<a href="https://github.com/cygnusb/ha-smart-battery-pilot/tree/main/docs">Docs</a>
+<a class="btn btn-amber" href="https://github.com/cygnusb/ha-smart-battery-pilot">GitHub</a>
+</div>
+</nav>
+
+<header id="top" class="hero">
+<div class="hero-text">
+<span class="eyebrow">Home Assistant · dynamic tariffs · home batteries</span>
+<h1 class="serif">Fill up at night. <em>Glide</em> through the evening peak.</h1>
+<p>When the sun stays away, prices swing hardest within a day. Smart Battery Pilot charges your home battery in the cheapest hours and saves it for the most expensive ones, planned a day ahead inside Home Assistant.</p>
+<div class="ctas">
+<a class="btn btn-amber" href="#install">Get it from HACS</a>
+<a class="btn btn-ghost" href="https://github.com/cygnusb/ha-smart-battery-pilot/blob/main/docs/optimizer.md">See how it plans</a>
+</div>
+<div class="meta"><span>Home Assistant 2024.11+</span><span>Runs locally</span><span>Any inverter you can script</span><span>MIT licence</span></div>
+</div>
+<figure class="dial-fig">
+<div class="dial" role="img" aria-label="A winter day as a 24-hour dial: charging from 02:00 to 06:00, the battery covering 06:00 to 09:00 and 17:00 to 21:00, held from 09:00 to 17:00.">
+<div class="dial-ring"></div>
+<div class="dial-core"><b>0.21</b><span>EUR per stored kWh, against 0.50 at the evening peak</span></div>
+<span class="tick t0">00</span><span class="tick t6">06</span><span class="tick t12">12</span><span class="tick t18">18</span>
+</div>
+<figcaption class="legend">
+<span><i class="dot" style="background: var(--c-charge)"></i>Charge at 0.10</span>
+<span><i class="dot" style="background: var(--c-cover)"></i>Battery covers the peak</span>
+<span><i class="dot" style="background: var(--c-hold)"></i>Held for later</span>
+<span><i class="dot" style="background: var(--c-auto); outline: 1px solid var(--night-line)"></i>Inverter on its own</span>
+</figcaption>
+</figure>
+</header>
+</div>
+</div>
+
+<main>
+<section id="seasons" class="wrap block">
+<div class="lede">
+<h2 class="serif">One planner, every season</h2>
+<p>Every 30 minutes, and whenever new prices arrive, the pilot plans the next 24–36 hours: the cheapest slots charge, the most expensive ones are covered from the battery, and the hours in between keep the energy for later. The same inputs always give the same plan.</p>
+</div>
+<div class="seasons">
+<article class="season">
+<div class="strip" aria-hidden="true"><i class="s-a"></i><i class="s-a"></i><i class="s-c"></i><i class="s-c"></i><i class="s-c"></i><i class="s-c"></i><i class="s-o"></i><i class="s-o"></i><i class="s-o"></i><i class="s-h"></i><i class="s-h"></i><i class="s-h"></i><i class="s-h"></i><i class="s-h"></i><i class="s-h"></i><i class="s-h"></i><i class="s-h"></i><i class="s-o"></i><i class="s-o"></i><i class="s-o"></i><i class="s-o"></i><i class="s-a"></i><i class="s-a"></i><i class="s-a"></i></div>
+<h3 class="serif">Winter arbitrage</h3>
+<p>Night power at 0.10, peaks at 0.45 and 0.50. Charging pays because 0.10 ÷ 0.9 efficiency + 0.10 spread = 0.21 is well under 0.50, and the day at 0.20 is not worth spending on.</p>
+</article>
+<article class="season">
+<div class="strip" aria-hidden="true"><i class="s-o"></i><i class="s-o"></i><i class="s-o"></i><i class="s-o"></i><i class="s-o"></i><i class="s-o"></i><i class="s-o"></i><i class="s-a"></i><i class="s-a"></i><i class="s-p"></i><i class="s-p"></i><i class="s-p"></i><i class="s-p"></i><i class="s-p"></i><i class="s-p"></i><i class="s-p"></i><i class="s-a"></i><i class="s-a"></i><i class="s-e"></i><i class="s-e"></i><i class="s-e"></i><i class="s-o"></i><i class="s-o"></i><i class="s-o"></i></div>
+<h3 class="serif">Summer PV export</h3>
+<p>The roof fills the battery by noon, so the pilot leaves it to the sun. With export mode on, the evening peak is sold to the grid.</p>
+</article>
+<article class="season">
+<div class="strip" aria-hidden="true"><i class="s-h"></i><i class="s-c"></i><i class="s-c"></i><i class="s-c"></i><i class="s-c"></i><i class="s-c"></i><i class="s-h"></i><i class="s-o"></i><i class="s-o"></i><i class="s-o"></i><i class="s-h"></i><i class="s-h"></i><i class="s-c"></i><i class="s-c"></i><i class="s-c"></i><i class="s-h"></i><i class="s-h"></i><i class="s-o"></i><i class="s-o"></i><i class="s-o"></i><i class="s-o"></i><i class="s-h"></i><i class="s-h"></i><i class="s-h"></i></div>
+<h3 class="serif">Dunkelflaute</h3>
+<p>Dark, still weeks bring the widest spreads. An eightfold price swing within one day makes grid charging pay for itself, even after conversion losses.</p>
+</article>
+</div>
+<div class="strip-key">
+<span><i class="dot s-c"></i>Charge from the grid</span>
+<span><i class="dot s-p"></i>PV fills the battery</span>
+<span><i class="dot s-o"></i>Battery covers the house</span>
+<span><i class="dot s-h"></i>Held for a pricier hour</span>
+<span><i class="dot s-e"></i>Export to the grid</span>
+</div>
+</section>
+
+<section id="card" class="wrap block">
+<div class="lede">
+<h2 class="serif">The plan on your dashboard</h2>
+<p>A Lovelace card ships with the integration: planned actions, price, consumption and state of charge in one view, with three layouts from a phone column to a wall panel.</p>
+</div>
+<div class="card-shots"><figure class="shot-hero"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/card_dunkelflaute_dark.png"><img src="assets/screenshots/card_dunkelflaute_light.png" alt="Dunkelflaute plan: charging at midday and again at night, the battery covering both evening peaks" width="1232" height="942" loading="lazy"></picture><figcaption><b>Dunkelflaute.</b> An eightfold price spread in one day, and the plan that uses it.</figcaption></figure><div class="shot-grid"><figure class="shot"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/card_winter_arbitrage_dark.png"><img src="assets/screenshots/card_winter_arbitrage_light.png" alt="Winter arbitrage plan: charging in the cheap night, the battery held through the day for the evening peak" width="1232" height="942" loading="lazy"></picture><figcaption><b>Winter arbitrage.</b> Charge in the cheap night, hold through the day, cover the evening peak.</figcaption></figure><figure class="shot"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/card_summer_export_dark.png"><img src="assets/screenshots/card_summer_export_light.png" alt="Summer plan with export: PV fills the battery and the evening peak is sold to the grid" width="1232" height="942" loading="lazy"></picture><figcaption><b>Summer PV export.</b> The sun fills the battery; the evening peak goes to the grid.</figcaption></figure><figure class="shot"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/card_ev_overnight_dark.png"><img src="assets/screenshots/card_ev_overnight_light.png" alt="Plan with an overnight evcc charging session: the charging window, evcc's price limit and the battery held for the car" width="1232" height="986" loading="lazy"></picture><figcaption><b>Planned EV charging.</b> evcc's overnight session, its price limit, and the battery held for the car.</figcaption></figure><figure class="shot"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/card_ev_compact_dark.png"><img src="assets/screenshots/card_ev_compact_light.png" alt="Compact view with the EV tile next to SOC, next change and planned discharge" width="1232" height="918" loading="lazy"></picture><figcaption><b>Compact view.</b> The figures first, with the next EV session as its own tile.</figcaption></figure><figure class="shot"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/card_view_balance_dark.png"><img src="assets/screenshots/card_view_balance_light.png" alt="Balance view: PV minus consumption as an area around zero" width="1232" height="942" loading="lazy"></picture><figcaption><b>Balance view.</b> PV minus consumption, the quantity the planner works against.</figcaption></figure><figure class="shot"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/card_view_compact_dark.png"><img src="assets/screenshots/card_view_compact_light.png" alt="Compact view: status, figures and a smaller chart" width="1232" height="894" loading="lazy"></picture><figcaption><b>For phones.</b> Status line, three figures and the curves underneath.</figcaption></figure></div></div>
+</section>
+
+<section class="wrap block">
+<div class="lede">
+<h2 class="serif">Six steps behind every plan</h2>
+</div>
+<ol class="steps">
+<li><strong>Price forecast</strong><span>Reads the price entity of your tariff integration: 15-minute or hourly slots, today and tomorrow.</span></li>
+<li><strong>Consumption forecast</strong><span>A small model trained daily on your own history: hour, weekday and, with a heat pump, outdoor temperature.</span></li>
+<li><strong>PV forecast</strong><span>Expected solar production comes off the demand, and surplus refills the battery in the simulation.</span></li>
+<li><strong>Optimisation</strong><span>Pairs the cheapest charge slots with the most expensive hours, within capacity, power, SOC limits and efficiency.</span></li>
+<li><strong>Execution</strong><span>At each slot boundary it calls your scripts: charge, block discharge, auto or export.</span></li>
+<li><strong>Accounting</strong><span>From your battery meters it reports what the battery is worth and, separately, what the pilot added.</span></li>
+</ol>
+</section>
+
+<section id="features" class="wrap features">
+<div class="features-intro">
+<h2 class="serif">Careful with your battery, honest about the money</h2>
+<p>Vendor neutral: the pilot drives your inverter through Home Assistant scripts you write, so it works with any battery Home Assistant can control.</p>
+</div>
+<ul>
+<li><strong>Learns your consumption</strong><span>Trained daily on your history, aware of weekdays, temperature and heat pumps.</span></li>
+<li><strong>Uses the PV forecast</strong><span>Will not lock the battery on a day the sun refills it anyway.</span></li>
+<li><strong>Plans around your car</strong><span>Planned evcc sessions show up ahead of time, and the battery can stay out of the car.</span></li>
+<li><strong>Backup reserve</strong><span>A floor arbitrage never spends, refilled by a deadline after an outage.</span></li>
+<li><strong>Cold-weather charging</strong><span>Plans with the charge power a cold battery really accepts, and learns it.</span></li>
+<li><strong>Two honest numbers</strong><span>What the battery is worth, and what the pilot added on top.</span></li>
+<li><strong>Safe by default</strong><span>Installs switched off and in dry-run. A missing price or SOC hands the battery back to auto.</span></li>
+<li><strong>Ten languages</strong><span>English, German, Dutch, Swedish, Norwegian, Danish, Finnish, Estonian, Latvian, Lithuanian.</span></li>
+</ul>
+</section>
+
+<div class="wrap">
+<div class="sources">
+<b>Prices from</b><span>Nordpool</span><span>Tibber</span><span>aWATTar</span><span>EPEX Spot</span><span>ENTSO-E</span>
+<b>Batteries via your scripts</b><span>Fronius</span><span>Victron</span><span>SMA</span><span>Sungrow</span><span>E3DC</span>
+</div>
+</div>
+</main>
+
+<div class="night" style="margin-top: 88px">
+<section id="install" class="wrap install">
+<div>
+<h2 class="serif">Install tonight, watch it plan tomorrow</h2>
+<p>It ships switched off and in dry-run, so the first days are only a plan to read.</p>
+</div>
+<ol>
+<li>In HACS, open the menu, choose <em>Custom repositories</em> and add this repository as an <em>Integration</em>:
+<div class="repo"><code id="repo-url">https://github.com/cygnusb/ha-smart-battery-pilot</code><button class="copy" type="button" id="copy-btn">Copy</button></div></li>
+<li>Install Smart Battery Pilot and restart Home Assistant.</li>
+<li>Add the integration: price sensor, battery, four control scripts, consumption meter and PV forecast.</li>
+<li>Put the card on a dashboard, and switch the pilot on once the plan makes sense to you.</li>
+</ol>
+</section>
+<footer class="foot">
+<div class="wrap">
+<span>Smart Battery Pilot · MIT licence · not affiliated with any inverter or tariff vendor</span>
+<nav aria-label="Footer"><a href="https://github.com/cygnusb/ha-smart-battery-pilot/tree/main/docs">Docs</a><a href="https://github.com/cygnusb/ha-smart-battery-pilot/releases">Releases</a><a href="https://github.com/cygnusb/ha-smart-battery-pilot/issues">Issues</a></nav>
+</div>
+</footer>
+</div>
+
+<script>
+document.getElementById("copy-btn").addEventListener("click", function () {
+  var btn = this;
+  var text = document.getElementById("repo-url").textContent;
+  function done(label) { btn.textContent = label; setTimeout(function () { btn.textContent = "Copy"; }, 1800); }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () { done("Copied"); }, function () { done("Select and copy"); });
+  } else {
+    done("Select and copy");
+  }
+});
+</script>
+</body>
+</html>
