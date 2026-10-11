@@ -1,0 +1,194 @@
+{
+  "meta": {
+    "title": "Smart Battery Pilot – koduaku optimeerimine Home Assistantis",
+    "description": "Tasuta Home Assistanti sidumine planeerib koduaku päev ette börsihinna, tarbimise ja päikeseprognoosi järgi: laeb odavalt, katab kallid tunnid. Iga inverteriga.",
+    "og_title": "Smart Battery Pilot Home Assistantile",
+    "og_description": "Laadi koduakut odavatel tundidel ja kata sellega kallid tunnid – päev ette planeeritud otse Home Assistantis."
+  },
+  "nav": {
+    "main_label": "Peamenüü",
+    "plans": "Kuidas see planeerib",
+    "card": "Kaart",
+    "features": "Võimalused",
+    "install": "Paigaldus",
+    "docs": "Juhend (EN)",
+    "language_label": "Keel"
+  },
+  "hero": {
+    "title": "Laadi odavalt. Kata kallid tunnid.",
+    "lede": "Smart Battery Pilot on Home Assistanti sidumine, mis planeerib koduaku tööd 24–36 tundi ette sinu dünaamilise tariifi, majapidamise enda tarbimise ja päikeseprognoosi põhjal. See sobib iga inverteriga, mida saab skriptiga juhtida.",
+    "cta_install": "Paigalda HACS-ist",
+    "cta_planner": "Kuidas planeerija töötab",
+    "facts": {
+      "free": "Tasuta, MIT-litsents",
+      "local": "Töötab kohalikult",
+      "home_assistant": "Home Assistant 2024.11+",
+      "safe": "Paigaldub välja lülitatult, testkäivituses"
+    }
+  },
+  "board": {
+    "title": "Näide: üks talvepäev",
+    "subtitle": "96 veerandtunni hinda EUR/kWh, iga tulp värvitud selle järgi, mida piloot sel veerandtunnil teeb",
+    "hint": "Ühe veerandtunni nägemiseks osuta tulbale või vali graafik ja liigu nooleklahvidega.",
+    "segment_charge": "Laadimine hinnaga 0,10",
+    "segment_cover": "Aku katab",
+    "segment_hold": "Blokeeritud õhtuks",
+    "chart_label": "Näidistalvepäev: öösel hinnad umbes 0,10 EUR/kWh, hommikune tipp ligi 0,45, päeval umbes 0,20 ja õhtune tipp ligi 0,50. Piloot laeb kell 02:00–06:00, aku katab tarbimise kell 06:00–09:00 ja 17:00–21:00 ning kell 09:00–17:00 hoitakse laeng alles; enne 02:00 ja pärast 21:00 töötab inverter omaette.",
+    "sum": "Öösel hinnaga 0,10 laetud kWh, jagatud 90 % edasi-tagasi kasuteguriga ja lisatud 0,10 hinnavahe, maksab 0,21. See jääb tublisti alla õhtuse tipu 0,50, nii et öist elektrit tasub salvestada. Päeval hinnaga 0,20 ei tasu akut kulutada, seega laeng ootab."
+  },
+  "actions": {
+    "c": "Laadimine võrgust",
+    "p": "PV laeb akut",
+    "o": "Aku katab maja tarbimise",
+    "h": "Blokeeritud kallima tunni jaoks",
+    "e": "Müük võrku",
+    "a": "Inverter töötab omaette"
+  },
+  "plans": {
+    "title": "Üks planeerija igaks aastaajaks",
+    "lede": "Iga 30 minuti järel ja alati, kui saabuvad uued hinnad, planeerib piloot järgmised 24–36 tundi: odavaimatel perioodidel laetakse, kõige kallimad kaetakse akust ja vahepealsed tunnid hoiavad energiat hilisemaks. Samad sisendid annavad alati sama plaani.",
+    "seasons": {
+      "winter": {
+        "title": "Talvine arbitraaž",
+        "text": "Öine elekter 0,10, tipud 0,45 ja 0,50. Aku täitub enne koitu, katab hommiku, ootab päeva läbi hinnaga 0,20 ja tühjeneb õhtuse tipu ajal."
+      },
+      "summer": {
+        "title": "PV müük suvel",
+        "text": "Katusepaneelid täidavad aku keskpäevaks, nii et piloot jätab laadimise päikese hooleks. Kui müük võrku on lubatud, müüakse õhtuse tipu energia võrku."
+      },
+      "dunkelflaute": {
+        "title": "Dunkelflaute",
+        "text": "Pimedad ja tuulevaiksed nädalad toovad kõige suuremad hinnavahed. Kui hind kõigub ühe päeva jooksul kaheksakordselt, tasub võrgust laadimine end ära ka pärast muundamiskadusid."
+      }
+    }
+  },
+  "card": {
+    "title": "Plaan sinu vaates",
+    "lede": "Sidumisega on kaasas Lovelace'i kaart: planeeritud tegevused, hind, tarbimine ja laetuse tase ühes vaates, kolme paigutusega telefoniveerust seinapaneelini.",
+    "views_label": "Kaardi näited",
+    "shots": {
+      "dunkelflaute": {
+        "title": "Dunkelflaute",
+        "caption": "Kaheksakordne hinnavahe ühe päeva jooksul ja plaan, mis seda ära kasutab.",
+        "alt": "Dunkelflaute plaan: laadimine keskpäeval ja uuesti öösel, aku katab mõlemad õhtused tipud"
+      },
+      "winter_arbitrage": {
+        "title": "Talvine arbitraaž",
+        "caption": "Laadi odaval ööl, hoia laengut päeval, kata õhtune tipp.",
+        "alt": "Talvise arbitraaži plaan: laadimine odaval ööl, laeng hoitakse päeval alles õhtuse tipu jaoks"
+      },
+      "summer_export": {
+        "title": "PV müük suvel",
+        "caption": "Päike täidab aku, õhtune tipp läheb võrku.",
+        "alt": "Suvine plaan müügiga: PV täidab aku ja õhtuse tipu energia müüakse võrku"
+      },
+      "ev_overnight": {
+        "title": "Planeeritud elektriauto laadimine",
+        "caption": "evcc öine laadimisseanss, selle hinnapiir ja auto jaoks hoitud aku.",
+        "alt": "Plaan evcc öise laadimisseansiga: laadimisaken, evcc hinnapiir ja elektriauto jaoks hoitud aku"
+      },
+      "ev_compact": {
+        "title": "Kompaktvaade autoga",
+        "caption": "Kõigepealt numbrid, järgmine elektriauto laadimine eraldi paanil.",
+        "alt": "Kompaktvaade: elektriauto paan SOC-i, järgmise muutuse ja planeeritud tühjendamise kõrval"
+      },
+      "view_balance": {
+        "title": "Bilansivaade",
+        "caption": "PV miinus tarbimine – suurus, mille järgi planeerija töötab.",
+        "alt": "Bilansivaade: PV miinus tarbimine alana ümber nulli"
+      },
+      "view_compact": {
+        "title": "Telefonile",
+        "caption": "Olekurida, kolm näitajat ja graafikud nende all.",
+        "alt": "Kompaktvaade: olek, näitajad ja väiksem graafik"
+      }
+    }
+  },
+  "steps": {
+    "title": "Kuus sammu iga plaani taga",
+    "lede": "Hinnakirjast teenitud rahani, selles järjekorras, nagu piloot neid täidab.",
+    "items": {
+      "price": {
+        "title": "Hinnaprognoos",
+        "text": "Loeb sinu tariifisidumise hinnaolemit: 15-minutilised või tunnised perioodid, täna ja homme."
+      },
+      "consumption": {
+        "title": "Tarbimisprognoos",
+        "text": "Väike mudel, mida treenitakse iga päev sinu enda ajaloo põhjal: kellaaeg, nädalapäev ja soojuspumba korral välistemperatuur."
+      },
+      "pv": {
+        "title": "Päikeseenergia prognoos",
+        "text": "Oodatav päikesetoodang lahutatakse vajadusest ja ülejääk laeb simulatsioonis aku uuesti täis."
+      },
+      "optimisation": {
+        "title": "Optimeerimine",
+        "text": "Paaritab odavaimad laadimisperioodid kõige kallimate tundidega, arvestades mahtuvust, võimsust, SOC-i piire ja kasutegurit."
+      },
+      "execution": {
+        "title": "Täitmine",
+        "text": "Iga perioodi alguses kutsub see sinu skripte: laadimine, tühjenemise blokeerimine, auto või müük."
+      },
+      "accounting": {
+        "title": "Arvestus",
+        "text": "Aku arvestite põhjal näitab, kui palju aku väärt on, ja eraldi, mida piloot sellele juurde andis."
+      }
+    }
+  },
+  "features": {
+    "title": "Hoiab akut, on raha osas aus",
+    "lede": "Tootjast sõltumatu: piloot juhib sinu inverterit sinu enda kirjutatud Home Assistanti skriptidega, nii et see töötab iga akuga, mida Home Assistant suudab juhtida.",
+    "items": {
+      "consumption": {
+        "title": "Õpib sinu tarbimist",
+        "text": "Treenitakse iga päev sinu ajaloo põhjal, arvestab nädalapäevi, temperatuuri ja soojuspumpa."
+      },
+      "pv": {
+        "title": "Kasutab päikeseprognoosi",
+        "text": "Ei lukusta akut päeval, mil päike selle niikuinii täis laeb."
+      },
+      "car": {
+        "title": "Arvestab sinu autoga",
+        "text": "evcc planeeritud laadimised on näha juba ette ja koduaku võib auto laadimisest kõrvale jääda."
+      },
+      "reserve": {
+        "title": "Varutoite reserv",
+        "text": "Alampiir, mida arbitraaž kunagi ei kuluta; pärast elektrikatkestust täidetakse see tähtajaks uuesti."
+      },
+      "cold": {
+        "title": "Laadimine külmaga",
+        "text": "Planeerib laadimisvõimsusega, mida külm aku tegelikult vastu võtab, ja õpib selle ära."
+      },
+      "numbers": {
+        "title": "Kaks ausat numbrit",
+        "text": "Kui palju aku väärt on ja mida piloot sellele juurde andis."
+      },
+      "safe": {
+        "title": "Vaikimisi ohutu",
+        "text": "Paigaldub välja lülitatult ja testkäivituses. Kui hind või SOC puudub, läheb aku tagasi režiimile Auto."
+      },
+      "languages": {
+        "title": "Kümme keelt",
+        "text": "Inglise, saksa, hollandi, taani, rootsi, norra, soome, eesti, läti ja leedu."
+      }
+    },
+    "prices_from": "Hinnaallikad",
+    "batteries_via": "Akud sinu skriptide kaudu",
+    "any_inverter": "iga inverter, mida Home Assistant suudab juhtida"
+  },
+  "install": {
+    "title": "Paigalda HACS-ist",
+    "lede": "Smart Battery Pilot on HACS-i vaikerepositooriumis, seega pole vaja kohandatud repositooriumi lisada. See paigaldub välja lülitatult ja testkäivituses: esimestel päevadel on see vaid plaan, mida lugeda, ei midagi enamat.",
+    "open_hacs": "Ava HACS-is",
+    "download": "Otsi HACS-ist <strong>Smart Battery Pilot</strong>, laadi see alla ja taaskäivita Home Assistant.",
+    "add": "Lisa sidumine jaotises <strong>Seaded</strong>, <strong>Seadmed ja teenused</strong>.",
+    "add_detail": "Vali hinnaandur, aku, juhtimisskriptid, tarbimisarvesti ja päikeseprognoos.",
+    "card": "Lisa kaart vaatesse.",
+    "card_detail": "Lülita piloot sisse, kui plaan tundub sulle mõistlik."
+  },
+  "footer": {
+    "text": "Smart Battery Pilot. MIT-litsents. Ei ole seotud ühegi inverteri-, aku- ega elektrimüüjaga.",
+    "nav_label": "Jalus",
+    "changelog": "Muudatuste logi",
+    "issues": "Veateated"
+  }
+}

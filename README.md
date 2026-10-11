@@ -274,13 +274,15 @@ language.
 
 Everything except English and German was translated without a native
 speaker's review, and the vocabulary here is full of inverter jargon —
-**corrections are very welcome.** A language lives in two places:
+**corrections are very welcome.** A language lives in three places:
 
 * `custom_components/smart_battery_pilot/translations/<lang>.json` — setup
   flow, entity names and states
 * the `TRANSLATIONS` table in
   `custom_components/smart_battery_pilot/frontend/smart-battery-pilot-card.js`
   — the dashboard card, which is plain JS and cannot read the files above
+* `site/i18n/<lang>.json` — the [project website](https://cygnusb.github.io/ha-smart-battery-pilot/),
+  built by `tools/build_site.py` (the documentation pages stay English)
 
 `pytest tests/test_translations.py` holds every language to the same keys as
 English, checks that each form field is both labelled and explained, that no

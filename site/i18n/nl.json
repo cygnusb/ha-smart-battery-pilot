@@ -1,0 +1,194 @@
+{
+  "meta": {
+    "title": "Smart Battery Pilot – thuisbatterij slim laden met Home Assistant",
+    "description": "Gratis Home Assistant-integratie die je thuisbatterij een dag vooruit plant op basis van dynamische stroomprijzen, je verbruik en de PV-prognose.",
+    "og_title": "Smart Battery Pilot voor Home Assistant",
+    "og_description": "Laad je thuisaccu in de goedkope uren en gebruik hem in de dure, een dag vooruit gepland in Home Assistant."
+  },
+  "nav": {
+    "main_label": "Hoofdmenu",
+    "plans": "Hoe hij plant",
+    "card": "De kaart",
+    "features": "Functies",
+    "install": "Installeren",
+    "docs": "Handleiding (EN)",
+    "language_label": "Taal"
+  },
+  "hero": {
+    "title": "Laden in de goedkope uren. Ontladen in de dure.",
+    "lede": "Smart Battery Pilot is een Home Assistant-integratie die je thuisaccu 24 tot 36 uur vooruit plant, op basis van je dynamische contract, het verbruik van je eigen huishouden en de PV-prognose. Hij stuurt elke omvormer aan die je met een script kunt bedienen.",
+    "cta_install": "Installeren via HACS",
+    "cta_planner": "Zo werkt de planner",
+    "facts": {
+      "free": "Gratis, MIT-licentie",
+      "local": "Draait lokaal",
+      "home_assistant": "Home Assistant 2024.11+",
+      "safe": "Start uitgeschakeld, in testmodus"
+    }
+  },
+  "board": {
+    "title": "Een voorbeelddag in de winter",
+    "subtitle": "96 kwartierprijzen in EUR/kWh, elk gekleurd naar wat de pilot in dat tijdvak doet",
+    "hint": "Wijs een staaf aan, of selecteer de grafiek en gebruik de pijltjestoetsen, om één tijdvak af te lezen.",
+    "segment_charge": "Laden voor 0,10",
+    "segment_cover": "Accu levert",
+    "segment_hold": "Geblokkeerd voor de avond",
+    "chart_label": "Voorbeelddag in de winter: ’s nachts prijzen rond 0,10 EUR/kWh, ’s ochtends een piek rond 0,45, overdag ongeveer 0,20 en ’s avonds een piek rond 0,50. De pilot laadt van 02:00 tot 06:00, de accu levert van 06:00 tot 09:00 en van 17:00 tot 21:00, en van 09:00 tot 17:00 blijft de lading vastgehouden; vóór 02:00 en na 21:00 regelt de omvormer het zelf.",
+    "sum": "Een kWh die ’s nachts voor 0,10 is geladen, gedeeld door 90% rendement (heen en terug), plus een spread van 0,10, kost 0,21. Dat is ruim onder de avondpiek van 0,50, dus de nacht is het opslaan waard. Overdag, bij 0,20, loont het niet om de accu aan te spreken, dus wacht de lading."
+  },
+  "actions": {
+    "c": "Laden van het net",
+    "p": "PV vult de accu",
+    "o": "Accu voedt het huis",
+    "h": "Geblokkeerd voor een duurder uur",
+    "e": "Terugleveren aan het net",
+    "a": "Omvormer regelt het zelf"
+  },
+  "plans": {
+    "title": "Eén planner voor elk seizoen",
+    "lede": "Elke 30 minuten, en zodra er nieuwe prijzen zijn, plant de pilot de komende 24 tot 36 uur: in de goedkoopste tijdvakken wordt geladen, in de duurste levert de accu en de uren daartussen houden de energie vast voor later. Dezelfde invoer geeft altijd hetzelfde plan.",
+    "seasons": {
+      "winter": {
+        "title": "Arbitrage in de winter",
+        "text": "Nachtstroom voor 0,10, pieken van 0,45 en 0,50. De accu laadt voor zonsopgang, levert in de ochtend, wacht overdag bij 0,20 en ontlaadt in de avondpiek."
+      },
+      "summer": {
+        "title": "PV-teruglevering in de zomer",
+        "text": "Het dak vult de accu vóór de middag, dus laat de pilot het laden aan de zon over. Met teruglevering ingeschakeld wordt de avondpiek aan het net verkocht."
+      },
+      "dunkelflaute": {
+        "title": "Dunkelflaute",
+        "text": "Donkere, windstille weken geven de grootste prijsverschillen. Als de prijs binnen één dag een factor acht schommelt, betaalt laden van het net zichzelf terug, ook na de omzettingsverliezen."
+      }
+    }
+  },
+  "card": {
+    "title": "Het plan op je dashboard",
+    "lede": "Bij de integratie hoort een Lovelace-kaart: geplande acties, prijs, verbruik en laadtoestand in één weergave, met drie lay-outs van een smalle kolom op je telefoon tot een wandpaneel.",
+    "views_label": "Voorbeelden van de kaart",
+    "shots": {
+      "dunkelflaute": {
+        "title": "Dunkelflaute",
+        "caption": "Een prijsverschil van een factor acht op één dag, en het plan dat het benut.",
+        "alt": "Plan tijdens een Dunkelflaute: laden rond het middaguur en opnieuw ’s nachts, de accu levert tijdens beide avondpieken"
+      },
+      "winter_arbitrage": {
+        "title": "Arbitrage in de winter",
+        "caption": "Laden in de goedkope nacht, overdag vasthouden, ontladen in de avondpiek.",
+        "alt": "Arbitrageplan in de winter: laden in de goedkope nacht, overdag wordt de accu vastgehouden voor de avondpiek"
+      },
+      "summer_export": {
+        "title": "PV-teruglevering in de zomer",
+        "caption": "De zon vult de accu; de avondpiek gaat naar het net.",
+        "alt": "Zomerplan met teruglevering: PV vult de accu en de avondpiek wordt aan het net verkocht"
+      },
+      "ev_overnight": {
+        "title": "Gepland EV-laden",
+        "caption": "De nachtelijke laadsessie van evcc, de prijslimiet ervan en de accu die voor de auto wordt vastgehouden.",
+        "alt": "Plan met een nachtelijke laadsessie van evcc: het laadvenster, de prijslimiet van evcc en de accu die voor de auto wordt vastgehouden"
+      },
+      "ev_compact": {
+        "title": "Compact met de auto",
+        "caption": "Eerst de cijfers, met de volgende EV-sessie als eigen tegel.",
+        "alt": "Compacte weergave met de EV-tegel naast SOC, volgende wissel en gepland ontladen"
+      },
+      "view_balance": {
+        "title": "Balansweergave",
+        "caption": "PV min verbruik: de grootheid waarmee de planner rekent.",
+        "alt": "Balansweergave: PV min verbruik als vlak rond nul"
+      },
+      "view_compact": {
+        "title": "Voor telefoons",
+        "caption": "Statusregel, drie cijfers en daaronder de curves.",
+        "alt": "Compacte weergave: status, cijfers en een kleinere grafiek"
+      }
+    }
+  },
+  "steps": {
+    "title": "Zes stappen achter elk plan",
+    "lede": "Van de prijslijst tot het geld dat het opleverde, in de volgorde waarin de pilot ze uitvoert.",
+    "items": {
+      "price": {
+        "title": "Prijsprognose",
+        "text": "Leest de prijsentiteit van je tariefintegratie: tijdvakken van 15 minuten of een uur, vandaag en morgen."
+      },
+      "consumption": {
+        "title": "Verbruiksprognose",
+        "text": "Een klein model dat dagelijks op je eigen historie wordt getraind: uur, weekdag en, met een warmtepomp, de buitentemperatuur."
+      },
+      "pv": {
+        "title": "PV-prognose",
+        "text": "De verwachte zonne-opbrengst gaat van de vraag af, en een overschot vult de accu in de simulatie weer aan."
+      },
+      "optimisation": {
+        "title": "Optimalisatie",
+        "text": "Koppelt de goedkoopste laadtijdvakken aan de duurste uren, binnen capaciteit, vermogen, SOC-grenzen en rendement."
+      },
+      "execution": {
+        "title": "Uitvoering",
+        "text": "Bij elke tijdvakgrens roept hij je scripts aan: laden, ontladen blokkeren, auto of terugleveren."
+      },
+      "accounting": {
+        "title": "Boekhouding",
+        "text": "Op basis van je accumeters rapporteert hij wat de accu waard is en, apart daarvan, wat de pilot daaraan toevoegde."
+      }
+    }
+  },
+  "features": {
+    "title": "Zuinig op je accu, eerlijk over het geld",
+    "lede": "Merkonafhankelijk: de pilot stuurt je omvormer aan via Home Assistant-scripts die je zelf schrijft, dus hij werkt met elke accu die Home Assistant kan aansturen.",
+    "items": {
+      "consumption": {
+        "title": "Leert je verbruik",
+        "text": "Dagelijks getraind op je historie, met oog voor weekdagen, temperatuur en warmtepompen."
+      },
+      "pv": {
+        "title": "Gebruikt de PV-prognose",
+        "text": "Blokkeert de accu niet op een dag dat de zon hem toch weer vult."
+      },
+      "car": {
+        "title": "Plant rond je auto",
+        "text": "Laadsessies die evcc heeft gepland verschijnen vooraf, en de thuisaccu hoeft de auto niet te laden."
+      },
+      "reserve": {
+        "title": "Noodstroomreserve",
+        "text": "Een ondergrens waar arbitrage nooit aan komt, na een stroomstoring vóór een vaste termijn weer aangevuld."
+      },
+      "cold": {
+        "title": "Laden bij kou",
+        "text": "Plant met het laadvermogen dat een koude accu echt opneemt, en leert dat bij."
+      },
+      "numbers": {
+        "title": "Twee eerlijke getallen",
+        "text": "Wat de accu waard is, en wat de pilot daar bovenop toevoegde."
+      },
+      "safe": {
+        "title": "Standaard veilig",
+        "text": "Start uitgeschakeld en in testmodus. Ontbreekt een prijs of de SOC, dan gaat de accu terug naar auto."
+      },
+      "languages": {
+        "title": "Tien talen",
+        "text": "Engels, Duits, Nederlands, Deens, Zweeds, Noors, Fins, Ests, Lets, Litouws."
+      }
+    },
+    "prices_from": "Prijzen van",
+    "batteries_via": "Accu’s, via je scripts",
+    "any_inverter": "elke omvormer die Home Assistant kan aansturen"
+  },
+  "install": {
+    "title": "Installeren via HACS",
+    "lede": "Smart Battery Pilot staat in de standaardrepository van HACS, dus je hoeft geen aangepaste repository toe te voegen. Hij start uitgeschakeld en in testmodus: de eerste dagen is het een plan om te lezen, meer niet.",
+    "open_hacs": "Openen in HACS",
+    "download": "Zoek in HACS naar <strong>Smart Battery Pilot</strong>, download hem en herstart Home Assistant.",
+    "add": "Voeg de integratie toe onder <strong>Instellingen</strong>, <strong>Apparaten &amp; diensten</strong>.",
+    "add_detail": "Kies je prijssensor, accu, stuurscripts, verbruiksmeter en PV-prognose.",
+    "card": "Zet de kaart op een dashboard.",
+    "card_detail": "Schakel de pilot in zodra het plan voor jou klopt."
+  },
+  "footer": {
+    "text": "Smart Battery Pilot. MIT-licentie. Niet gelieerd aan fabrikanten van omvormers of accu’s, of aan energieleveranciers.",
+    "nav_label": "Voettekst",
+    "changelog": "Changelog",
+    "issues": "Issues"
+  }
+}

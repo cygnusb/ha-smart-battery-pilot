@@ -1,0 +1,194 @@
+{
+  "meta": {
+    "title": "Smart Battery Pilot – namų baterijos valdymas su Home Assistant",
+    "description": "Nemokama Home Assistant integracija dieną į priekį planuoja namų bateriją pagal dinaminį elektros tarifą, suvartojimą ir saulės prognozę: krauna pigiai, dengia brangias valandas.",
+    "og_title": "Smart Battery Pilot Home Assistant sistemai",
+    "og_description": "Įkrauk namų bateriją pigiomis valandomis ir padenk ja brangias – dieną į priekį suplanuota tiesiog Home Assistant sistemoje."
+  },
+  "nav": {
+    "main_label": "Pagrindinis meniu",
+    "plans": "Kaip planuoja",
+    "card": "Kortelė",
+    "features": "Funkcijos",
+    "install": "Diegimas",
+    "docs": "Dokumentacija (EN)",
+    "language_label": "Kalba"
+  },
+  "hero": {
+    "title": "Įkrauk pigiai. Padenk brangias valandas.",
+    "lede": "Smart Battery Pilot – tai Home Assistant integracija, kuri 24–36 valandas į priekį suplanuoja tavo namų baterijos darbą pagal dinaminį tarifą, tavo namų ūkio suvartojimą ir saulės prognozę. Ji tinka bet kuriam keitikliui, kurį galima valdyti scenarijumi.",
+    "cta_install": "Įdiegti per HACS",
+    "cta_planner": "Kaip veikia planuoklis",
+    "facts": {
+      "free": "Nemokama, MIT licencija",
+      "local": "Veikia vietoje",
+      "home_assistant": "Home Assistant 2024.11+",
+      "safe": "Įdiegiama išjungta, bandomojo paleidimo režimu"
+    }
+  },
+  "board": {
+    "title": "Žiemos dienos pavyzdys",
+    "subtitle": "96 ketvirčio valandos kainos EUR/kWh, kiekviena nuspalvinta pagal tai, ką pilotas daro tuo intervalu",
+    "hint": "Norėdamas perskaityti vieną intervalą, užvesk žymeklį ant stulpelio arba pažymėk diagramą ir naudok rodyklių klavišus.",
+    "segment_charge": "Įkrauti už 0,10",
+    "segment_cover": "Baterija dengia",
+    "segment_hold": "Blokuota vakarui",
+    "chart_label": "Žiemos dienos pavyzdys: naktį kainos apie 0,10 EUR/kWh, rytinis pikas apie 0,45, dieną apie 0,20 ir vakarinis pikas apie 0,50. Pilotas krauna nuo 02:00 iki 06:00, baterija dengia suvartojimą nuo 06:00 iki 09:00 ir nuo 17:00 iki 21:00, o nuo 09:00 iki 17:00 įkrova laikoma; iki 02:00 ir po 21:00 keitiklis veikia savarankiškai.",
+    "sum": "Naktį už 0,10 įkrauta kWh, padalyta iš 90 % naudingumo koeficiento pirmyn ir atgal, plius 0,10 skirtumas, kainuoja 0,21. Tai gerokai mažiau nei vakarinis 0,50 pikas, todėl naktinę elektrą verta kaupti. Dieną, kai kaina 0,20, bateriją naudoti neapsimoka, todėl įkrova laukia."
+  },
+  "actions": {
+    "c": "Įkrauti iš tinklo",
+    "p": "PV krauna bateriją",
+    "o": "Baterija maitina namus",
+    "h": "Blokuota brangesnei valandai",
+    "e": "Pardavimas į tinklą",
+    "a": "Keitiklis veikia savarankiškai"
+  },
+  "plans": {
+    "title": "Vienas planuoklis visiems metų laikams",
+    "lede": "Kas 30 minučių ir kaskart, kai ateina naujos kainos, pilotas suplanuoja kitas 24–36 valandas: pigiausiais intervalais kraunama, brangiausius padengia baterija, o tarpinėmis valandomis energija pasiliekama vėlesniam laikui. Tie patys įvesties duomenys visada duoda tą patį planą.",
+    "seasons": {
+      "winter": {
+        "title": "Žiemos arbitražas",
+        "text": "Naktinė elektra už 0,10, pikai 0,45 ir 0,50. Baterija prisikrauna prieš aušrą, padengia rytą, dieną, kai kaina 0,20, laukia ir išsikrauna per vakarinį piką."
+      },
+      "summer": {
+        "title": "Vasaros PV pardavimas",
+        "text": "Iki vidurdienio stogas pripildo bateriją, todėl pilotas krovimą palieka saulei. Įjungus pardavimą į tinklą, vakarinio piko energija parduodama."
+      },
+      "dunkelflaute": {
+        "title": "Dunkelflaute",
+        "text": "Tamsios, bevėjės savaitės atneša didžiausius kainų skirtumus. Kai per vieną dieną kaina svyruoja aštuonis kartus, krovimas iš tinklo atsiperka net įvertinus konversijos nuostolius."
+      }
+    }
+  },
+  "card": {
+    "title": "Planas tavo prietaisų skydelyje",
+    "lede": "Kartu su integracija pateikiama Lovelace kortelė: suplanuoti veiksmai, kaina, suvartojimas ir įkrovos lygis viename vaizde, su trimis išdėstymais – nuo telefono stulpelio iki sieninio ekrano.",
+    "views_label": "Kortelės pavyzdžiai",
+    "shots": {
+      "dunkelflaute": {
+        "title": "Dunkelflaute",
+        "caption": "Aštuonis kartus besiskiriančios kainos per vieną dieną ir planas, kuris tuo pasinaudoja.",
+        "alt": "Dunkelflaute planas: krovimas vidurdienį ir dar kartą naktį, baterija padengia abu vakarinius pikus"
+      },
+      "winter_arbitrage": {
+        "title": "Žiemos arbitražas",
+        "caption": "Įkrauk pigią naktį, išlaikyk per dieną, padenk vakarinį piką.",
+        "alt": "Žiemos arbitražo planas: krovimas pigią naktį, baterija per dieną laikoma vakariniam pikui"
+      },
+      "summer_export": {
+        "title": "Vasaros PV pardavimas",
+        "caption": "Saulė pripildo bateriją, vakarinis pikas keliauja į tinklą.",
+        "alt": "Vasaros planas su pardavimu: PV pripildo bateriją, o vakarinio piko energija parduodama į tinklą"
+      },
+      "ev_overnight": {
+        "title": "Suplanuotas elektromobilio įkrovimas",
+        "caption": "Naktinė evcc įkrovimo sesija, jos kainos riba ir elektromobiliui laikoma baterija.",
+        "alt": "Planas su naktine evcc įkrovimo sesija: įkrovimo langas, evcc kainos riba ir elektromobiliui laikoma baterija"
+      },
+      "ev_compact": {
+        "title": "Kompaktiškas vaizdas su automobiliu",
+        "caption": "Pirmiausia skaičiai, o kita elektromobilio sesija – atskiroje plytelėje.",
+        "alt": "Kompaktiškas vaizdas su elektromobilio plytele šalia SOC, kito pokyčio ir suplanuoto iškrovimo"
+      },
+      "view_balance": {
+        "title": "Balanso vaizdas",
+        "caption": "PV atėmus suvartojimą – dydis, pagal kurį planuoja planuoklis.",
+        "alt": "Balanso vaizdas: PV atėmus suvartojimą kaip plotas apie nulį"
+      },
+      "view_compact": {
+        "title": "Telefonams",
+        "caption": "Būsenos eilutė, trys rodikliai ir kreivės po jais.",
+        "alt": "Kompaktiškas vaizdas: būsena, rodikliai ir mažesnė diagrama"
+      }
+    }
+  },
+  "steps": {
+    "title": "Šeši žingsniai už kiekvieno plano",
+    "lede": "Nuo kainoraščio iki uždirbtų pinigų – ta tvarka, kuria juos atlieka pilotas.",
+    "items": {
+      "price": {
+        "title": "Kainų prognozė",
+        "text": "Nuskaito tavo tarifo integracijos kainos objektą: 15 minučių arba valandiniai intervalai, šiandien ir rytoj."
+      },
+      "consumption": {
+        "title": "Suvartojimo prognozė",
+        "text": "Nedidelis modelis, kasdien apmokomas tavo paties istorija: valanda, savaitės diena ir, jei turi šilumos siurblį, lauko temperatūra."
+      },
+      "pv": {
+        "title": "Saulės energijos prognozė",
+        "text": "Numatoma saulės gamyba atimama iš poreikio, o perteklius simuliacijoje vėl įkrauna bateriją."
+      },
+      "optimisation": {
+        "title": "Optimizavimas",
+        "text": "Suporuoja pigiausius įkrovimo intervalus su brangiausiomis valandomis, laikydamasis talpos, galios ir SOC ribų bei įvertindamas naudingumo koeficientą."
+      },
+      "execution": {
+        "title": "Vykdymas",
+        "text": "Kiekvieno intervalo pradžioje iškviečia tavo scenarijus: įkrovimo, iškrovimo blokavimo, auto arba pardavimo."
+      },
+      "accounting": {
+        "title": "Apskaita",
+        "text": "Pagal baterijos skaitiklius parodo, kiek verta baterija, ir atskirai – ką pridėjo pilotas."
+      }
+    }
+  },
+  "features": {
+    "title": "Tausoja bateriją, sąžiningai skaičiuoja pinigus",
+    "lede": "Nepriklauso nuo gamintojo: pilotas valdo tavo keitiklį per tavo paties parašytus Home Assistant scenarijus, todėl veikia su bet kuria baterija, kurią gali valdyti Home Assistant.",
+    "items": {
+      "consumption": {
+        "title": "Išmoksta tavo suvartojimą",
+        "text": "Kasdien apmokomas tavo istorija, atsižvelgia į savaitės dienas, temperatūrą ir šilumos siurblį."
+      },
+      "pv": {
+        "title": "Naudoja saulės prognozę",
+        "text": "Neužrakina baterijos tą dieną, kai saulė ją vis tiek įkraus."
+      },
+      "car": {
+        "title": "Atsižvelgia į tavo automobilį",
+        "text": "evcc suplanuotos sesijos matomos iš anksto, o namų baterija gali nedalyvauti automobilio krovime."
+      },
+      "reserve": {
+        "title": "Avarinio maitinimo rezervas",
+        "text": "Riba, kurios arbitražas niekada neišnaudoja; po elektros tiekimo sutrikimo ji atkuriama iki nustatyto termino."
+      },
+      "cold": {
+        "title": "Įkrovimas šaltyje",
+        "text": "Planuoja su tokia įkrovimo galia, kokią šalta baterija iš tikrųjų priima, ir ją išmoksta."
+      },
+      "numbers": {
+        "title": "Du sąžiningi skaičiai",
+        "text": "Kiek verta baterija ir ką papildomai pridėjo pilotas."
+      },
+      "safe": {
+        "title": "Saugu pagal numatymą",
+        "text": "Įdiegiama išjungta ir bandomojo paleidimo režimu. Trūkstant kainos ar SOC, baterija grąžinama į režimą Auto."
+      },
+      "languages": {
+        "title": "Dešimt kalbų",
+        "text": "Anglų, vokiečių, olandų, danų, švedų, norvegų, suomių, estų, latvių ir lietuvių."
+      }
+    },
+    "prices_from": "Kainos iš",
+    "batteries_via": "Baterijos – per tavo scenarijus",
+    "any_inverter": "bet kuris keitiklis, kurį valdo Home Assistant"
+  },
+  "install": {
+    "title": "Diegimas per HACS",
+    "lede": "Smart Battery Pilot yra numatytojoje HACS saugykloje, todėl nereikia pridėti jokios pasirinktinės saugyklos. Integracija įdiegiama išjungta ir bandomojo paleidimo režimu: pirmomis dienomis tai tik planas, kurį galima perskaityti, ir nieko daugiau.",
+    "open_hacs": "Atidaryti HACS",
+    "download": "HACS paieškoje surask <strong>Smart Battery Pilot</strong>, atsisiųsk ir paleisk Home Assistant iš naujo.",
+    "add": "Pridėk integraciją skiltyje <strong>Nustatymai</strong>, <strong>Prietaisai ir paslaugos</strong>.",
+    "add_detail": "Pasirink kainos jutiklį, bateriją, valdymo scenarijus, suvartojimo skaitiklį ir saulės prognozę.",
+    "card": "Įdėk kortelę į prietaisų skydelį.",
+    "card_detail": "Įjunk pilotą, kai planas tau atrodys prasmingas."
+  },
+  "footer": {
+    "text": "Smart Battery Pilot. MIT licencija. Nesusijęs su jokiu keitiklių ar baterijų gamintoju ar elektros tiekėju.",
+    "nav_label": "Poraštė",
+    "changelog": "Pakeitimų žurnalas",
+    "issues": "Problemos"
+  }
+}

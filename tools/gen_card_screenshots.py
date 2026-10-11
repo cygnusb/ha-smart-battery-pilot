@@ -16,12 +16,13 @@ Usage:
     npm install --prefix /tmp playwright   # browsers are found in the cache
     # If it asks for a browser revision the cache does not have, pin the
     # playwright release that matches one it has (e.g. playwright@1.63.0).
-    python3 tools/gen_card_screenshots.py [--lang en|de] [--theme light|dark|both]
+    python3 tools/gen_card_screenshots.py [--lang en|de|…|all] [--theme light|dark|both]
     python3 tools/gen_card_screenshots.py --sizes   # layout check at several widths
 
-Output: assets/screenshots/card_<shot>_<theme>.png for English. Any other
-language, and --sizes, go to a work directory instead, so a translation check
-never overwrites the images the README shows.
+Output: assets/screenshots/card_<shot>_<theme>.png for English, the images the
+README shows; assets/screenshots/<lang>/card_<shot>_<theme>.png for the other
+languages, which the translated project pages show. --sizes goes to a work
+directory instead.
 """
 
 from __future__ import annotations
@@ -759,7 +760,9 @@ def render(jobs: list[dict], serve_dir: Path) -> bool:
 # Main
 # ---------------------------------------------------------------------------
 
-TITLES = {"en": "Smart Battery Pilot", "de": "Smart Battery Pilot"}
+# The card languages, as in the card's TRANSLATIONS table.
+LANGUAGES = ["en", "da", "de", "et", "fi", "lt", "lv", "nb", "nl", "sv"]
+TITLE = "Smart Battery Pilot"
 
 # (scenario factory, view, output name) for every screenshot the README shows.
 # The scenarios in the tracks view document what the optimizer does; the other
@@ -813,8 +816,8 @@ def main() -> int:
     parser.add_argument(
         "--lang",
         default="en",
-        choices=["en", "de"],
-        help="card language; anything but en is written to the work directory",
+        choices=[*LANGUAGES, "all"],
+        help="card language, or all of them",
     )
     parser.add_argument("--tz", default="Europe/Berlin")
     parser.add_argument("--theme", default="both", choices=["light", "dark", "both"])
@@ -829,6 +832,14 @@ def main() -> int:
     work_dir.mkdir(parents=True, exist_ok=True)
     themes = ["light", "dark"] if args.theme == "both" else [args.theme]
 
+    languages = LANGUAGES if args.lang == "all" else [args.lang]
+    jobs = []
+    for lang in languages:
+        jobs += _jobs(lang, args, themes, work_dir)
+    return 0 if render(jobs, work_dir) else 1
+
+
+def _jobs(lang, args, themes, work_dir):
     if args.sizes:
         out_dir = work_dir
         targets = [
@@ -837,7 +848,7 @@ def main() -> int:
             for width in SIZE_WIDTHS
         ]
     else:
-        out_dir = OUT_DIR if args.lang == "en" else work_dir
+        out_dir = OUT_DIR if lang == "en" else OUT_DIR / lang
         targets = [(factory, view, name, CARD_WIDTH) for factory, view, name in SHOTS]
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -849,25 +860,24 @@ def main() -> int:
             states_by_scenario[factory] = (scenario, _states(scenario))
         scenario, states = states_by_scenario[factory]
         for theme in themes:
-            stem = f"{name}_{theme}" if args.lang == "en" else f"{name}_{args.lang}_{theme}"
+            stem = f"{name}_{theme}" if lang == "en" else f"{name}_{lang}_{theme}"
+            png = out_dir / (f"{stem}.png" if args.sizes else f"{name}_{theme}.png")
             html = work_dir / f"{stem}.html"
             write_html(
                 html,
                 scenario,
                 states,
-                TITLES[args.lang],
-                args.lang,
+                TITLE,
+                lang,
                 args.tz,
                 scenario.now,
                 view,
                 theme,
                 width,
             )
-            jobs.append({"html": html.name, "png": str(out_dir / f"{stem}.png"), "width": width})
-
-    if out_dir != OUT_DIR:
-        print(f"writing to {out_dir}")
-    return 0 if render(jobs, work_dir) else 1
+            jobs.append({"html": html.name, "png": str(png), "width": width})
+    print(f"{lang}: writing to {out_dir}")
+    return jobs
 
 
 if __name__ == "__main__":

@@ -1,0 +1,194 @@
+{
+  "meta": {
+    "title": "Smart Battery Pilot – home battery optimizer for Home Assistant",
+    "description": "A free Home Assistant integration that plans your home battery a day ahead from dynamic electricity prices, your own consumption and the PV forecast: charge in the cheap hours, cover the expensive ones. Works with any inverter you can script.",
+    "og_title": "Smart Battery Pilot for Home Assistant",
+    "og_description": "Charge your home battery in the cheap hours and cover the expensive ones, planned a day ahead inside Home Assistant."
+  },
+  "nav": {
+    "main_label": "Main",
+    "plans": "How it plans",
+    "card": "The card",
+    "features": "Features",
+    "install": "Install",
+    "docs": "Docs",
+    "language_label": "Language"
+  },
+  "hero": {
+    "title": "Charge in the cheap hours. Cover the expensive ones.",
+    "lede": "Smart Battery Pilot is a Home Assistant integration that plans your home battery 24 to 36 hours ahead, from your dynamic tariff, your household’s own consumption and the PV forecast. It drives any inverter you can control with a script.",
+    "cta_install": "Install from HACS",
+    "cta_planner": "How the planner works",
+    "facts": {
+      "free": "Free, MIT licence",
+      "local": "Runs locally",
+      "home_assistant": "Home Assistant 2024.11+",
+      "safe": "Installs switched off, in dry-run"
+    }
+  },
+  "board": {
+    "title": "An example winter day",
+    "subtitle": "96 quarter-hour prices in EUR/kWh, each coloured by what the pilot does in that slot",
+    "hint": "Point at a bar, or focus the chart and use the arrow keys, to read one slot.",
+    "segment_charge": "Charge at 0.10",
+    "segment_cover": "Battery covers",
+    "segment_hold": "Held for the evening",
+    "chart_label": "Example winter day: prices around 0.10 EUR/kWh at night, a morning peak near 0.45, about 0.20 through the day and an evening peak near 0.50. The pilot charges from 02:00 to 06:00, the battery covers 06:00 to 09:00 and 17:00 to 21:00, and the charge is held from 09:00 to 17:00; the inverter runs on its own before 02:00 and after 21:00.",
+    "sum": "A kWh charged at night for 0.10, divided by 90 % round-trip efficiency, plus a 0.10 spread, costs 0.21. That is well under the 0.50 evening peak, so the night is worth storing. The day at 0.20 is not worth spending the battery on, so the charge waits."
+  },
+  "actions": {
+    "c": "Charge from the grid",
+    "p": "PV fills the battery",
+    "o": "Battery covers the house",
+    "h": "Held for a pricier hour",
+    "e": "Export to the grid",
+    "a": "Inverter on its own"
+  },
+  "plans": {
+    "title": "One planner, every season",
+    "lede": "Every 30 minutes, and whenever new prices arrive, the pilot plans the next 24 to 36 hours: the cheapest slots charge, the most expensive ones are covered from the battery, and the hours in between keep the energy for later. The same inputs always give the same plan.",
+    "seasons": {
+      "winter": {
+        "title": "Winter arbitrage",
+        "text": "Night power at 0.10, peaks at 0.45 and 0.50. The battery fills before dawn, covers the morning, waits through the day at 0.20 and empties into the evening peak."
+      },
+      "summer": {
+        "title": "Summer PV export",
+        "text": "The roof fills the battery by noon, so the pilot leaves charging to the sun. With export mode on, the evening peak is sold to the grid."
+      },
+      "dunkelflaute": {
+        "title": "Dunkelflaute",
+        "text": "Dark, still weeks bring the widest spreads. An eightfold price swing within one day makes grid charging pay for itself, even after conversion losses."
+      }
+    }
+  },
+  "card": {
+    "title": "The plan on your dashboard",
+    "lede": "A Lovelace card ships with the integration: planned actions, price, consumption and state of charge in one view, with three layouts from a phone column to a wall panel.",
+    "views_label": "Card examples",
+    "shots": {
+      "dunkelflaute": {
+        "title": "Dunkelflaute",
+        "caption": "An eightfold price spread in one day, and the plan that uses it.",
+        "alt": "Dunkelflaute plan: charging at midday and again at night, the battery covering both evening peaks"
+      },
+      "winter_arbitrage": {
+        "title": "Winter arbitrage",
+        "caption": "Charge in the cheap night, hold through the day, cover the evening peak.",
+        "alt": "Winter arbitrage plan: charging in the cheap night, the battery held through the day for the evening peak"
+      },
+      "summer_export": {
+        "title": "Summer PV export",
+        "caption": "The sun fills the battery; the evening peak goes to the grid.",
+        "alt": "Summer plan with export: PV fills the battery and the evening peak is sold to the grid"
+      },
+      "ev_overnight": {
+        "title": "Planned EV charging",
+        "caption": "evcc’s overnight session, its price limit, and the battery held for the car.",
+        "alt": "Plan with an overnight evcc charging session: the charging window, evcc's price limit and the battery held for the car"
+      },
+      "ev_compact": {
+        "title": "Compact view with the car",
+        "caption": "The figures first, with the next EV session as its own tile.",
+        "alt": "Compact view with the EV tile next to SOC, next change and planned discharge"
+      },
+      "view_balance": {
+        "title": "Balance view",
+        "caption": "PV minus consumption, the quantity the planner works against.",
+        "alt": "Balance view: PV minus consumption as an area around zero"
+      },
+      "view_compact": {
+        "title": "For phones",
+        "caption": "Status line, three figures and the curves underneath.",
+        "alt": "Compact view: status, figures and a smaller chart"
+      }
+    }
+  },
+  "steps": {
+    "title": "Six steps behind every plan",
+    "lede": "From the price list to the money it made, in the order the pilot runs them.",
+    "items": {
+      "price": {
+        "title": "Price forecast",
+        "text": "Reads the price entity of your tariff integration: 15-minute or hourly slots, today and tomorrow."
+      },
+      "consumption": {
+        "title": "Consumption forecast",
+        "text": "A small model trained daily on your own history: hour, weekday and, with a heat pump, outdoor temperature."
+      },
+      "pv": {
+        "title": "PV forecast",
+        "text": "Expected solar production comes off the demand, and surplus refills the battery in the simulation."
+      },
+      "optimisation": {
+        "title": "Optimisation",
+        "text": "Pairs the cheapest charge slots with the most expensive hours, within capacity, power, SOC limits and efficiency."
+      },
+      "execution": {
+        "title": "Execution",
+        "text": "At each slot boundary it calls your scripts: charge, block discharge, auto or export."
+      },
+      "accounting": {
+        "title": "Accounting",
+        "text": "From your battery meters it reports what the battery is worth and, separately, what the pilot added."
+      }
+    }
+  },
+  "features": {
+    "title": "Careful with your battery, honest about the money",
+    "lede": "Vendor neutral: the pilot drives your inverter through Home Assistant scripts you write, so it works with any battery Home Assistant can control.",
+    "items": {
+      "consumption": {
+        "title": "Learns your consumption",
+        "text": "Trained daily on your history, aware of weekdays, temperature and heat pumps."
+      },
+      "pv": {
+        "title": "Uses the PV forecast",
+        "text": "Will not lock the battery on a day the sun refills it anyway."
+      },
+      "car": {
+        "title": "Plans around your car",
+        "text": "Sessions evcc has planned show up ahead of time, and the battery can stay out of the car."
+      },
+      "reserve": {
+        "title": "Backup reserve",
+        "text": "A floor arbitrage never spends, refilled by a deadline after an outage."
+      },
+      "cold": {
+        "title": "Cold-weather charging",
+        "text": "Plans with the charge power a cold battery really accepts, and learns it."
+      },
+      "numbers": {
+        "title": "Two honest numbers",
+        "text": "What the battery is worth, and what the pilot added on top."
+      },
+      "safe": {
+        "title": "Safe by default",
+        "text": "Installs switched off and in dry-run. A missing price or SOC hands the battery back to auto."
+      },
+      "languages": {
+        "title": "Ten languages",
+        "text": "English, German, Dutch, Danish, Swedish, Norwegian, Finnish, Estonian, Latvian, Lithuanian."
+      }
+    },
+    "prices_from": "Prices from",
+    "batteries_via": "Batteries, via your scripts",
+    "any_inverter": "any inverter Home Assistant can control"
+  },
+  "install": {
+    "title": "Install from HACS",
+    "lede": "Smart Battery Pilot is in the HACS default repository, so there is no custom repository to add. It installs switched off and in dry-run: the first days are a plan to read, nothing more.",
+    "open_hacs": "Open in HACS",
+    "download": "Search for <strong>Smart Battery Pilot</strong> in HACS, download it and restart Home Assistant.",
+    "add": "Add the integration under <strong>Settings</strong>, <strong>Devices &amp; services</strong>.",
+    "add_detail": "Pick your price sensor, battery, control scripts, consumption meter and PV forecast.",
+    "card": "Put the card on a dashboard.",
+    "card_detail": "Switch the pilot on once the plan makes sense to you."
+  },
+  "footer": {
+    "text": "Smart Battery Pilot. MIT licence. Not affiliated with any inverter, battery or tariff vendor.",
+    "nav_label": "Footer",
+    "changelog": "Changelog",
+    "issues": "Issues"
+  }
+}

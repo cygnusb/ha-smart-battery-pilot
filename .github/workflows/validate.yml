@@ -154,6 +154,7 @@ jobs:
   docs:
     # The pages the site builds from docs/ and the release notes. Strict, so
     # a link to a missing page or anchor fails here, before it reaches the site.
+    # The project page first: a text missing from a translation fails it.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -161,6 +162,7 @@ jobs:
         with:
           python-version: "3.13"
       - run: pip install -r tools/docs-requirements.txt
+      - run: python tools/build_site.py _site
       - run: mkdocs build --strict
         env:
           NO_MKDOCS_2_WARNING: "true"

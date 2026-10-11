@@ -1,0 +1,194 @@
+{
+  "meta": {
+    "title": "Smart Battery Pilot – kotiakun optimointi Home Assistantiin",
+    "description": "Ilmainen Home Assistant -integraatio suunnittelee kotiakun käytön vuorokaudeksi eteenpäin pörssisähkön, kulutuksen ja aurinkoennusteen mukaan. Toimii skriptillä ohjattavien invertterien kanssa.",
+    "og_title": "Smart Battery Pilot Home Assistantiin",
+    "og_description": "Lataa kotiakku halvoilla tunneilla ja kata kalliit tunnit akusta, vuorokauden etukäteen suunniteltuna Home Assistantissa."
+  },
+  "nav": {
+    "main_label": "Päävalikko",
+    "plans": "Näin se suunnittelee",
+    "card": "Kortti",
+    "features": "Ominaisuudet",
+    "install": "Asennus",
+    "docs": "Ohjeet (EN)",
+    "language_label": "Kieli"
+  },
+  "hero": {
+    "title": "Lataa, kun on halpaa. Pura, kun on kallista.",
+    "lede": "Smart Battery Pilot on Home Assistant -integraatio, joka suunnittelee kotiakkusi käytön 24–36 tuntia eteenpäin pörssisähkön hinnan, kotitaloutesi oman kulutuksen ja aurinkoennusteen perusteella. Se ohjaa mitä tahansa invertteriä, jota voi ohjata skriptillä.",
+    "cta_install": "Asenna HACSista",
+    "cta_planner": "Näin suunnittelija toimii",
+    "facts": {
+      "free": "Ilmainen, MIT-lisenssi",
+      "local": "Toimii paikallisesti",
+      "home_assistant": "Home Assistant 2024.11+",
+      "safe": "Asentuu pois päältä, testiajoon"
+    }
+  },
+  "board": {
+    "title": "Esimerkki: talvipäivä",
+    "subtitle": "96 varttihintaa (EUR/kWh), kukin väritetty sen mukaan, mitä pilotti kyseisellä jaksolla tekee",
+    "hint": "Osoita pylvästä tai siirrä fokus kaavioon ja käytä nuolinäppäimiä, niin näet yksittäisen jakson.",
+    "segment_charge": "Lataa hintaan 0,10",
+    "segment_cover": "Akusta",
+    "segment_hold": "Säästetään illaksi",
+    "chart_label": "Esimerkki talvipäivästä: yöllä hinnat noin 0,10 EUR/kWh, aamuhuippu lähes 0,45, päivällä noin 0,20 ja iltahuippu lähes 0,50. Pilotti lataa klo 02:00–06:00, akku kattaa kulutuksen klo 06:00–09:00 ja 17:00–21:00, ja lataus säästetään klo 09:00–17:00; ennen klo 02:00 ja klo 21:00 jälkeen invertteri toimii itsenäisesti.",
+    "sum": "Yöllä hintaan 0,10 ladattu kWh maksaa 0,21, kun se jaetaan 90 %:n lataus- ja purkuhyötysuhteella ja siihen lisätään 0,10:n hintaero. Se on selvästi alle 0,50:n iltahuipun, joten yösähkö kannattaa varastoida. Päivän 0,20:n hinnalla akkua ei kannata käyttää, joten lataus odottaa."
+  },
+  "actions": {
+    "c": "Lataa verkosta",
+    "p": "Aurinko lataa akun",
+    "o": "Akku kattaa kulutuksen",
+    "h": "Säästetään kalliimpaan tuntiin",
+    "e": "Myynti verkkoon",
+    "a": "Invertteri toimii itsenäisesti"
+  },
+  "plans": {
+    "title": "Yksi suunnittelija, kaikki vuodenajat",
+    "lede": "30 minuutin välein ja aina uusien hintojen saapuessa pilotti suunnittelee seuraavat 24–36 tuntia: halvimmilla jaksoilla ladataan, kalleimmat katetaan akusta ja niiden väliset tunnit säästävät energian myöhemmäksi. Samat lähtötiedot tuottavat aina saman suunnitelman.",
+    "seasons": {
+      "winter": {
+        "title": "Talviarbitraasi",
+        "text": "Yösähkö 0,10, huiput 0,45 ja 0,50. Akku täyttyy ennen aamua, kattaa aamun, odottaa päivän yli 0,20:n hinnoilla ja purkautuu iltahuippuun."
+      },
+      "summer": {
+        "title": "Kesä: aurinkosähkö verkkoon",
+        "text": "Katon paneelit täyttävät akun puoleenpäivään mennessä, joten pilotti jättää lataamisen auringolle. Kun myyntitila on päällä, iltahuippu myydään verkkoon."
+      },
+      "dunkelflaute": {
+        "title": "Dunkelflaute",
+        "text": "Pimeät ja tyynet viikot tuovat suurimmat hintaerot. Kun hinta vaihtelee vuorokauden sisällä kahdeksankertaisesti, verkosta lataaminen kannattaa muuntohäviöistä huolimatta."
+      }
+    }
+  },
+  "card": {
+    "title": "Suunnitelma kojelaudallasi",
+    "lede": "Integraation mukana tulee Lovelace-kortti: suunnitellut toiminnot, hinta, kulutus ja varaustila samassa näkymässä, kolmella asettelulla puhelimen sarakkeesta seinäpaneeliin.",
+    "views_label": "Korttiesimerkkejä",
+    "shots": {
+      "dunkelflaute": {
+        "title": "Dunkelflaute",
+        "caption": "Kahdeksankertainen hintaero yhden päivän aikana ja suunnitelma, joka hyödyntää sen.",
+        "alt": "Dunkelflaute-suunnitelma: lataus keskipäivällä ja uudelleen yöllä, akku kattaa molemmat iltahuiput"
+      },
+      "winter_arbitrage": {
+        "title": "Talviarbitraasi",
+        "caption": "Lataa halpana yönä, säästä päivän yli, kata iltahuippu.",
+        "alt": "Talviarbitraasi: lataus halpana yönä, akku säästetään päivän yli iltahuippua varten"
+      },
+      "summer_export": {
+        "title": "Kesä: aurinkosähkö verkkoon",
+        "caption": "Aurinko täyttää akun; iltahuippu menee verkkoon.",
+        "alt": "Kesän suunnitelma myynnillä: aurinkosähkö täyttää akun ja iltahuippu myydään verkkoon"
+      },
+      "ev_overnight": {
+        "title": "Suunniteltu sähköauton lataus",
+        "caption": "evcc:n yölataus, sen hintaraja ja autolle pidetty akku.",
+        "alt": "Suunnitelma, jossa on evcc:n yölataus: latausikkuna, evcc:n hintaraja ja autolle pidetty akku"
+      },
+      "ev_compact": {
+        "title": "Tiivis näkymä autolla",
+        "caption": "Luvut ensin, ja seuraava sähköauton lataus omana ruutunaan.",
+        "alt": "Tiivis näkymä, jossa sähköauton ruutu on SOC:n, seuraavan muutoksen ja suunnitellun purun vieressä"
+      },
+      "view_balance": {
+        "title": "Tasenäkymä",
+        "caption": "PV miinus kulutus, eli suure, jonka mukaan suunnittelija toimii.",
+        "alt": "Tasenäkymä: PV miinus kulutus alueena nollan ympärillä"
+      },
+      "view_compact": {
+        "title": "Puhelimille",
+        "caption": "Tilarivi, kolme lukua ja käyrät alla.",
+        "alt": "Tiivis näkymä: tila, luvut ja pienempi kaavio"
+      }
+    }
+  },
+  "steps": {
+    "title": "Kuusi vaihetta jokaisen suunnitelman takana",
+    "lede": "Hintalistasta saavutettuun säästöön siinä järjestyksessä, jossa pilotti ne suorittaa.",
+    "items": {
+      "price": {
+        "title": "Hintaennuste",
+        "text": "Lukee hintaentiteetin sähkösopimuksesi integraatiosta: 15 minuutin tai tunnin jaksot, tänään ja huomenna."
+      },
+      "consumption": {
+        "title": "Kulutusennuste",
+        "text": "Pieni malli, joka koulutetaan päivittäin omalla historiallasi: tunti, viikonpäivä ja lämpöpumpun kanssa myös ulkolämpötila."
+      },
+      "pv": {
+        "title": "Aurinkoennuste",
+        "text": "Odotettu aurinkotuotanto vähennetään tarpeesta, ja ylijäämä täyttää akkua simulaatiossa."
+      },
+      "optimisation": {
+        "title": "Optimointi",
+        "text": "Yhdistää halvimmat latausjaksot kalleimpiin tunteihin kapasiteetin, tehon, SOC-rajojen ja hyötysuhteen puitteissa."
+      },
+      "execution": {
+        "title": "Toteutus",
+        "text": "Jokaisen jakson rajalla se kutsuu skriptejäsi: lataus, purun esto, auto tai myynti."
+      },
+      "accounting": {
+        "title": "Seuranta",
+        "text": "Akun mittareiden perusteella se kertoo, paljonko akku on arvoinen, ja erikseen, paljonko pilotti toi lisää."
+      }
+    }
+  },
+  "features": {
+    "title": "Hellävarainen akulle, rehellinen rahasta",
+    "lede": "Valmistajariippumaton: pilotti ohjaa invertteriäsi itse kirjoittamillasi Home Assistant -skripteillä, joten se toimii minkä tahansa akun kanssa, jota Home Assistant voi ohjata.",
+    "items": {
+      "consumption": {
+        "title": "Oppii kulutuksesi",
+        "text": "Koulutetaan päivittäin historiallasi, ottaa huomioon viikonpäivät, lämpötilan ja lämpöpumput."
+      },
+      "pv": {
+        "title": "Käyttää aurinkoennustetta",
+        "text": "Ei lukitse akkua päivänä, jona aurinko täyttää sen joka tapauksessa."
+      },
+      "car": {
+        "title": "Ottaa auton huomioon",
+        "text": "Lataukset, jotka evcc on suunnitellut, näkyvät etukäteen, ja kotiakku voidaan pitää erillään auton latauksesta."
+      },
+      "reserve": {
+        "title": "Varavoimareservi",
+        "text": "Alaraja, jota arbitraasi ei koskaan käytä ja joka täytetään sähkökatkon jälkeen määräaikaan mennessä."
+      },
+      "cold": {
+        "title": "Lataus kylmällä",
+        "text": "Suunnittelee sillä latausteholla, jonka kylmä akku todella ottaa vastaan, ja oppii sen."
+      },
+      "numbers": {
+        "title": "Kaksi rehellistä lukua",
+        "text": "Mitä akku on arvoinen ja mitä pilotti toi sen päälle."
+      },
+      "safe": {
+        "title": "Turvallinen oletuksena",
+        "text": "Asentuu pois päältä ja testiajoon. Jos hinta tai SOC puuttuu, akku palautetaan auto-tilaan."
+      },
+      "languages": {
+        "title": "Kymmenen kieltä",
+        "text": "Englanti, saksa, hollanti, tanska, ruotsi, norja, suomi, viro, latvia, liettua."
+      }
+    },
+    "prices_from": "Hintalähteet",
+    "batteries_via": "Akut skriptiesi kautta",
+    "any_inverter": "mikä tahansa invertteri, jota Home Assistant voi ohjata"
+  },
+  "install": {
+    "title": "Asenna HACSista",
+    "lede": "Smart Battery Pilot löytyy HACSin oletusrepositoriosta, joten mukautettua repositoriota ei tarvitse lisätä. Se asentuu pois päältä ja testiajoon: ensimmäiset päivät ovat vain suunnitelma luettavaksi.",
+    "open_hacs": "Avaa HACSissa",
+    "download": "Hae <strong>Smart Battery Pilot</strong> HACSista, lataa se ja käynnistä Home Assistant uudelleen.",
+    "add": "Lisää integraatio kohdassa <strong>Asetukset</strong>, <strong>Laitteet &amp; palvelut</strong>.",
+    "add_detail": "Valitse hinta-anturi, akku, ohjausskriptit, kulutusmittari ja aurinkoennuste.",
+    "card": "Lisää kortti kojelaudalle.",
+    "card_detail": "Kytke pilotti päälle, kun suunnitelma näyttää sinusta järkevältä."
+  },
+  "footer": {
+    "text": "Smart Battery Pilot. MIT-lisenssi. Ei sidoksissa yhteenkään invertteri- tai akkuvalmistajaan eikä sähkönmyyjään.",
+    "nav_label": "Alatunniste",
+    "changelog": "Muutosloki",
+    "issues": "Vikailmoitukset"
+  }
+}
