@@ -97,6 +97,7 @@ configured entities/values pre-filled:
 * **PV forecast** — daily forecast entities and optional live PV power
 * **Cold-weather charging** — only here, not in the initial setup; see below
 * **Backup reserve** — only here; see below
+* **EV charging & other controllers** — only here; see [EV charging, evcc and other controllers](ev-charging.md)
 
 Sections return to the menu after submitting; changes are collected and only
 persisted via **“💾 Save & close”** (closing the dialog otherwise discards
@@ -169,6 +170,13 @@ deadline too short for the charge power shows the plan warning
 `reserve_refill_incomplete`. The
 configuration sensor shows `reserve_soc`, its source (`fixed`, `entity`,
 `off`) and whether the discharge block is on.
+
+### EV charging & other controllers
+
+Off by default. Takes wallbox energy out of the consumption history, can block
+discharging while an EV charges, and pauses the pilot while another controller
+such as evcc holds the battery. Settings, the evcc setup and other wallboxes:
+[EV charging, evcc and other controllers](ev-charging.md).
 
 ## Going live
 

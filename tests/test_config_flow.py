@@ -26,6 +26,10 @@ from smart_battery_pilot.const import (
     CONF_DISCHARGE_MODE,
     CONF_DRY_RUN,
     CONF_EFFICIENCY,
+    CONF_EV_BATTERY_POLICY,
+    CONF_EV_POWER_ENTITIES,
+    CONF_EV_THRESHOLD_W,
+    CONF_EXTERNAL_CONTROL_ENTITY,
     CONF_FEED_IN_TARIFF,
     CONF_HAS_HEAT_PUMP,
     CONF_MAX_CHARGE_POWER_W,
@@ -50,6 +54,9 @@ from smart_battery_pilot.const import (
     DERATING_CURVE_KEYS,
     DISCHARGE_MODE_EXPORT,
     DISCHARGE_MODE_SELF_CONSUMPTION,
+    EV_POLICY_ALLOW,
+    EV_POLICY_BLOCK,
+    EV_POLICY_EXTERNAL,
 )
 
 TZ = timezone(timedelta(hours=1))
@@ -62,8 +69,11 @@ class _States:
     def get(self, entity_id):
         return self._data.get(entity_id)
 
-    def set(self, entity_id, attributes):
-        self._data[entity_id] = SimpleNamespace(state="0.30", attributes=attributes)
+    def set(self, entity_id, attributes, state="0.30"):
+        self._data[entity_id] = SimpleNamespace(state=state, attributes=attributes)
+
+    def async_entity_ids(self, domain=None):
+        return [e for e in self._data if domain is None or e.startswith(f"{domain}.")]
 
 
 class _ConfigEntries:
@@ -597,3 +607,103 @@ def test_a_reserve_section_is_saved_on_apply():
     assert data[CONF_BACKUP_RESERVE] == 30
     assert data[CONF_BACKUP_RESERVE_ENTITY] == "input_number.reserve"
     assert data[CONF_RESERVE_BLOCK_DISCHARGE] is True
+
+
+# --- EV charging and other controllers -----------------------------------------
+
+
+def _ev_input(**overrides):
+    return {
+        CONF_EV_POWER_ENTITIES: ["sensor.wallbox_power"],
+        CONF_EV_BATTERY_POLICY: EV_POLICY_BLOCK,
+        CONF_EV_THRESHOLD_W: 1500,
+        **overrides,
+    }
+
+
+def _suggested(result) -> dict:
+    """Default or suggested value of every field the form shows."""
+    values = {}
+    for marker in result["data_schema"].schema:
+        if callable(getattr(marker, "default", None)):
+            values[str(marker)] = marker.default()
+        description = getattr(marker, "description", None) or {}
+        if "suggested_value" in description:
+            values[str(marker)] = description["suggested_value"]
+    return values
+
+
+def test_the_ev_section_sits_between_reserve_and_apply():
+    options = _run(_options_flow(_FakeHass(), _entry()).async_step_init())["menu_options"]
+    assert options.index("ev") == options.index("reserve") + 1
+    assert options[-1] == "apply"
+
+
+def test_the_ev_defaults_change_nothing():
+    """An upgrade must not start blocking the battery on its own."""
+    defaults = _suggested({"data_schema": cf.schema_ev({})})
+    assert defaults[CONF_EV_BATTERY_POLICY] == EV_POLICY_ALLOW
+    assert defaults[CONF_EV_THRESHOLD_W] == 1000
+
+
+def test_an_ev_section_is_saved_on_apply():
+    flow = _options_flow(_FakeHass(), _entry())
+    result = _run(
+        flow.async_step_ev(_ev_input(**{CONF_EXTERNAL_CONTROL_ENTITY: "binary_sensor.hold"}))
+    )
+    assert result["type"] == "menu"
+    data = _run(flow.async_step_apply())["data"]
+    assert data[CONF_EV_POWER_ENTITIES] == ["sensor.wallbox_power"]
+    assert data[CONF_EV_BATTERY_POLICY] == EV_POLICY_BLOCK
+    assert data[CONF_EV_THRESHOLD_W] == 1500
+    assert data[CONF_EXTERNAL_CONTROL_ENTITY] == "binary_sensor.hold"
+
+
+def test_blocking_without_a_wallbox_sensor_is_refused():
+    flow = _options_flow(_FakeHass(), _entry())
+    result = _run(flow.async_step_ev(_ev_input(**{CONF_EV_POWER_ENTITIES: []})))
+    assert result["errors"] == {"base": "ev_block_needs_power"}
+
+
+def test_the_external_policy_without_an_entity_is_refused():
+    flow = _options_flow(_FakeHass(), _entry())
+    result = _run(flow.async_step_ev(_ev_input(**{CONF_EV_BATTERY_POLICY: EV_POLICY_EXTERNAL})))
+    assert result["errors"] == {"base": "ev_external_needs_entity"}
+
+
+def test_allow_only_cleans_the_forecast_and_needs_nothing_else():
+    flow = _options_flow(_FakeHass(), _entry())
+    result = _run(flow.async_step_ev(_ev_input(**{CONF_EV_BATTERY_POLICY: EV_POLICY_ALLOW})))
+    assert result["type"] == "menu"
+
+
+def test_evcc_entities_pre_fill_an_empty_ev_section():
+    hass = _FakeHass()
+    hass.states.set("sensor.evcc_carport_charge_power", {"unit_of_measurement": "kW"})
+    hass.states.set("sensor.evcc_garage_charge_power", {"unit_of_measurement": "kW"})
+    hass.states.set("sensor.evcc_battery_mode_value", {}, state="normal")
+    hass.states.set("sensor.evcc_pv_power", {"unit_of_measurement": "W"})
+    form = _run(_options_flow(hass, _entry()).async_step_ev())
+    values = _suggested(form)
+    assert values[CONF_EV_POWER_ENTITIES] == [
+        "sensor.evcc_carport_charge_power",
+        "sensor.evcc_garage_charge_power",
+    ]
+    assert values[CONF_EXTERNAL_CONTROL_ENTITY] == "sensor.evcc_battery_mode_value"
+    assert values[CONF_EV_BATTERY_POLICY] == EV_POLICY_EXTERNAL
+
+
+def test_a_configured_ev_section_is_not_overwritten_by_evcc():
+    hass = _FakeHass()
+    hass.states.set("sensor.evcc_carport_charge_power", {"unit_of_measurement": "kW"})
+    hass.states.set("sensor.evcc_battery_mode_value", {}, state="normal")
+    entry = _entry(
+        **{
+            CONF_EV_POWER_ENTITIES: ["sensor.goe_power"],
+            CONF_EV_BATTERY_POLICY: EV_POLICY_BLOCK,
+        }
+    )
+    values = _suggested(_run(_options_flow(hass, entry).async_step_ev()))
+    assert values[CONF_EV_POWER_ENTITIES] == ["sensor.goe_power"]
+    assert values[CONF_EV_BATTERY_POLICY] == EV_POLICY_BLOCK
+    assert values.get(CONF_EXTERNAL_CONTROL_ENTITY) is None

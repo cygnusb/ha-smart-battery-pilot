@@ -77,7 +77,7 @@ The config flow guides you through five steps: price source, battery
 parameters, control scripts, consumption sensor and (optional) PV forecast.
 Details and the full option reference: [docs/configuration.md](docs/configuration.md).
 
-Two features live only in the options menu (*Configure* on the integration)
+Three features live only in the options menu (*Configure* on the integration)
 and are off until you switch them on:
 
 * **Cold-weather charging** — the planner accounts for the reduced charge
@@ -89,6 +89,12 @@ and are off until you switch them on:
   slots), every control script receives it as `reserve_soc`, and an entity can
   raise it at runtime (e.g. on a storm warning). An optional fallback blocks
   discharging at the reserve for inverters without a reserve setting.
+* **EV charging & other controllers** — wallbox energy is taken out of the
+  consumption history so the forecast learns the house without the car. While
+  an EV charges, the pilot can block discharging, or pause entirely while
+  another controller such as evcc holds the battery, and re-apply its plan
+  afterwards. Works with any wallbox; evcc is pre-filled when found. See
+  [docs/ev-charging.md](docs/ev-charging.md).
 
 > **Safety first:** the integration starts **disabled** and in **dry-run**
 > mode. Watch the planned actions in the log and the plan sensor for a day or
@@ -142,7 +148,7 @@ last plan was built from (SOC, price range, battery limits, tunables, charge
 factor, backup reserve), the first day of the plan, the learned cold-weather
 charge bands, the pilot's savings ledger, and the executor's last 50
 decisions (applied, unchanged, dry run, disabled, reserve updated, reserve
-block, script failed, no valid plan — each with a reason) — attach that to
+block, EV block, external control, script failed, no valid plan — each with a reason) — attach that to
 any issue report.
 
 For a deeper look, switch on debug logging (device page → *Enable debug

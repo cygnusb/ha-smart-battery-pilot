@@ -20,11 +20,13 @@ from .const import (
     ACTION_CHARGE,
     ACTION_EXPORT,
     ACTION_IDLE,
+    CONF_EXTERNAL_CONTROL_ENTITY,
     CONF_SCRIPT_AUTO,
     CONF_SCRIPT_CHARGE,
     CONF_SCRIPT_EXPORT,
     CONF_SCRIPT_IDLE,
     CONF_SOC_ENTITY,
+    EV_POLICY_BLOCK,
     SCRIPT_CALL_TIMEOUT_SECONDS,
 )
 from .coordinator import ChargeReading, SBPCoordinator
@@ -35,6 +37,11 @@ _LOGGER = logging.getLogger(__name__)
 # The discharge block releases this many SOC points above the reserve, so a
 # battery hovering at the reserve does not flip the inverter every minute.
 RESERVE_RELEASE_MARGIN = 2.0
+
+# The EV block engages above the threshold and releases below this share of
+# it: evcc and most wallboxes ramp and pause between phases, and every flip is
+# a script call and an inverter write.
+EV_RELEASE_SHARE = 0.5
 
 # Decisions kept for the diagnostics dump. Identical consecutive ones collapse
 # into a single entry, so this covers many hours of steady operation.
@@ -67,6 +74,17 @@ class PlanExecutor:
         # that engages it between coordinator refreshes.
         self._reserve_blocking = False
         self._unsub_soc = None
+        # Discharge block while a wallbox draws (EV policy "block"), and the
+        # listener on the wallbox power and external-control entities.
+        self._ev_blocking = False
+        self._unsub_ev = None
+        # Another controller had the battery. Whatever it left behind is not
+        # what `last_applied` says, so the next run sends its action even when
+        # the plan did not change. Not persisted: a restart re-applies anyway
+        # as soon as the planned action differs, and the controller re-asserts
+        # its own mode on its next cycle.
+        self._external_active = False
+        self._reassert = False
         # What the executor decided and why, newest last. A support report
         # rarely comes with debug logging switched on; the diagnostics dump
         # carries this instead.
@@ -139,6 +157,14 @@ class PlanExecutor:
             self._unsub_soc = async_track_state_change_event(
                 self.hass, [soc_entity], self._handle_soc_event
             )
+        watched = list(self.coordinator.ev_power_entities()) if self._ev_block_enabled() else []
+        external = self.coordinator.conf(CONF_EXTERNAL_CONTROL_ENTITY)
+        if external:
+            watched.append(external)
+        if watched:
+            self._unsub_ev = async_track_state_change_event(
+                self.hass, watched, self._handle_ev_event
+            )
         await self.async_apply_current()
 
     async def async_stop(self, restore_auto: bool = True) -> None:
@@ -152,6 +178,9 @@ class PlanExecutor:
         if self._unsub_soc:
             self._unsub_soc()
             self._unsub_soc = None
+        if self._unsub_ev:
+            self._unsub_ev()
+            self._unsub_ev = None
         async with self._lock:
             self._stopped = True
             self.coordinator.charge_observation(None)
@@ -217,6 +246,39 @@ class PlanExecutor:
             return soc < reserve + RESERVE_RELEASE_MARGIN
         return soc <= reserve
 
+    def _ev_block_enabled(self) -> bool:
+        return self.coordinator.ev_policy() == EV_POLICY_BLOCK and bool(
+            self.coordinator.ev_power_entities()
+        )
+
+    def _ev_block_wanted(self, power_w: float | None, blocking: bool) -> bool:
+        """Whether the EV block should be in force at `power_w` (hysteresis)."""
+        if not self._ev_block_enabled() or power_w is None:
+            return False
+        threshold = self.coordinator.ev_threshold_w()
+        if blocking:
+            return power_w >= threshold * EV_RELEASE_SHARE
+        return power_w > threshold
+
+    @callback
+    def _handle_ev_event(self, _event) -> None:
+        """Re-apply when another controller takes or hands back the battery,
+        or when the EV block would engage or release."""
+        coordinator = self.coordinator
+        if not coordinator.enabled or coordinator.dry_run:
+            return
+        if coordinator.external_control_active() != self._external_active:
+            _LOGGER.debug("External control changed - re-applying")
+            self._queue_apply()
+            return
+        slot = self.current_slot()
+        if slot is None or slot.action != ACTION_AUTO:
+            return
+        power = coordinator.ev_power_w()
+        if self._ev_block_wanted(power, self._ev_blocking) != self._ev_blocking:
+            _LOGGER.debug("EV power %s W crosses the block threshold - re-applying", power)
+            self._queue_apply()
+
     @callback
     def _handle_coordinator_update(self) -> None:
         self._queue_apply()
@@ -277,6 +339,7 @@ class PlanExecutor:
         # Re-established below for an auto slot only; any other outcome ends
         # the block, so a stale flag cannot drive the SOC listener.
         was_blocking, self._reserve_blocking = self._reserve_blocking, False
+        was_ev_blocking, self._ev_blocking = self._ev_blocking, False
         slot = self.current_slot()
         if slot is None or not self._plan_is_live():
             reason = self._why_no_live_plan()
@@ -318,15 +381,32 @@ class PlanExecutor:
             self._record("dry_run", slot)
             return
 
-        blocked = False
+        self._external_active = coordinator.external_control_active()
+        if self._external_active:
+            # Another controller (evcc holding the battery for a car, an
+            # automation ...) has the inverter. Writing now would only start a
+            # tug of war; the plan resumes when it lets go.
+            _LOGGER.debug("External control active - leaving slot action '%s' to it", slot.action)
+            self._reassert = True
+            self._record("external_control", slot)
+            return
+
+        blocked: str | None = None
         if action == ACTION_AUTO:
             self._reserve_blocking = self._block_wanted(coordinator.live_soc(), was_blocking)
+            self._ev_blocking = self._ev_block_wanted(coordinator.ev_power_w(), was_ev_blocking)
             if self._reserve_blocking:
                 _LOGGER.debug("SOC at the backup reserve - blocking discharge instead of auto")
                 action = ACTION_IDLE
-                blocked = True
+                blocked = "reserve_block"
+            elif self._ev_blocking:
+                _LOGGER.debug("EV charging - blocking discharge instead of auto")
+                action = ACTION_IDLE
+                blocked = "ev_block"
 
-        if action == self._last_applied and action not in (
+        if self._reassert:
+            _LOGGER.debug("External control ended - re-sending action '%s'", action)
+        elif action == self._last_applied and action not in (
             ACTION_CHARGE,
             ACTION_EXPORT,
         ):
@@ -348,15 +428,17 @@ class PlanExecutor:
                 action,
                 slot.start.isoformat(),
             )
-            self._record("reserve_block" if blocked else "unchanged", slot)
+            self._record(blocked or "unchanged", slot)
             return
 
         if await self._call_script(action, slot.power_w):
             await self._remember(action)
-            self._record("reserve_block" if blocked else "applied", slot)
+            self._reassert = False
+            self._record(blocked or "applied", slot)
             return
         if action != ACTION_AUTO and await self._call_script(ACTION_AUTO, 0.0):
             await self._remember(ACTION_AUTO)
+            self._reassert = False
             self._record("failed_fell_back_to_auto", slot)
             return
         self._record("failed", slot)

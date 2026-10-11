@@ -173,6 +173,12 @@ sbp_force_discharge:
 touches. The alternative, StorCtl_Mod `2` with OutWRte `0` (EVCC's *hold*),
 blocks discharging just as well but is undone when EVCC rewrites StorCtl_Mod.
 
+The reverse happens too: while EVCC holds the battery for a car (StorCtl_Mod
+`2`, OutWRte `0`), a pilot that keeps writing would fight it. With EVCC on the
+same inverter, set the EV section to policy *External* with
+`sensor.evcc_battery_mode_value`. The pilot then pauses during EVCC's hold and
+re-applies its own mode afterwards ([EV charging](../ev-charging.md)).
+
 `sbp_force_discharge` follows from the register semantics above (negative
 InWRte, the mirror image of the verified charge script) but has not been
 tested on the reference installation. Try it in a short manual run before you

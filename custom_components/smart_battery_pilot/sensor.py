@@ -18,6 +18,7 @@ from .const import (
     CONF_CAPACITY_KWH,
     CONF_DISCHARGE_MODE,
     CONF_EFFICIENCY,
+    CONF_EXTERNAL_CONTROL_ENTITY,
     CONF_FEED_IN_TARIFF,
     CONF_MAX_SOC,
     CONF_MIN_SOC,
@@ -101,6 +102,9 @@ class CurrentActionSensor(SBPEntity, SensorEntity):
             "charge_power_w": slot.power_w,
             "enabled": self.coordinator.enabled,
             "dry_run": self.coordinator.dry_run,
+            # The plan says what the pilot wants; while another controller
+            # has the battery, the inverter does what that one wants.
+            "external_control_active": self.coordinator.external_control_active(),
         }
 
 
@@ -357,6 +361,9 @@ class ConfigSensor(SBPEntity, SensorEntity):
             "reserve_soc": self._reserve().get("soc"),
             "reserve_source": self._reserve().get("source", "off"),
             "reserve_block_discharge": self.coordinator.reserve_block_enabled(),
+            "ev_policy": self.coordinator.ev_policy(),
+            "ev_power_entities": self.coordinator.ev_power_entities(),
+            "external_control_entity": c(CONF_EXTERNAL_CONTROL_ENTITY),
             "dry_run": self.coordinator.dry_run,
         }
 

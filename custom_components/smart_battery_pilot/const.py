@@ -61,6 +61,17 @@ CONF_BACKUP_RESERVE_ENTITY = "backup_reserve_entity"
 CONF_RESERVE_REFILL_HOURS = "reserve_refill_hours"
 CONF_RESERVE_BLOCK_DISCHARGE = "reserve_block_discharge"
 
+# Options section: EV charging and other controllers (not part of the initial setup)
+CONF_EV_POWER_ENTITIES = "ev_power_entities"
+CONF_EV_BATTERY_POLICY = "ev_battery_policy"
+CONF_EV_THRESHOLD_W = "ev_threshold_w"
+CONF_EXTERNAL_CONTROL_ENTITY = "external_control_entity"
+
+# What the house battery does while an EV charges.
+EV_POLICY_ALLOW = "allow"  # nothing special - the inverter may discharge into the car
+EV_POLICY_BLOCK = "block"  # the pilot blocks discharging while the wallbox draws
+EV_POLICY_EXTERNAL = "external"  # another controller (e.g. evcc) owns the battery then
+
 # Options
 CONF_SPREAD_THRESHOLD = "spread_threshold"  # EUR/kWh min price spread
 CONF_DISCHARGE_MODE = "discharge_mode"
@@ -86,6 +97,8 @@ DEFAULT_DERATING_CURVE = (10, 20, 50, 80, 100)
 DEFAULT_BACKUP_RESERVE = 0  # at or below min_soc: inactive
 DEFAULT_RESERVE_REFILL_HOURS = 12
 DEFAULT_RESERVE_BLOCK_DISCHARGE = False
+DEFAULT_EV_BATTERY_POLICY = EV_POLICY_ALLOW
+DEFAULT_EV_THRESHOLD_W = 1000
 
 # --- Plan actions ---
 ACTION_CHARGE = "charge"

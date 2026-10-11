@@ -203,6 +203,7 @@
           "pv": "Päikeseenergia prognoos",
           "derating": "Laadimine külmaga",
           "reserve": "Varutoite reserv",
+          "ev": "Elektriauto laadimine ja muud juhtimised",
           "apply": "💾 Salvesta & sulge"
         },
         "description": "Allolevate jaotiste muudatused kogutakse kokku ja salvestatakse alles nupuga „Salvesta & sulge”."
@@ -242,6 +243,21 @@
           "reserve_refill_hours": "Tunnid, mille jooksul reservist madalam SOC taastatakse: esmalt päikeseenergiaga, ülejäänu odavaimates võrguperioodides.",
           "reserve_block_discharge": "Ainult ilma oma reservi seadeta inverteritele: piloot lülitub 'keela tühjendamine' režiimile, kui SOC jõuab reservini. Toimib ainult siis, kui Home Assistant töötab."
         }
+      },
+      "ev": {
+        "title": "Elektriauto laadimine ja muud juhtimised",
+        "data": {
+          "ev_power_entities": "Laadija võimsusandurid (valikuline)",
+          "ev_battery_policy": "Kodu aku elektriauto laadimise ajal",
+          "ev_threshold_w": "Elektriauto laadimise lävi",
+          "external_control_entity": "Välise juhtimise olem (valikuline)"
+        },
+        "data_description": {
+          "ev_power_entities": "Üks või mitu andurit (W või kW) iga laadija tarbitava võimsusega, nt evcc laadimisvõimsus iga laadimispunkti kohta. Nende energia arvatakse tarbimisajaloost maha, et prognoos õpiks maja ilma autota.",
+          "ev_battery_policy": "Luba: midagi erilist, inverter võib autosse tühjeneda. Blokeeri: piloot blokeerib tühjenemise, kuni laadijad tarbivad üle läve. Väline: teine juhtimine, näiteks evcc, otsustab, kuni see on aktiivne - piloot peatub ja rakendab hiljem oma plaani uuesti.",
+          "ev_threshold_w": "Selle laadijate koguvõimsuse ületamisel rakendub poliitika 'Blokeeri'; see vabaneb alla poole sellest, et võimsuse muutmine ja faaside vahetus inverterit edasi-tagasi ei lülitaks.",
+          "external_control_entity": "Näitab, millal aku on teise juhtimise käes: sisse lülitatud binaarandur, abiline või lüliti või režiimiandur nagu evcc aku režiim (sensor.evcc_battery_mode_value), kui see näitab midagi muud kui 'normal'. Kuni see on aktiivne, ei kutsu piloot ühtegi skripti."
+        }
       }
     },
     "error": {
@@ -252,7 +268,9 @@
       "export_spread_unreachable": "Müügirežiim ei saa nende väärtustega midagi teha: müügihind on minimaalse hinnavahemiku tasemel või allpool, seega ei kvalifitseeru ükski tund kunagi. Tõsta müügihinda, langeta vahemikku või määra müügihinnaks 0, et müüa turuhinnaga.",
       "export_script_missing": "Ekspordirežiim vajab sunnitud tühjendamise skripti. Lisa see juhtimisskriptide sammus või määra tühjendusrežiim tagasi omatarbeks.",
       "derating_not_monotonic": "Laadimisvõimsus ei tohi temperatuuri tõustes langeda. Kontrolli liugureid.",
-      "derating_needs_temperature": "Laadimine külmaga vajab aku temperatuuri olemit."
+      "derating_needs_temperature": "Laadimine külmaga vajab aku temperatuuri olemit.",
+      "ev_block_needs_power": "Poliitika 'Blokeeri' vajab vähemalt üht laadija võimsusandurit.",
+      "ev_external_needs_entity": "Poliitika 'Väline' vajab välise juhtimise olemit."
     }
   },
   "selector": {
@@ -260,6 +278,13 @@
       "options": {
         "self_consumption": "Ainult omatarbimine",
         "export": "Omatarbimine + müük võrku tipphindadega"
+      }
+    },
+    "ev_battery_policy": {
+      "options": {
+        "allow": "Luba autosse tühjenemine",
+        "block": "Blokeeri tühjenemine elektriauto laadimise ajal",
+        "external": "Jäta välisele juhtimisele (nt evcc)"
       }
     }
   },

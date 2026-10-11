@@ -203,6 +203,7 @@
           "pv": "PV-prognose",
           "derating": "Laden bij kou",
           "reserve": "Noodstroomreserve",
+          "ev": "EV-laden & andere regelaars",
           "apply": "💾 Opslaan & sluiten"
         },
         "description": "Wijzigingen in de secties hieronder worden verzameld en pas via “Opslaan & sluiten” bewaard."
@@ -242,6 +243,21 @@
           "reserve_refill_hours": "Uren waarbinnen een SOC onder de reserve weer wordt aangevuld: eerst met zonnestroom, de rest in de goedkoopste netperiodes.",
           "reserve_block_discharge": "Alleen voor omvormers zonder eigen reserve-instelling: de piloot schakelt naar 'ontladen blokkeren' zodra de SOC de reserve bereikt. Werkt alleen zolang Home Assistant draait."
         }
+      },
+      "ev": {
+        "title": "EV-laden & andere regelaars",
+        "data": {
+          "ev_power_entities": "Vermogenssensoren van laadpalen (optioneel)",
+          "ev_battery_policy": "Thuisbatterij terwijl een EV laadt",
+          "ev_threshold_w": "Drempel voor EV-laden",
+          "external_control_entity": "Entiteit voor externe regeling (optioneel)"
+        },
+        "data_description": {
+          "ev_power_entities": "Eén of meer sensoren (W of kW) met wat elke laadpaal trekt, bijv. het laadvermogen per laadpunt van evcc. Hun energie wordt uit de verbruiksgeschiedenis gehaald, zodat de voorspelling het huis zonder de auto leert.",
+          "ev_battery_policy": "Toestaan: niets bijzonders, de omvormer mag in de auto ontladen. Blokkeren: de piloot blokkeert ontladen zolang de laadpalen meer dan de drempel trekken. Extern: een andere regelaar zoals evcc beslist zolang die actief is - de piloot pauzeert en past daarna zijn plan opnieuw toe.",
+          "ev_threshold_w": "Boven dit totale laadpaalvermogen treedt het beleid 'Blokkeren' in werking; het laat los onder de helft ervan, zodat op- en afregelen en faseschakelen de omvormer niet heen en weer schakelen.",
+          "external_control_entity": "Geeft aan wanneer een andere regelaar de batterij heeft: een binaire sensor, helper of schakelaar die aan staat, of een modussensor zoals de batterijmodus van evcc (sensor.evcc_battery_mode_value) zodra die iets anders dan 'normal' meldt. Zolang die actief is, roept de piloot geen script aan."
+        }
       }
     },
     "error": {
@@ -252,7 +268,9 @@
       "export_spread_unreachable": "De terugleverstand kan met deze waarden niets doen: de terugleververgoeding ligt op of onder de minimale prijsspread, waardoor geen enkel tijdvak ooit in aanmerking komt. Verhoog de vergoeding, verlaag de spread, of zet de vergoeding op 0 om tegen de marktprijs terug te leveren.",
       "export_script_missing": "De exportmodus heeft een script voor geforceerd ontladen nodig. Stel er een in bij de stuurscripts, of zet de ontlaadmodus terug op eigen verbruik.",
       "derating_not_monotonic": "Het laadvermogen mag niet dalen als de temperatuur stijgt. Controleer de schuifregelaars.",
-      "derating_needs_temperature": "Laden bij kou heeft een entiteit voor de batterijtemperatuur nodig."
+      "derating_needs_temperature": "Laden bij kou heeft een entiteit voor de batterijtemperatuur nodig.",
+      "ev_block_needs_power": "Het beleid 'Blokkeren' heeft minstens één vermogenssensor van een laadpaal nodig.",
+      "ev_external_needs_entity": "Het beleid 'Extern' heeft een entiteit voor externe regeling nodig."
     }
   },
   "selector": {
@@ -260,6 +278,13 @@
       "options": {
         "self_consumption": "Alleen eigen verbruik",
         "export": "Eigen verbruik + teruglevering bij piekprijzen"
+      }
+    },
+    "ev_battery_policy": {
+      "options": {
+        "allow": "Ontladen in de auto toestaan",
+        "block": "Ontladen blokkeren terwijl de EV laadt",
+        "external": "Overlaten aan een externe regelaar (bijv. evcc)"
       }
     }
   },

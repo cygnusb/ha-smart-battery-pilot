@@ -203,6 +203,7 @@
           "pv": "PV-Prognose",
           "derating": "Laden bei Kälte",
           "reserve": "Notstrom-Reserve",
+          "ev": "E-Auto-Laden & andere Steuerungen",
           "apply": "💾 Speichern & schließen"
         },
         "description": "Änderungen in den Unterpunkten werden gesammelt und erst über „Speichern & schließen“ übernommen."
@@ -242,6 +243,21 @@
           "reserve_refill_hours": "Stunden, in denen ein SoC unter der Reserve wieder aufgefüllt wird: zuerst mit PV, der Rest in den günstigsten Netz-Slots.",
           "reserve_block_discharge": "Nur für Wechselrichter ohne eigene Reserve-Einstellung: Der Pilot schaltet auf „Entladen sperren“, sobald der SoC die Reserve erreicht. Wirkt nur, solange Home Assistant läuft."
         }
+      },
+      "ev": {
+        "title": "E-Auto-Laden & andere Steuerungen",
+        "data": {
+          "ev_power_entities": "Wallbox-Leistungssensoren (optional)",
+          "ev_battery_policy": "Hausbatterie während das E-Auto lädt",
+          "ev_threshold_w": "Schwelle für E-Auto-Laden",
+          "external_control_entity": "Entität für Fremdsteuerung (optional)"
+        },
+        "data_description": {
+          "ev_power_entities": "Ein oder mehrere Sensoren (W oder kW) mit der Leistung jeder Wallbox, z. B. die Ladeleistung je evcc-Ladepunkt. Ihre Energie wird aus dem Verbrauchsverlauf herausgerechnet, damit die Prognose das Haus ohne das Auto lernt.",
+          "ev_battery_policy": "Erlauben: nichts Besonderes, der Wechselrichter darf ins Auto entladen. Sperren: der Pilot blockiert das Entladen, solange die Wallboxen mehr als die Schwelle ziehen. Extern: eine andere Steuerung wie evcc entscheidet, solange sie aktiv ist - der Pilot pausiert und setzt danach seinen Plan wieder durch.",
+          "ev_threshold_w": "Ab dieser gesamten Wallbox-Leistung greift die Richtlinie 'Sperren'; sie löst unter der Hälfte davon wieder, damit Rampen und Phasenumschaltung den Wechselrichter nicht hin- und herschalten.",
+          "external_control_entity": "Zeigt an, wann eine andere Steuerung die Batterie hat: ein Binärsensor, Helfer oder Schalter, der an ist, oder ein Modus-Sensor wie evccs Batteriemodus (sensor.evcc_battery_mode_value), sobald er etwas anderes als 'normal' meldet. Solange sie aktiv ist, ruft der Pilot kein Skript auf."
+        }
       }
     },
     "error": {
@@ -252,7 +268,9 @@
       "export_spread_unreachable": "Der Einspeise-Modus kann mit diesen Werten nichts tun: Die Einspeisevergütung liegt auf oder unter dem minimalen Preisspread, damit qualifiziert sich kein Slot. Vergütung erhöhen, Spread senken oder die Vergütung auf 0 setzen, um zum Marktpreis einzuspeisen.",
       "export_script_missing": "Der Export-Modus braucht ein Script zum erzwungenen Entladen. Hinterlege eines bei den Steuerungs-Scripts, oder stelle den Entlademodus zurück auf Eigenverbrauch.",
       "derating_not_monotonic": "Die Ladeleistung darf mit steigender Temperatur nicht sinken. Bitte die Schieberegler prüfen.",
-      "derating_needs_temperature": "Laden bei Kälte braucht eine Entität für die Batterietemperatur."
+      "derating_needs_temperature": "Laden bei Kälte braucht eine Entität für die Batterietemperatur.",
+      "ev_block_needs_power": "Die Richtlinie 'Sperren' braucht mindestens einen Wallbox-Leistungssensor.",
+      "ev_external_needs_entity": "Die Richtlinie 'Extern' braucht eine Entität für die Fremdsteuerung."
     }
   },
   "selector": {
@@ -260,6 +278,13 @@
       "options": {
         "self_consumption": "Nur Eigenverbrauch",
         "export": "Eigenverbrauch + Netzeinspeisung bei Spitzenpreisen"
+      }
+    },
+    "ev_battery_policy": {
+      "options": {
+        "allow": "Entladen ins Auto erlauben",
+        "block": "Entladen sperren, während das E-Auto lädt",
+        "external": "Einer externen Steuerung überlassen (z. B. evcc)"
       }
     }
   },

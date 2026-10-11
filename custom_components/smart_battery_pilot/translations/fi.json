@@ -203,6 +203,7 @@
           "pv": "Aurinkoennuste",
           "derating": "Lataus kylmällä",
           "reserve": "Varavoimareservi",
+          "ev": "Sähköauton lataus ja muut ohjaukset",
           "apply": "💾 Tallenna & sulje"
         },
         "description": "Alla olevien osioiden muutokset kerätään ja tallennetaan vasta painikkeella ”Tallenna & sulje”."
@@ -242,6 +243,21 @@
           "reserve_refill_hours": "Tunnit, joiden kuluessa reservin alle jäänyt SOC nostetaan takaisin: ensin aurinkosähköllä, loput halvimmilla verkkojaksoilla.",
           "reserve_block_discharge": "Vain inverttereille, joissa ei ole omaa reserviasetusta: pilotti vaihtaa tilaan 'estä purku', kun SOC saavuttaa reservin. Toimii vain Home Assistantin ollessa käynnissä."
         }
+      },
+      "ev": {
+        "title": "Sähköauton lataus ja muut ohjaukset",
+        "data": {
+          "ev_power_entities": "Latausaseman tehoanturit (valinnainen)",
+          "ev_battery_policy": "Kodin akku sähköauton latautuessa",
+          "ev_threshold_w": "Sähköauton latauksen kynnys",
+          "external_control_entity": "Ulkoisen ohjauksen entiteetti (valinnainen)"
+        },
+        "data_description": {
+          "ev_power_entities": "Yksi tai useampi anturi (W tai kW), joka kertoo kunkin latausaseman tehon, esim. evcc:n lataustehon latauspisteittäin. Niiden energia vähennetään kulutushistoriasta, jotta ennuste oppii talon ilman autoa.",
+          "ev_battery_policy": "Salli: ei mitään erityistä, invertteri saa purkaa autoon. Estä: pilotti estää purkamisen, kun latausasemat ottavat yli kynnyksen. Ulkoinen: toinen ohjaus, kuten evcc, päättää sen ollessa aktiivinen - pilotti pitää tauon ja palauttaa suunnitelmansa jälkeenpäin.",
+          "ev_threshold_w": "Tämän latausasemien kokonaistehon ylittyessä 'Estä'-käytäntö kytkeytyy; se vapautuu alle puolikkaan, jotta tehon säätö ja vaiheiden vaihto eivät kytke invertteriä edestakaisin.",
+          "external_control_entity": "Kertoo, milloin akku on toisen ohjauksen hallinnassa: päällä oleva binäärianturi, apuri tai kytkin, tai tila-anturi kuten evcc:n akkutila (sensor.evcc_battery_mode_value), kun se näyttää muuta kuin 'normal'. Sen ollessa aktiivinen pilotti ei kutsu skriptejä."
+        }
       }
     },
     "error": {
@@ -252,7 +268,9 @@
       "export_spread_unreachable": "Myyntitila ei voi tehdä näillä arvoilla mitään: syöttötariffi on pienimmän hintaspreadin tasolla tai sen alle, joten yksikään tunti ei voi koskaan täyttää ehtoa. Nosta tariffia, laske spreadia, tai aseta tariffi arvoon 0 myydäksesi markkinahintaan.",
       "export_script_missing": "Vientitila vaatii pakotetun purun skriptin. Lisää sellainen ohjausskripteihin tai vaihda purkutila takaisin omaan käyttöön.",
       "derating_not_monotonic": "Lataustehon ei pidä laskea lämpötilan noustessa. Tarkista liukusäätimet.",
-      "derating_needs_temperature": "Lataus kylmällä vaatii akun lämpötilan entiteetin."
+      "derating_needs_temperature": "Lataus kylmällä vaatii akun lämpötilan entiteetin.",
+      "ev_block_needs_power": "'Estä'-käytäntö tarvitsee vähintään yhden latausaseman tehoanturin.",
+      "ev_external_needs_entity": "'Ulkoinen'-käytäntö tarvitsee ulkoisen ohjauksen entiteetin."
     }
   },
   "selector": {
@@ -260,6 +278,13 @@
       "options": {
         "self_consumption": "Vain oma käyttö",
         "export": "Oma käyttö + myynti verkkoon huippuhinnoilla"
+      }
+    },
+    "ev_battery_policy": {
+      "options": {
+        "allow": "Salli purkaminen autoon",
+        "block": "Estä purkaminen sähköauton latautuessa",
+        "external": "Jätä ulkoiselle ohjaukselle (esim. evcc)"
       }
     }
   },

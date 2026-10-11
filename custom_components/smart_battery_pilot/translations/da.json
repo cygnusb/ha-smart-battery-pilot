@@ -203,6 +203,7 @@
           "pv": "Solcelleprognose",
           "derating": "Opladning i kulde",
           "reserve": "Nødstrømsreserve",
+          "ev": "Elbilsopladning & andre styringer",
           "apply": "💾 Gem & luk"
         },
         "description": "Ændringer i afsnittene nedenfor samles og gemmes først via »Gem & luk«."
@@ -242,6 +243,21 @@
           "reserve_refill_hours": "Timer, inden for hvilke en SOC under reserven bringes op igen: først med solceller, resten i de billigste netperioder.",
           "reserve_block_discharge": "Kun til invertere uden egen reserveindstilling: piloten skifter til 'spær afladning', når SOC når reserven. Virker kun, mens Home Assistant kører."
         }
+      },
+      "ev": {
+        "title": "Elbilsopladning & andre styringer",
+        "data": {
+          "ev_power_entities": "Effektsensorer for ladebokse (valgfri)",
+          "ev_battery_policy": "Husbatteri mens en elbil lader",
+          "ev_threshold_w": "Tærskel for elbilsopladning",
+          "external_control_entity": "Entitet for ekstern styring (valgfri)"
+        },
+        "data_description": {
+          "ev_power_entities": "En eller flere sensorer (W eller kW) med det, hver ladeboks trækker, f.eks. evcc's ladeeffekt pr. ladepunkt. Deres energi trækkes ud af forbrugshistorikken, så prognosen lærer huset uden bilen.",
+          "ev_battery_policy": "Tillad: intet særligt, inverteren må aflade til bilen. Bloker: piloten blokerer afladning, mens ladeboksene trækker mere end tærsklen. Ekstern: en anden styring som evcc bestemmer, mens den er aktiv - piloten holder pause og genanvender sin plan bagefter.",
+          "ev_threshold_w": "Over denne samlede ladeeffekt træder politikken 'Bloker' i kraft; den slipper under halvdelen, så rampning og faseskift ikke får inverteren til at skifte frem og tilbage.",
+          "external_control_entity": "Viser, hvornår en anden styring har batteriet: en binær sensor, hjælper eller kontakt, der er tændt, eller en tilstandssensor som evcc's batteritilstand (sensor.evcc_battery_mode_value), når den viser andet end 'normal'. Mens den er aktiv, kalder piloten ingen script."
+        }
       }
     },
     "error": {
@@ -252,7 +268,9 @@
       "export_spread_unreachable": "Salgstilstanden kan ikke gøre noget med disse værdier: afregningsprisen ligger på eller under det mindste prisspread, så ingen time kan nogensinde kvalificere sig. Hæv afregningsprisen, sænk spreadet, eller sæt afregningsprisen til 0 for at sælge til markedspris.",
       "export_script_missing": "Eksporttilstand kræver et script til tvungen afladning. Tilføj et under styringsscripts, eller sæt afladningstilstanden tilbage til eget forbrug.",
       "derating_not_monotonic": "Ladeeffekten må ikke falde, når temperaturen stiger. Kontrollér skyderne.",
-      "derating_needs_temperature": "Opladning i kulde kræver en entitet for batteritemperaturen."
+      "derating_needs_temperature": "Opladning i kulde kræver en entitet for batteritemperaturen.",
+      "ev_block_needs_power": "Politikken 'Bloker' kræver mindst én effektsensor for en ladeboks.",
+      "ev_external_needs_entity": "Politikken 'Ekstern' kræver en entitet for ekstern styring."
     }
   },
   "selector": {
@@ -260,6 +278,13 @@
       "options": {
         "self_consumption": "Kun egetforbrug",
         "export": "Egetforbrug + salg til elnettet ved spidspriser"
+      }
+    },
+    "ev_battery_policy": {
+      "options": {
+        "allow": "Tillad afladning til bilen",
+        "block": "Bloker afladning, mens elbilen lader",
+        "external": "Overlad det til en ekstern styring (f.eks. evcc)"
       }
     }
   },
