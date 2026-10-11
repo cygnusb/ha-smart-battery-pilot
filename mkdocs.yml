@@ -28,6 +28,8 @@ nav:
   - Examples:
       - examples/README.md
       - BYD + Fronius Gen24: examples/byd-fronius-gen24.md
+  # Built from the GitHub releases by tools/mkdocs_hooks.py.
+  - Changelog: changelog.md
 
 # A broken link or anchor fails `mkdocs build --strict`, and with it CI.
 validation:

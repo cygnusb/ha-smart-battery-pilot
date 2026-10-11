@@ -152,8 +152,8 @@ jobs:
           PY
 
   docs:
-    # The pages the site builds from docs/. Strict, so a link to a missing
-    # page or anchor fails here, before it reaches the site.
+    # The pages the site builds from docs/ and the release notes. Strict, so
+    # a link to a missing page or anchor fails here, before it reaches the site.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -164,6 +164,7 @@ jobs:
       - run: mkdocs build --strict
         env:
           NO_MKDOCS_2_WARNING: "true"
+          GITHUB_TOKEN: ${{ github.token }}
 
   lint:
     runs-on: ubuntu-latest

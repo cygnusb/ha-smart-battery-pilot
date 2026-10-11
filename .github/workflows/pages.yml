@@ -3,7 +3,8 @@ name: Pages
 # The project site at https://cygnusb.github.io/ha-smart-battery-pilot/.
 # site/ holds the page; the logo and the card screenshots are copied in from
 # assets/, so the README and the site always show the same images. The pages
-# under /docs/ are built from docs/ with MkDocs (mkdocs.yml).
+# under /docs/ are built from docs/ with MkDocs (mkdocs.yml), the changelog
+# page among them from the GitHub releases.
 
 on:
   push:
@@ -16,23 +17,38 @@ on:
       - "tools/mkdocs_hooks.py"
       - "tools/docs-requirements.txt"
       - ".github/workflows/pages.yml"
+  # A new or edited release changes the changelog page.
+  release:
+    types: [published, edited, deleted]
   workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  deploy:
+  redeploy-from-main:
+    # A release run belongs to the tag: it would build the site as of that
+    # commit, and the github-pages environment only lets main deploy. So it
+    # starts a run on main instead.
+    if: github.event_name == 'release'
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - run: gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" --ref main
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  deploy:
+    if: github.event_name != 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: true
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -53,6 +69,7 @@ jobs:
         run: mkdocs build --strict
         env:
           NO_MKDOCS_2_WARNING: "true"
+          GITHUB_TOKEN: ${{ github.token }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
