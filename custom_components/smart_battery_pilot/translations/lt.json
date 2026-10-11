@@ -250,13 +250,17 @@
           "ev_power_entities": "Įkrovimo stotelių galios jutikliai (neprivaloma)",
           "ev_battery_policy": "Namų baterija, kol kraunasi elektromobilis",
           "ev_threshold_w": "Elektromobilio įkrovimo slenkstis",
-          "external_control_entity": "Išorinio valdymo objektas (neprivaloma)"
+          "external_control_entity": "Išorinio valdymo objektas (neprivaloma)",
+          "ev_source": "Suplanuoti elektromobilio įkrovimai",
+          "evcc_url": "evcc adresas"
         },
         "data_description": {
           "ev_power_entities": "Vienas ar keli jutikliai (W arba kW), rodantys kiekvienos įkrovimo stotelės galią, pvz., evcc įkrovimo galia kiekvienam įkrovimo taškui. Jų energija atimama iš suvartojimo istorijos, kad prognozė išmoktų namą be automobilio.",
           "ev_battery_policy": "Leisti: nieko ypatingo, keitiklis gali iškrauti į automobilį. Blokuoti: pilotas blokuoja iškrovimą, kol stotelės ima daugiau nei slenkstis. Išorinis: kitas valdiklis, pvz., evcc, sprendžia, kol jis aktyvus - pilotas sustoja ir vėliau vėl pritaiko savo planą.",
           "ev_threshold_w": "Viršijus šią bendrą stotelių galią, įsijungia politika 'Blokuoti'; ji atsileidžia nukritus žemiau pusės, kad galios kitimas ir fazių perjungimas nevartytų keitiklio pirmyn atgal.",
-          "external_control_entity": "Rodo, kada baterija yra kito valdiklio žinioje: įjungtas dvejetainis jutiklis, pagalbininkas ar jungiklis arba evcc baterijos režimo kodo jutiklis (sensor.evcc_battery_mode), kai jis rodo hold, charge arba holdcharge. Bet kuri kita būsena laikoma neaktyvia. Kol jis aktyvus, pilotas nekviečia jokio scenarijaus."
+          "external_control_entity": "Rodo, kada baterija yra kito valdiklio žinioje: įjungtas dvejetainis jutiklis, pagalbininkas ar jungiklis arba evcc baterijos režimo kodo jutiklis (sensor.evcc_battery_mode), kai jis rodo hold, charge arba holdcharge. Bet kuri kita būsena laikoma neaktyvia. Kol jis aktyvus, pilotas nekviečia jokio scenarijaus.",
+          "ev_source": "Neprivaloma. Su evcc planas palieka vietos įkrovimams, kuriuos suplanavo evcc: įkrovimo planui, pigiam įkrovimui žemiau kainos ribos ir greitajam įkrovimui. Šiuose intervaluose baterija laikoma pagal aukščiau nurodytą politiką. Taip pat nurodykite stotelės galios jutiklius, kitaip automobilis bus skaičiuojamas du kartus, jei namų skaitiklis apima stotelę.",
+          "evcc_url": "evcc pagrindinio kompiuterio vardas arba IP adresas su prievadu (numatytasis 7070). Užpildoma iš evcc integracijos, kai ji įdiegta. Tik skaitoma, niekada nerašoma."
         }
       }
     },
@@ -270,7 +274,9 @@
       "derating_not_monotonic": "Įkrovimo galia neturi mažėti kylant temperatūrai. Patikrinkite slankiklius.",
       "derating_needs_temperature": "Įkrovimui šaltyje reikia baterijos temperatūros objekto.",
       "ev_block_needs_power": "Politikai 'Blokuoti' reikia bent vieno stotelės galios jutiklio.",
-      "ev_external_needs_entity": "Politikai 'Išorinis' reikia išorinio valdymo objekto."
+      "ev_external_needs_entity": "Politikai 'Išorinis' reikia išorinio valdymo objekto.",
+      "evcc_url_required": "Įveskite evcc adresą.",
+      "evcc_unreachable": "evcc neatsakė šiuo adresu. Patikrinkite adresą ir ar evcc veikia."
     }
   },
   "selector": {
@@ -285,6 +291,12 @@
         "allow": "Leisti iškrauti į automobilį",
         "block": "Blokuoti iškrovimą, kol kraunasi elektromobilis",
         "external": "Palikti išoriniam valdikliui (pvz., evcc)"
+      }
+    },
+    "ev_source": {
+      "options": {
+        "none": "Nėra",
+        "evcc": "evcc"
       }
     }
   },

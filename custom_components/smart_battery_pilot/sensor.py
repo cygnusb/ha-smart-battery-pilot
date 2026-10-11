@@ -180,7 +180,7 @@ class ChargePlanSensor(SBPEntity, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     # Up to ~190 slot dicts, rewritten twice an hour. Useful live, pure
     # ballast in the recorder database.
-    _unrecorded_attributes = frozenset({ATTR_SLOTS})
+    _unrecorded_attributes = frozenset({ATTR_SLOTS, "ev_sessions"})
 
     def __init__(self, coordinator: SBPCoordinator) -> None:
         super().__init__(coordinator, "charge_plan")
@@ -197,22 +197,41 @@ class ChargePlanSensor(SBPEntity, SensorEntity):
         data = self.coordinator.data
         if not data:
             return {}
+        slots = []
+        sources = data.ev_slot_sources or []
+        for index, s in enumerate(data.plan.slots):
+            slot = {
+                "start": s.start.isoformat(),
+                "end": s.end.isoformat(),
+                "action": s.action,
+                "price": round(s.price, 4),
+                "net_demand_kwh": round(s.net_demand_kwh, 3),
+                "pv_kwh": round(s.pv_kwh, 3),
+                "power_w": s.power_w,
+                "charge_power_w": s.power_w,
+                "discharge_kwh": s.discharge_kwh,
+                "soc_forecast": s.soc_forecast,
+            }
+            # EV keys only exist with an EV source, so a plan without one
+            # looks exactly as it always did.
+            if data.ev_source:
+                slot["ev_kwh"] = s.ev_kwh
+                slot["ev_source"] = sources[index] if index < len(sources) else None
+                slot["battery_blocked"] = s.battery_blocked
+            slots.append(slot)
+        ev = (
+            {
+                "ev_source": data.ev_source,
+                "ev_kwh_total": data.ev_kwh_total,
+                "ev_sessions": data.ev_sessions or [],
+                "ev_price_limit": data.ev_price_limit,
+            }
+            if data.ev_source
+            else {}
+        )
         return {
-            ATTR_SLOTS: [
-                {
-                    "start": s.start.isoformat(),
-                    "end": s.end.isoformat(),
-                    "action": s.action,
-                    "price": round(s.price, 4),
-                    "net_demand_kwh": round(s.net_demand_kwh, 3),
-                    "pv_kwh": round(s.pv_kwh, 3),
-                    "power_w": s.power_w,
-                    "charge_power_w": s.power_w,
-                    "discharge_kwh": s.discharge_kwh,
-                    "soc_forecast": s.soc_forecast,
-                }
-                for s in data.plan.slots
-            ],
+            ATTR_SLOTS: slots,
+            **ev,
             "total_slots": len(data.plan.slots),
             "grid_charge_kwh": round(data.plan.grid_charge_kwh, 2),
             "battery_discharge_kwh": round(data.plan.battery_discharge_kwh, 2),
@@ -364,6 +383,7 @@ class ConfigSensor(SBPEntity, SensorEntity):
             "ev_policy": self.coordinator.ev_policy(),
             "ev_power_entities": self.coordinator.ev_power_entities(),
             "external_control_entity": c(CONF_EXTERNAL_CONTROL_ENTITY),
+            "ev_source": self.coordinator.ev_source(),
             "dry_run": self.coordinator.dry_run,
         }
 

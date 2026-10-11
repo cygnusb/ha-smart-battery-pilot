@@ -539,3 +539,235 @@ def test_the_tooltip_is_wired_up_even_with_nothing_to_measure(listeners):
     assert "svg:pointermove" in listeners
     assert "svg:pointerleave" in listeners
     assert ".viewtog:click" in listeners
+
+
+# A fifth harness: the plan of the view harness with an EV source switched on.
+# The ev_* keys only exist when one is configured, so the same plan is drawn
+# three ways - without the keys, with the keys but nothing for the car, and
+# with a charging window - to pin down both the EV marks and that nothing
+# changes for everyone else.
+EV_HARNESS = """
+class FakeEl {
+  constructor() { this.innerHTML = ""; this.style = {}; }
+  querySelector() { return null; }
+  addEventListener() {}
+  setAttribute() {}
+  getBoundingClientRect() { return { left: 0, top: 0, width: 480, height: 300 }; }
+}
+globalThis.HTMLElement = FakeEl;
+globalThis.customElements = { get: () => undefined, define: () => {} };
+globalThis.window = globalThis;
+
+const Card = new Function(CARD_SOURCE + "\\nreturn SmartBatteryPilotCard;")();
+
+const T0 = Date.parse("2026-01-15T00:00:00Z");
+const HOUR = 3600000;
+const base = Array.from({ length: 24 }, (_, i) => {
+  const pv = i >= 8 && i <= 16 ? 4.0 : 0.0;
+  return {
+    start: new Date(T0 + i * HOUR).toISOString(),
+    end: new Date(T0 + (i + 1) * HOUR).toISOString(),
+    action: i === 3 ? "charge" : i >= 18 && i <= 20 ? "idle" : "auto",
+    price: 0.1 + (i >= 18 ? 0.5 : 0),
+    net_demand_kwh: 0.4 - pv,
+    pv_kwh: pv,
+    power_w: 3000,
+    discharge_kwh: 0,
+    soc_forecast: 40 + i,
+  };
+});
+const baseAttrs = {
+  price_adapter: "nordpool", error: null, warnings: [],
+  min_soc: 10, max_soc: 95,
+  grid_charge_kwh: 3.2, battery_discharge_kwh: 5.5,
+  updated_at: "2026-01-15T00:00:00+00:00",
+};
+// 01:00-05:00: four hours of charging with the house battery held (wide
+// enough for labels at 480px), 10:00-12:00: two hours, too narrow for one.
+const evSlots = base.map((s, i) => {
+  const held = i >= 1 && i <= 4;
+  const late = i === 10 || i === 11;
+  return Object.assign({}, s, {
+    ev_kwh: held ? 2.75 : late ? 1.0 : 0,
+    ev_source: held ? "smart_cost" : late ? (i === 10 ? "<b>later</b>" : null) : null,
+    battery_blocked: held,
+    soc_forecast: held ? 31 : s.soc_forecast,
+  });
+});
+const idleSlots = base.map((s) =>
+  Object.assign({}, s, { ev_kwh: 0, ev_source: null, battery_blocked: false })
+);
+const iso = (h) => new Date(T0 + h * HOUR).toISOString();
+const plans = {
+  plain: Object.assign({ slots: base }, baseAttrs),
+  idle: Object.assign({ slots: idleSlots }, baseAttrs, {
+    ev_source: "evcc", ev_kwh_total: 0, ev_sessions: [], ev_price_limit: 0.12,
+  }),
+  ev: Object.assign({ slots: evSlots }, baseAttrs, {
+    ev_source: "evcc", ev_kwh_total: 13.0, ev_price_limit: 0.12,
+    ev_sessions: [
+      { start: iso(-3), end: iso(-2), energy_kwh: 5.0, source: "plan" },
+      { start: iso(1), end: iso(5), energy_kwh: 12.3, source: "smart_cost" },
+    ],
+  }),
+  ev_nosessions: Object.assign({ slots: evSlots }, baseAttrs, {
+    ev_source: "evcc", ev_kwh_total: 13.0, ev_price_limit: null, ev_sessions: [],
+  }),
+};
+
+Date.now = () => T0 + 30 * 60000;
+
+const draw = (plan, view) => {
+  const card = new Card();
+  card.setConfig({ entity: "sensor.plan", view });
+  card.hass = {
+    states: { "sensor.plan": { state: "4", attributes: plan } },
+    config: { time_zone: "UTC" },
+    locale: { language: "en" },
+    language: "en",
+  };
+  return card;
+};
+
+const out = {};
+for (const [name, plan] of Object.entries(plans)) {
+  out[name] = {};
+  for (const view of ["tracks", "balance", "compact"]) {
+    const card = draw(plan, view);
+    out[name][view] = { html: card.innerHTML, panels: card._geo.panels };
+  }
+}
+const ev = draw(plans.ev, "tracks");
+const plain = draw(plans.plain, "tracks");
+out.tips = {
+  held: ev._tipRows(ev._slots[2]),
+  late: ev._tipRows(ev._slots[10]),
+  late_no_source: ev._tipRows(ev._slots[11]),
+  expensive: ev._tipRows(ev._slots[19]),
+  plain: plain._tipRows(plain._slots[2]),
+};
+console.log(JSON.stringify(out));
+"""
+
+
+@pytest.fixture(scope="module")
+def ev_views() -> dict:
+    """The card's markup for one plan without, with idle and with active EV keys."""
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not installed")
+    script = f"const CARD_SOURCE = {json.dumps(CARD.read_text(encoding='utf-8'))};\n" + EV_HARNESS
+    result = subprocess.run(
+        [node, "--input-type=module", "-e", script],
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    assert result.returncode == 0, f"card EV harness failed:\n{result.stderr}"
+    return json.loads(result.stdout.strip().splitlines()[-1])
+
+
+def unnumbered(html: str) -> str:
+    """clipPath ids are numbered across every card on the page.
+
+    Two cards therefore never share one, and that is the only difference two
+    renders of the same plan may have.
+    """
+    return re.sub(r"sbp-clip-\d+", "sbp-clip-N", html)
+
+
+EV_MARKERS = ("evwin", "evedge", "evlimit", "evheld", "dirlbl ev", "next ev", "ev-i", "evlim-i")
+
+
+def test_a_plan_without_ev_charging_renders_exactly_as_before(ev_views):
+    """No EV source, or one with nothing planned for the car, changes nothing.
+
+    The keys arrive with every plan once an EV source is configured, also on
+    days the car is not charging at all; the card must not tell those apart
+    from a plan that never had them, down to the style block.
+    """
+    for view in ("tracks", "balance", "compact"):
+        plain = ev_views["plain"][view]["html"]
+        idle = ev_views["idle"][view]["html"]
+        assert unnumbered(idle) == unnumbered(plain), f"{view}: idle EV keys changed the markup"
+        for marker in EV_MARKERS:
+            assert marker not in plain, f"{view}: {marker!r} without EV charging"
+
+
+def test_ev_windows_run_through_every_panel(ev_views):
+    """One column per panel and window, behind the curves, never in the gaps."""
+    for view in ("tracks", "balance", "compact"):
+        drawn = ev_views["ev"][view]
+        rects = re.findall(
+            r'<rect x="[\d.]+" y="([\d.]+)" width="[\d.]+" height="([\d.]+)" class="evwin"/>',
+            drawn["html"],
+        )
+        expected = sorted((p["y"], p["h"]) for p in drawn["panels"]) * 2
+        assert sorted((float(y), float(h)) for y, h in rects) == sorted(expected), view
+        # Two dashed edges per column.
+        assert drawn["html"].count('class="evedge"') == 2 * len(rects)
+        # Behind every curve: the columns come before the first mark is drawn.
+        assert drawn["html"].index('class="evwin"') < drawn["html"].index('class="socline"')
+
+
+def test_the_price_panel_shows_the_limit_and_the_window_energy(ev_views):
+    html = ev_views["ev"]["tracks"]["html"]
+    assert html.count('class="evlimit"') == 1
+    assert ">evcc limit 0.12</text>" in html
+    # 4 x 2.75 kWh in the wide window; the two-hour one has no room for a label.
+    assert ">EV 11.0 kWh</text>" in html
+    assert ">EV 2.0 kWh</text>" not in html
+    # No limit reported: no line, and no legend entry for one.
+    nolimit = ev_views["ev_nosessions"]["tracks"]["html"]
+    assert 'class="evlimit"' not in nolimit
+    assert 'class="li evlim-i"' not in nolimit
+    assert '<i class="ev-i"></i>' in nolimit
+
+
+def test_the_soc_panel_marks_the_held_battery(ev_views):
+    html = ev_views["ev"]["tracks"]["html"]
+    assert html.count('class="evheld"') == 1
+    assert ">held 31%</text>" in html
+
+
+def test_the_status_line_names_the_next_session(ev_views):
+    """The charger's own session list first; the past session is skipped."""
+    for view in ("tracks", "balance", "compact"):
+        html = ev_views["ev"][view]["html"]
+        assert '<span class="next ev">EV: 12.3 kWh · 01:00 AM\u201305:00 AM</span>' in html, view
+    # Without a session list the first window on the plan stands in.
+    html = ev_views["ev_nosessions"]["tracks"]["html"]
+    assert '<span class="next ev">EV: 11.0 kWh · 01:00 AM\u201305:00 AM</span>' in html
+
+
+def test_the_legend_explains_the_ev_marks(ev_views):
+    html = ev_views["ev"]["tracks"]["html"]
+    assert '<i class="ev-i"></i>EV charging</span>' in html
+    assert '<i class="li evlim-i"></i>evcc limit</span>' in html
+
+
+def test_the_energy_panel_is_left_to_the_household(ev_views):
+    """The car's energy is not drawn there and does not stretch its scale."""
+    ticks = re.compile(r'class="ax pr">([^<]+)<')
+    assert ticks.findall(ev_views["ev"]["tracks"]["html"]) == ticks.findall(
+        ev_views["plain"]["tracks"]["html"]
+    )
+    energy = next(p for p in ev_views["ev"]["tracks"]["panels"] if p["key"] == "energy")
+    for y in re.findall(r'y="([\d.]+)" class="dirlbl ev"', ev_views["ev"]["tracks"]["html"]):
+        assert not energy["y"] <= float(y) <= energy["y"] + energy["h"]
+
+
+def test_the_tooltip_explains_ev_slots(ev_views):
+    tips = ev_views["tips"]
+    held = tips["held"]
+    assert "EV: <b>2.75 kWh</b> · cheap price" in held
+    assert "Battery held for EV" in held
+    assert held[1].endswith(" ≤ evcc limit 0.12")
+    # A reason the card does not know yet is shown, escaped.
+    assert "EV: <b>1.00 kWh</b> · &lt;b&gt;later&lt;/b&gt;" in tips["late"]
+    assert "EV: <b>1.00 kWh</b>" in tips["late_no_source"]
+    assert "Battery held for EV" not in tips["late"]
+    # Above the limit and without EV energy: nothing EV about the slot.
+    for rows in (tips["expensive"], tips["plain"]):
+        assert not any("EV" in row or "limit" in row for row in rows)

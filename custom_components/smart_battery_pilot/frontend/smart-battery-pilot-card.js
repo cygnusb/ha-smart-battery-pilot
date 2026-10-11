@@ -41,6 +41,15 @@ const TRANSLATIONS = {
     no_plan: "No valid charge plan (error: {error})",
     unknown: "unknown",
     next_at: "{action} at {time}",
+    ev: "EV",
+    ev_charging: "EV charging",
+    ev_limit: "evcc limit",
+    ev_held: "held",
+    ev_battery_held: "Battery held for EV",
+    ev_src_plan: "plan",
+    ev_src_smart_cost: "cheap price",
+    ev_src_now: "now",
+    ev_src_charging: "charging",
   },
   de: {
     action_charge: "Laden",
@@ -65,6 +74,15 @@ const TRANSLATIONS = {
     no_plan: "Kein gültiger Ladeplan (Fehler: {error})",
     unknown: "unbekannt",
     next_at: "{action} um {time}",
+    ev: "E-Auto",
+    ev_charging: "E-Auto lädt",
+    ev_limit: "evcc-Grenze",
+    ev_held: "gehalten",
+    ev_battery_held: "Hausakku für das E-Auto gehalten",
+    ev_src_plan: "Plan",
+    ev_src_smart_cost: "günstiger Preis",
+    ev_src_now: "sofort",
+    ev_src_charging: "lädt",
   },
   da: {
     action_charge: "Lad",
@@ -89,6 +107,15 @@ const TRANSLATIONS = {
     no_plan: "Ingen gyldig ladeplan (fejl: {error})",
     unknown: "ukendt",
     next_at: "{action} kl. {time}",
+    ev: "Elbil",
+    ev_charging: "Elbil lader",
+    ev_limit: "evcc-grænse",
+    ev_held: "holdt",
+    ev_battery_held: "Husbatteri holdt til elbilen",
+    ev_src_plan: "plan",
+    ev_src_smart_cost: "billig pris",
+    ev_src_now: "nu",
+    ev_src_charging: "lader",
   },
   et: {
     action_charge: "Laadimine",
@@ -113,6 +140,15 @@ const TRANSLATIONS = {
     no_plan: "Kehtiv laadimisplaan puudub (viga: {error})",
     unknown: "teadmata",
     next_at: "{action} kell {time}",
+    ev: "Elektriauto",
+    ev_charging: "Elektriauto laeb",
+    ev_limit: "evcc piir",
+    ev_held: "hoitud",
+    ev_battery_held: "Koduaku hoitud elektriauto jaoks",
+    ev_src_plan: "plaan",
+    ev_src_smart_cost: "odav hind",
+    ev_src_now: "kohe",
+    ev_src_charging: "laeb",
   },
   fi: {
     action_charge: "Lataa",
@@ -137,6 +173,15 @@ const TRANSLATIONS = {
     no_plan: "Ei kelvollista lataussuunnitelmaa (virhe: {error})",
     unknown: "tuntematon",
     next_at: "{action} klo {time}",
+    ev: "Sähköauto",
+    ev_charging: "Sähköauto latautuu",
+    ev_limit: "evcc-raja",
+    ev_held: "pidetty",
+    ev_battery_held: "Kotiakku pidetty sähköautolle",
+    ev_src_plan: "suunnitelma",
+    ev_src_smart_cost: "halpa hinta",
+    ev_src_now: "heti",
+    ev_src_charging: "latautuu",
   },
   lt: {
     action_charge: "Įkrauti",
@@ -161,6 +206,15 @@ const TRANSLATIONS = {
     no_plan: "Nėra galiojančio įkrovimo plano (klaida: {error})",
     unknown: "nežinoma",
     next_at: "{action} {time}",
+    ev: "Elektromobilis",
+    ev_charging: "Elektromobilis kraunasi",
+    ev_limit: "evcc riba",
+    ev_held: "laikoma",
+    ev_battery_held: "Namų baterija laikoma elektromobiliui",
+    ev_src_plan: "planas",
+    ev_src_smart_cost: "pigi kaina",
+    ev_src_now: "dabar",
+    ev_src_charging: "kraunasi",
   },
   lv: {
     action_charge: "Uzlāde",
@@ -185,6 +239,15 @@ const TRANSLATIONS = {
     no_plan: "Nav derīga uzlādes plāna (kļūda: {error})",
     unknown: "nezināms",
     next_at: "{action} plkst. {time}",
+    ev: "Elektroauto",
+    ev_charging: "Elektroauto lādējas",
+    ev_limit: "evcc robeža",
+    ev_held: "noturēts",
+    ev_battery_held: "Mājas akumulators noturēts elektroauto",
+    ev_src_plan: "plāns",
+    ev_src_smart_cost: "lēta cena",
+    ev_src_now: "tūlīt",
+    ev_src_charging: "lādējas",
   },
   nb: {
     action_charge: "Lad",
@@ -209,6 +272,15 @@ const TRANSLATIONS = {
     no_plan: "Ingen gyldig ladeplan (feil: {error})",
     unknown: "ukjent",
     next_at: "{action} kl. {time}",
+    ev: "Elbil",
+    ev_charging: "Elbil lader",
+    ev_limit: "evcc-grense",
+    ev_held: "holdt",
+    ev_battery_held: "Husbatteri holdt for elbilen",
+    ev_src_plan: "plan",
+    ev_src_smart_cost: "billig pris",
+    ev_src_now: "nå",
+    ev_src_charging: "lader",
   },
   nl: {
     action_charge: "Laden",
@@ -233,6 +305,15 @@ const TRANSLATIONS = {
     no_plan: "Geen geldig laadplan (fout: {error})",
     unknown: "onbekend",
     next_at: "{action} om {time}",
+    ev: "EV",
+    ev_charging: "EV laadt",
+    ev_limit: "evcc-limiet",
+    ev_held: "vastgehouden",
+    ev_battery_held: "Thuisaccu vastgehouden voor de EV",
+    ev_src_plan: "plan",
+    ev_src_smart_cost: "lage prijs",
+    ev_src_now: "nu",
+    ev_src_charging: "laadt",
   },
   sv: {
     action_charge: "Ladda",
@@ -257,6 +338,15 @@ const TRANSLATIONS = {
     no_plan: "Ingen giltig laddplan (fel: {error})",
     unknown: "okänd",
     next_at: "{action} kl. {time}",
+    ev: "Elbil",
+    ev_charging: "Elbil laddar",
+    ev_limit: "evcc-gräns",
+    ev_held: "hålls",
+    ev_battery_held: "Husbatteri hålls för elbilen",
+    ev_src_plan: "plan",
+    ev_src_smart_cost: "lågt pris",
+    ev_src_now: "nu",
+    ev_src_charging: "laddar",
   },
 };
 
@@ -460,6 +550,53 @@ function slotConsumption(slot) {
 function slotBalance(slot) {
   return (slot.pv_kwh || 0) - slotConsumption(slot);
 }
+
+// EV energy planned into a slot. The ev_* keys only exist when an EV source
+// is configured; anything below this is rounding noise, not a charging
+// window, and a plan without one renders exactly as it did before EV support.
+const EV_MIN_KWH = 0.05;
+
+function slotEv(slot) {
+  const kwh = Number(slot.ev_kwh);
+  return Number.isFinite(kwh) ? kwh : 0;
+}
+
+// A number, or null for anything that is not one. Number(null) is 0, which
+// would turn a missing price limit into a limit of zero.
+function finiteOrNull(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+// Consecutive slots for which `test` holds, as runs of slots.
+function slotRuns(slots, test) {
+  const runs = [];
+  let run = null;
+  for (const slot of slots) {
+    if (test(slot)) {
+      if (!run) runs.push((run = []));
+      run.push(slot);
+    } else {
+      run = null;
+    }
+  }
+  return runs;
+}
+
+// Shipped only with a plan that has EV charging on it. Teal sits between the
+// consumption green and the SOC blue, and is darker than both: as a 12 % wash
+// with dashed edges it does not read as either curve.
+const EV_STYLES = `
+          .evwin { fill: #0f8f8f; fill-opacity: 0.12; stroke: none; }
+          .evedge { stroke: #0f8f8f; stroke-width: 1; stroke-dasharray: 3 2; opacity: 0.75; }
+          .evlimit { stroke: #0f8f8f; stroke-width: 1.2; stroke-dasharray: 5 3; }
+          .evheld { fill: none; stroke: #2a78d6; stroke-width: 3.5; stroke-linecap: round;
+                    stroke-linejoin: round; }
+          .dirlbl.ev { fill: #0f8f8f; }
+          .next.ev { color: #0f8f8f; }
+          .ev-i { background: rgba(15, 143, 143, 0.12); border: 1px solid #0f8f8f; }
+          .lg .evlim-i { width: 14px; height: 0; border-top: 2px dashed #0f8f8f; border-radius: 0; }`;
 
 class SmartBatteryPilotCard extends HTMLElement {
   setConfig(config) {
@@ -716,6 +853,9 @@ class SmartBatteryPilotCard extends HTMLElement {
     const title = this._config.title || "Smart Battery Pilot";
 
     this._renderedSlotEnd = null;
+    // Cleared first: the empty states below must not inherit the EV styles of
+    // an earlier pass.
+    this._ev = null;
     if (!state) {
       this._html(
         title,
@@ -765,7 +905,10 @@ class SmartBatteryPilotCard extends HTMLElement {
     const x = (ms) => layout.padL + ((ms - t0) / (t1 - t0)) * layout.plotW;
     this._x = x;
 
-    const scales = this._buildScales(slots, state.attributes, layout);
+    const ev = this._evPlan(slots, state.attributes);
+    const scales = this._buildScales(slots, state.attributes, layout, ev ? ev.limit : null);
+    if (ev) ev.limitShown = Boolean(scales.price && scales.price.limit !== null);
+    this._ev = ev;
     this._yPrice = scales.price ? scales.price.y : null;
     this._cursorTop = layout.ribbon.y;
     this._cursorBottom = plotBottom;
@@ -782,6 +925,7 @@ class SmartBatteryPilotCard extends HTMLElement {
     let marks = "";
     for (const panel of layout.panels) {
       marks += this._panelMarks(panel, scales[panel.key], slots, pvMax);
+      if (ev) marks += this._evMarks(panel, scales[panel.key], ev);
     }
 
     const nowMs = Date.now();
@@ -809,6 +953,8 @@ class SmartBatteryPilotCard extends HTMLElement {
         })}</span>`
       );
     }
+    const evStatus = ev ? this._evStatus(ev, state.attributes, nowMs) : "";
+    if (evStatus) statusBits.push(`<span class="next ev">${evStatus}</span>`);
     const pvState = this._livePvState(state);
     if (pvState && pvState.state !== "unavailable" && pvState.state !== "unknown") {
       const pvNum = Number(pvState.state);
@@ -827,7 +973,7 @@ class SmartBatteryPilotCard extends HTMLElement {
       ${view === "compact" ? this._tiles(slots, state.attributes, current || slots[0], width) : ""}
       <div class="chartwrap">
         <svg viewBox="0 0 ${layout.width} ${H}" width="${layout.width}" height="${H}" preserveAspectRatio="xMidYMid meet">
-          ${chrome}
+          ${chrome}${ev ? this._evWindows(ev, layout) : ""}
           ${this._ribbon(slots, layout.ribbon)}
           ${marks}
           ${nowLine}
@@ -837,20 +983,36 @@ class SmartBatteryPilotCard extends HTMLElement {
         </svg>
         <div id="sbp-tip" class="tip" style="display:none"></div>
       </div>
-      <div class="legend">${this._legend(view, slots, pvMax)}</div>`
+      <div class="legend">${this._legend(view, slots, pvMax, ev)}</div>`
     );
     this._attachEvents();
   }
 
   // --- scales -------------------------------------------------------------
 
-  _buildScales(slots, attrs, layout) {
+  // `evLimit` is the EV charger's cheap-price limit, or null when the plan
+  // has no EV charging on it.
+  _buildScales(slots, attrs, layout, evLimit = null) {
     const out = {};
     for (const panel of layout.panels) {
       if (panel.key === "price") {
         const prices = slots.map((s) => s.price);
-        const lo = Math.min(0, ...prices);
-        const hi = Math.max(...prices);
+        let lo = Math.min(0, ...prices);
+        let hi = Math.max(...prices);
+        // The charger only takes grid energy below its limit, so the limit
+        // belongs on the price scale like the peak does. One further than half
+        // a price span away would squash the curve to fit it, and a line
+        // clamped to the panel edge would mark a price that is not the limit,
+        // so that one is left off instead.
+        let limit = null;
+        if (evLimit !== null) {
+          const reach = (hi - lo || 0.1) / 2;
+          if (evLimit >= lo - reach && evLimit <= hi + reach) {
+            limit = evLimit;
+            lo = Math.min(lo, evLimit);
+            hi = Math.max(hi, evLimit);
+          }
+        }
         const step = niceTickStep(hi - lo || 0.1, tickCount(panel.h));
         const bot = Math.floor(lo / step) * step;
         const top = Math.ceil((hi + step * 0.12) / step) * step;
@@ -861,6 +1023,7 @@ class SmartBatteryPilotCard extends HTMLElement {
           ticks,
           fmt: (v) => v.toFixed(2),
           label: `${this._tr("price")} €/kWh`,
+          limit,
         };
       } else if (panel.key === "energy") {
         const hi = Math.max(...slots.map((s) => Math.max(s.pv_kwh || 0, slotConsumption(s))));
@@ -1162,6 +1325,134 @@ class SmartBatteryPilotCard extends HTMLElement {
     );
   }
 
+  // --- EV -----------------------------------------------------------------
+
+  // What the plan says about the car, or null when there is no EV charging on
+  // it at all. Every EV mark, style and line of text sits behind this one
+  // test, which is what keeps a card without an EV source unchanged.
+  _evPlan(slots, attrs) {
+    if (!slots.some((s) => slotEv(s) > EV_MIN_KWH)) return null;
+    return {
+      windows: slotRuns(slots, (s) => slotEv(s) > EV_MIN_KWH),
+      held: slotRuns(slots, (s) => s.battery_blocked === true),
+      limit: finiteOrNull(attrs.ev_price_limit),
+      limitShown: false,
+    };
+  }
+
+  // Where a run of slots starts and how wide it is, in CSS px.
+  _runSpan(run) {
+    const x0 = this._x(run[0].startMs);
+    return { x0, width: this._x(run[run.length - 1].endMs) - x0 };
+  }
+
+  // Charging windows as translucent columns through every panel, behind the
+  // curves: the price that bought the energy and the SOC the house battery
+  // kept meanwhile both read straight down the same column.
+  _evWindows(ev, layout) {
+    let out = "";
+    for (const run of ev.windows) {
+      const { x0, width } = this._runSpan(run);
+      const edges = [x0.toFixed(1), (x0 + width).toFixed(1)];
+      for (const panel of layout.panels) {
+        const bottom = panel.y + panel.h;
+        out += `<rect x="${edges[0]}" y="${panel.y}" width="${width.toFixed(1)}" height="${
+          panel.h
+        }" class="evwin"/>`;
+        for (const ex of edges) {
+          out += `<line x1="${ex}" y1="${panel.y}" x2="${ex}" y2="${bottom}" class="evedge"/>`;
+        }
+      }
+    }
+    return out;
+  }
+
+  // On top of the curves: the charger's price limit and the energy of each
+  // window in the price panel, the battery held for the car in the SOC panel.
+  // The energy panel stays the household's alone - the car's energy would
+  // take over its scale.
+  _evMarks(panel, scale, ev) {
+    const { padL, plotW } = this._geo;
+    let out = "";
+    if (panel.key === "price") {
+      if (scale.limit !== null) {
+        const y = scale.y(scale.limit);
+        // A limit along the top edge takes its label underneath instead.
+        const ly = y - 4 < panel.y + 9 ? y + 11 : y - 4;
+        out +=
+          `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${padL + plotW}" y2="${y.toFixed(
+            1
+          )}" class="evlimit"/>` +
+          `<text x="${padL + plotW - 4}" y="${ly.toFixed(1)}" class="dirlbl ev" text-anchor="end">${esc(
+            this._tr("ev_limit")
+          )} ${scale.limit.toFixed(2)}</text>`;
+      }
+      // Like the peak label: a strip as short as the compact view's has no
+      // room under the curve, and the status line carries the figure anyway.
+      for (const run of panel.h >= 50 ? ev.windows : []) {
+        const { x0, width } = this._runSpan(run);
+        if (width < 46) continue;
+        const kwh = run.reduce((sum, s) => sum + slotEv(s), 0);
+        out += `<text x="${(x0 + width / 2).toFixed(1)}" y="${(panel.y + panel.h - 4).toFixed(
+          1
+        )}" class="dirlbl ev" text-anchor="middle">${esc(this._tr("ev"))} ${kwh.toFixed(
+          1
+        )} kWh</text>`;
+      }
+    } else if (panel.key === "soc") {
+      for (const run of ev.held) {
+        out += `<path d="${this._stepPath(run, (s) => s.soc_forecast, scale.y)}" class="evheld"/>`;
+        const { x0, width } = this._runSpan(run);
+        const soc = Number(run[0].soc_forecast);
+        if (width < 46 || !Number.isFinite(soc)) continue;
+        const ys = run.map((s) => scale.y(s.soc_forecast));
+        // Above the segment, unless that would run into the panel caption.
+        const above = Math.min(...ys) - 7;
+        const ly = above < panel.y + 9 ? Math.max(...ys) + 13 : above;
+        out += `<text x="${(x0 + width / 2).toFixed(1)}" y="${ly.toFixed(
+          1
+        )}" class="dirlbl soc" text-anchor="middle">${esc(this._tr("ev_held"))} ${Math.round(
+          soc
+        )}%</text>`;
+      }
+    }
+    return out;
+  }
+
+  // The next charging session that has not ended yet: the charger's own
+  // session list when it has one, otherwise the first window on the plan.
+  _evStatus(ev, attrs, nowMs) {
+    let start = null;
+    let end = null;
+    let kwh = null;
+    const sessions = Array.isArray(attrs.ev_sessions) ? attrs.ev_sessions : [];
+    for (const session of sessions) {
+      if (!session) continue;
+      const s = Date.parse(session.start);
+      const e = Date.parse(session.end);
+      if (Number.isFinite(s) && Number.isFinite(e) && e > nowMs) {
+        [start, end, kwh] = [s, e, finiteOrNull(session.energy_kwh)];
+        break;
+      }
+    }
+    if (start === null) {
+      const run = ev.windows.find((r) => r[r.length - 1].endMs > nowMs);
+      if (!run) return "";
+      start = run[0].startMs;
+      end = run[run.length - 1].endMs;
+      kwh = run.reduce((sum, s) => sum + slotEv(s), 0);
+    }
+    const energy = kwh !== null ? ` ${kwh.toFixed(1)} kWh ·` : "";
+    return `${esc(this._tr("ev"))}:${energy} ${this._fmtTime(start)}–${this._fmtTime(end)}`;
+  }
+
+  // Why the car charges in a slot. An unknown reason from a newer backend is
+  // shown as it arrives rather than hidden.
+  _evSourceLabel(source) {
+    const known = ["plan", "smart_cost", "now", "charging"];
+    return known.includes(source) ? this._tr(`ev_src_${source}`) : String(source);
+  }
+
   // --- compact extras -----------------------------------------------------
 
   // `width` is the card's, not the tiles': three 19px figures side by side
@@ -1208,7 +1499,7 @@ class SmartBatteryPilotCard extends HTMLElement {
 
   // --- legend -------------------------------------------------------------
 
-  _legend(view, slots, pvMax) {
+  _legend(view, slots, pvMax, ev = null) {
     const present = ACTIONS.filter((a) => slots.some((s) => s.action === a));
     let out = present
       .map((key) => `<span class="lg"><i class="band-i ${key}"></i>${esc(this._actionLabel(key))}</span>`)
@@ -1219,6 +1510,12 @@ class SmartBatteryPilotCard extends HTMLElement {
       if (pvMax > 0) out += `<span class="lg"><i class="pv-i"></i>${this._tr("pv")}</span>`;
     }
     out += `<span class="lg"><i class="li soc-i"></i>${this._tr("soc")}</span>`;
+    if (ev) {
+      out += `<span class="lg"><i class="ev-i"></i>${esc(this._tr("ev_charging"))}</span>`;
+      if (ev.limitShown) {
+        out += `<span class="lg"><i class="li evlim-i"></i>${esc(this._tr("ev_limit"))}</span>`;
+      }
+    }
     if (view !== "compact") {
       const other = view === "tracks" ? "balance" : "tracks";
       out += `<button type="button" class="viewtog" data-view="${other}">${esc(
@@ -1226,6 +1523,39 @@ class SmartBatteryPilotCard extends HTMLElement {
       )}</button>`;
     }
     return out;
+  }
+
+  // The tooltip's lines for one slot, apart from the pointer handling so they
+  // can be checked without a layout to point at.
+  _tipRows(slot) {
+    const ev = this._ev;
+    const evKwh = ev ? slotEv(slot) : 0;
+    let price = `${this._tr("price")}: <b>${slot.price.toFixed(4)} €/kWh</b>`;
+    if (evKwh > EV_MIN_KWH && ev.limit !== null && slot.price <= ev.limit) {
+      price += ` ≤ ${esc(this._tr("ev_limit"))} ${ev.limit.toFixed(2)}`;
+    }
+    const rows = [
+      `<b>${this._fmtTime(slot.startMs)}–${this._fmtTime(
+        slot.endMs
+      )}</b> · ${esc(this._actionLabel(slot.action))}`,
+      price,
+      `${this._tr("soc_forecast")}: <b>${slot.soc_forecast}%</b>`,
+    ];
+    const cons = Math.max(0, (slot.net_demand_kwh || 0) + (slot.pv_kwh || 0));
+    rows.push(`${this._tr("consumption")}: ${cons.toFixed(2)} kWh`);
+    if (slot.pv_kwh) rows.push(`${this._tr("pv")}: ${slot.pv_kwh.toFixed(2)} kWh`);
+    if (slot.net_demand_kwh !== undefined)
+      rows.push(`${this._tr("net_demand")}: ${slot.net_demand_kwh.toFixed(2)} kWh`);
+    // charge_power_w is the pre-0.6.4 name for the same value.
+    const power = slot.power_w ?? slot.charge_power_w;
+    if (power)
+      rows.push(`${this._tr("charge_power")}: ${Math.round(power)} W`);
+    if (evKwh > EV_MIN_KWH) {
+      const why = slot.ev_source ? ` · ${esc(this._evSourceLabel(slot.ev_source))}` : "";
+      rows.push(`${esc(this._tr("ev"))}: <b>${evKwh.toFixed(2)} kWh</b>${why}`);
+    }
+    if (ev && slot.battery_blocked === true) rows.push(esc(this._tr("ev_battery_held")));
+    return rows;
   }
 
   _attachEvents() {
@@ -1266,23 +1596,7 @@ class SmartBatteryPilotCard extends HTMLElement {
         onLeave();
         return;
       }
-      const rows = [
-        `<b>${this._fmtTime(slot.startMs)}–${this._fmtTime(
-          slot.endMs
-        )}</b> · ${esc(this._actionLabel(slot.action))}`,
-        `${this._tr("price")}: <b>${slot.price.toFixed(4)} €/kWh</b>`,
-        `${this._tr("soc_forecast")}: <b>${slot.soc_forecast}%</b>`,
-      ];
-      const cons = Math.max(0, (slot.net_demand_kwh || 0) + (slot.pv_kwh || 0));
-      rows.push(`${this._tr("consumption")}: ${cons.toFixed(2)} kWh`);
-      if (slot.pv_kwh) rows.push(`${this._tr("pv")}: ${slot.pv_kwh.toFixed(2)} kWh`);
-      if (slot.net_demand_kwh !== undefined)
-        rows.push(`${this._tr("net_demand")}: ${slot.net_demand_kwh.toFixed(2)} kWh`);
-      // charge_power_w is the pre-0.6.4 name for the same value.
-      const power = slot.power_w ?? slot.charge_power_w;
-      if (power)
-        rows.push(`${this._tr("charge_power")}: ${Math.round(power)} W`);
-      tip.innerHTML = rows.join("<br>");
+      tip.innerHTML = this._tipRows(slot).join("<br>");
       tip.style.display = "block";
 
       const slotMidX = this._x((slot.startMs + slot.endMs) / 2);
@@ -1454,7 +1768,9 @@ class SmartBatteryPilotCard extends HTMLElement {
                      color: var(--primary-color, #03a9f4); background: none;
                      border: 1px solid var(--divider-color, #e0e0e0); border-radius: 10px;
                      padding: 1px 9px; }
-          .viewtog:hover { border-color: var(--primary-color, #03a9f4); }
+          .viewtog:hover { border-color: var(--primary-color, #03a9f4); }${
+            this._ev ? EV_STYLES : ""
+          }
         </style>
         ${body}
       </ha-card>`;

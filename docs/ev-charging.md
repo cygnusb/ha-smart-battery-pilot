@@ -25,6 +25,8 @@ see. Every field is optional, and the defaults change nothing.
 | House battery while an EV charges | Allow | What the battery does during a session, see below. |
 | EV charging threshold | 1000 W | *Block* engages above this total wallbox power and releases below half of it, so ramping and phase switching do not flip the inverter back and forth. |
 | External control entity | – | Tells when another controller has the battery, see below. Works with any policy. |
+| Planned EV sessions | None | *evcc*: the plan leaves room for sessions evcc will run, see [Planned sessions](#planned-sessions-evcc). |
+| evcc address | – | Where evcc runs, e.g. `http://evcc.local:7070`. Pre-filled from evcc's Home Assistant integration. |
 
 ### Forecast
 
@@ -96,6 +98,9 @@ The usual split: **evcc owns the car, the pilot owns the house battery.**
      *Battery mode [CODE]* sensor. The evcc integration ships it
      **disabled**; enable it first under *Settings → Entities*.
 
+   * Planned EV sessions: **evcc**, with evcc's address (optional, see
+     [Planned sessions](#planned-sessions-evcc)).
+
    With evcc's Home Assistant integration installed, the section is
    pre-filled with these values while it is still empty (the mode sensor only
    once it is enabled).
@@ -127,10 +132,61 @@ A template binary sensor works as an external control entity for anything
 Home Assistant can see, e.g. *on* while an automation forces the battery for
 another purpose.
 
-## Not yet included
+## Planned sessions (evcc)
 
-The pilot does not yet plan with sessions that have not started: an evcc
-charge plan or a cheap-price window shows up as a hold when it begins, not in
-the plan beforehand. PV surplus that goes into the car rather than the
-battery is not modelled either, so the SOC forecast may run high on days the
-car charges from the sun.
+Optional, and only for evcc. Without it the pilot sees a session when it
+starts: the wallbox sensor rises or evcc's hold begins. With it the plan knows
+ahead of time, so the SOC forecast, the savings estimate and the grid charges
+already account for the car.
+
+Set **Planned EV sessions** to *evcc* and enter evcc's address. The pilot then
+reads evcc's REST API (`/api/state`, and `/api/loadpoints/<id>/plan` for a
+loadpoint with a charge plan) once a minute and re-plans when the expected
+sessions change. It only reads; it never changes anything in evcc. If evcc
+cannot be reached, the pilot plans without sessions and logs one warning.
+
+For every connected loadpoint, the expected session comes from what evcc has
+already decided:
+
+| evcc | Expected charging |
+|---|---|
+| A charge plan (target time) | evcc's plan slots, at the power evcc sized the plan with |
+| Fast mode | from now until the car reaches its limit |
+| Cheap-price charging (smart cost limit) | every slot whose evcc price is at or below the limit, in time order, until the car reaches its limit |
+| Charging for any other reason (e.g. PV mode) | the slot in progress |
+
+The energy is bounded by what the car still needs: the vehicle SOC up to its
+limit at the vehicle's capacity (with evcc's 90 % charge efficiency), or the
+session's energy limit. A car that reports neither is only counted for evcc's
+own plan slots and while it charges; anything more would hold the battery
+all day on a guess. A disconnected car or a loadpoint that is off counts
+nothing.
+
+How the plan uses it depends on the policy (see
+[the optimizer](optimizer.md#ev-sessions-in-the-plan)):
+
+* **Allow** — the car's grid energy is demand; the planner decides whether
+  the battery serves it.
+* **Block** — slots above the threshold are held: no discharge.
+* **External** — the slots are held while evcc's battery discharge control is
+  on, and no grid charge is planned there, because the pilot calls no script
+  while evcc holds the battery.
+
+In every case the car takes PV surplus before the battery does, so the SOC
+forecast no longer runs high on days the car charges from the sun.
+
+Keep the wallbox power sensors set as well. They clean the consumption
+history; without them a house meter that includes the wallbox counts the car
+twice, once in the learned forecast and once as a planned session.
+
+The plan sensor carries the sessions (`ev_sessions`, `ev_kwh_total`, and
+`ev_price_limit`: evcc's price limit moved onto the plan's price basis, since
+evcc's prices may leave out fees the pilot's include). Each slot gets
+`ev_kwh`, `ev_source` and `battery_blocked`. The card draws the charging
+windows, evcc's price limit and the slots where the battery is held. The
+diagnostics show what evcc reported per loadpoint, without vehicle names.
+
+Not included: a smart cost limit on a CO₂ tariff (it is an emission limit,
+not a price), and evcc's PV mode as a forecast. Whether PV surplus goes to the
+car or the battery depends on evcc's `prioritySoc` and `bufferSoc` and on the
+sun minute by minute. A PV session is counted once it runs, not ahead.

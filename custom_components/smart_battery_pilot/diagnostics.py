@@ -14,9 +14,18 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 
 from . import SBPConfigEntry
+from .const import CONF_EVCC_URL
 
 # The plan can hold ~190 slots; the first day is enough to judge a plan.
 MAX_DIAGNOSTIC_SLOTS = 96
+
+# A URL can carry credentials (http://user:pw@host), and nobody needs it to
+# debug a plan.
+REDACTED_KEYS = (CONF_EVCC_URL,)
+
+
+def _redact(values: dict[str, Any]) -> dict[str, Any]:
+    return {k: ("**REDACTED**" if k in REDACTED_KEYS and v else v) for k, v in values.items()}
 
 
 async def async_get_config_entry_diagnostics(
@@ -29,8 +38,8 @@ async def async_get_config_entry_diagnostics(
 
     diagnostics: dict[str, Any] = {
         "entry": {
-            "data": dict(entry.data),
-            "options": dict(entry.options),
+            "data": _redact(dict(entry.data)),
+            "options": _redact(dict(entry.options)),
         },
         "runtime": {
             "enabled": coordinator.enabled,
@@ -67,6 +76,8 @@ async def async_get_config_entry_diagnostics(
         "battery_discharge_kwh": round(data.plan.battery_discharge_kwh, 3),
         "estimated_savings_eur": data.plan.estimated_savings_eur,
         "warnings": list(data.plan.warnings),
+        "ev_sessions": data.ev_sessions,
+        "ev_price_limit": data.ev_price_limit,
         "slots": [
             {
                 "start": slot.start.isoformat(),
@@ -79,6 +90,8 @@ async def async_get_config_entry_diagnostics(
                 "charge_power_w": slot.power_w,
                 "discharge_kwh": slot.discharge_kwh,
                 "soc_forecast": slot.soc_forecast,
+                "ev_kwh": slot.ev_kwh,
+                "battery_blocked": slot.battery_blocked,
             }
             for slot in data.plan.slots[:MAX_DIAGNOSTIC_SLOTS]
         ],

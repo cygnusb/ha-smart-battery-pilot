@@ -175,7 +175,8 @@ configuration sensor shows `reserve_soc`, its source (`fixed`, `entity`,
 
 Off by default. Takes wallbox energy out of the consumption history, can block
 discharging while an EV charges, and pauses the pilot while another controller
-such as evcc holds the battery. Settings, the evcc setup and other wallboxes:
+such as evcc holds the battery. With evcc, the plan can also leave room for
+sessions evcc has planned. Settings, the evcc setup and other wallboxes:
 [EV charging, evcc and other controllers](ev-charging.md).
 
 ## Going live

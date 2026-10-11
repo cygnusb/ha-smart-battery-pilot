@@ -17,6 +17,7 @@ from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_capture_events
 
+from custom_components.smart_battery_pilot import evcc
 from custom_components.smart_battery_pilot.const import (
     CONF_CAPACITY_KWH,
     CONF_CONSUMPTION_ENTITY,
@@ -221,7 +222,7 @@ async def test_the_reserve_options_step_renders_and_saves(sbp_hass: HomeAssistan
 async def test_the_ev_options_step_renders_and_saves(sbp_hass: HomeAssistant) -> None:
     """A multi-entity selector and a mixed-domain selector are new here."""
     sbp_hass.states.async_set(
-        "sensor.evcc_carport_charge_power", "3.7", {"unit_of_measurement": "kW"}
+        "sensor.evcc_driveway_charge_power", "3.7", {"unit_of_measurement": "kW"}
     )
     sbp_hass.states.async_set("sensor.evcc_battery_mode", "hold")
     entry = await _setup(sbp_hass)
@@ -242,7 +243,7 @@ async def test_the_ev_options_step_renders_and_saves(sbp_hass: HomeAssistant) ->
     saved = await options.async_configure(
         refused["flow_id"],
         {
-            "ev_power_entities": ["sensor.evcc_carport_charge_power"],
+            "ev_power_entities": ["sensor.evcc_driveway_charge_power"],
             "ev_battery_policy": "external",
             "ev_threshold_w": 1000,
             "external_control_entity": "sensor.evcc_battery_mode",
@@ -255,6 +256,88 @@ async def test_the_ev_options_step_renders_and_saves(sbp_hass: HomeAssistant) ->
     ev = entry.runtime_data.coordinator.data.inputs["ev"]
     assert ev["power_w"] == 3700
     assert ev["external_control_active"] is True
+
+
+async def test_planned_sessions_from_evcc_reach_the_plan(
+    sbp_hass: HomeAssistant, monkeypatch
+) -> None:
+    """The evcc reader, the real interval tracker and the options form.
+
+    The HTTP layer itself is replaced: aioclient_mock leaves a thread behind
+    on HA 2024.11 that its lingering-thread check then fails on."""
+    start = dt_util.now().replace(minute=0, second=0, microsecond=0)
+    state = {
+        "version": "0.300.0",
+        "loadpoints": [
+            {
+                "connected": True,
+                "charging": False,
+                "chargePower": 0,
+                "mode": "pv",
+                "vehicleName": "car",
+                "vehicleSoc": 40,
+                "effectiveLimitSoc": 80,
+                "effectivePlanTime": (start + timedelta(hours=8)).isoformat(),
+                "plan": None,
+            }
+        ],
+        "vehicles": {"car": {"capacity": 50}},
+        "forecast": {},
+        "batteryDischargeControl": True,
+    }
+    plan = {
+        "plan": [
+            {
+                "start": (start + timedelta(hours=3)).isoformat(),
+                "end": (start + timedelta(hours=4)).isoformat(),
+                "value": 0.1,
+            }
+        ],
+        "power": 11000,
+    }
+    responses = {
+        "http://evcc.test:7070/api/state": state,
+        "http://evcc.test:7070/api/loadpoints/1/plan": {"result": plan},
+    }
+
+    async def get_json(hass, url):
+        return responses[url]
+
+    monkeypatch.setattr(evcc, "_get_json", get_json)
+    entry = await _setup(sbp_hass)
+    options = sbp_hass.config_entries.options
+
+    menu = await options.async_init(entry.entry_id)
+    form = await options.async_configure(menu["flow_id"], {"next_step_id": "ev"})
+    for selector in form["data_schema"].schema.values():
+        assert "selector" in cv.custom_serializer(selector)
+    saved = await options.async_configure(
+        form["flow_id"],
+        {
+            "ev_battery_policy": "allow",
+            "ev_threshold_w": 1000,
+            "ev_source": "evcc",
+            "evcc_url": "evcc.test:7070",
+        },
+    )
+    assert saved["type"] == "menu"
+    done = await options.async_configure(saved["flow_id"], {"next_step_id": "apply"})
+    await sbp_hass.async_block_till_done()
+    assert done["type"] == "create_entry"
+    assert entry.options["evcc_url"] == "http://evcc.test:7070"
+
+    data = entry.runtime_data.coordinator.data
+    assert data.ev_source == "evcc"
+    assert data.ev_kwh_total == 11.0
+    assert data.ev_sessions[0]["source"] == "plan"
+    assert data.inputs["ev"]["evcc"]["status"] == "ok"
+    plans = [
+        sbp_hass.states.get(eid)
+        for eid in sbp_hass.states.async_entity_ids("sensor")
+        if "ev_sessions" in sbp_hass.states.get(eid).attributes
+    ]
+    assert len(plans) == 1
+    assert plans[0].attributes["ev_kwh_total"] == data.ev_kwh_total
 
 
 async def test_a_real_script_receives_reserve_soc(sbp_hass: HomeAssistant) -> None:

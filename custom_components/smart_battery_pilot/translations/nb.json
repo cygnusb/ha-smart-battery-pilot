@@ -250,13 +250,17 @@
           "ev_power_entities": "Effektsensorer for ladebokser (valgfritt)",
           "ev_battery_policy": "Husbatteri mens en elbil lader",
           "ev_threshold_w": "Terskel for elbillading",
-          "external_control_entity": "Entitet for ekstern styring (valgfritt)"
+          "external_control_entity": "Entitet for ekstern styring (valgfritt)",
+          "ev_source": "Planlagte elbilladinger",
+          "evcc_url": "evcc-adresse"
         },
         "data_description": {
           "ev_power_entities": "Én eller flere sensorer (W eller kW) med effekten hver ladeboks trekker, f.eks. evccs ladeeffekt per ladepunkt. Energien deres trekkes ut av forbrukshistorikken, slik at prognosen lærer huset uten bilen.",
           "ev_battery_policy": "Tillat: ingenting spesielt, vekselretteren kan lade ut til bilen. Blokker: piloten blokkerer utlading mens ladeboksene trekker mer enn terskelen. Ekstern: en annen styring som evcc bestemmer mens den er aktiv - piloten tar pause og bruker planen sin igjen etterpå.",
           "ev_threshold_w": "Over denne samlede ladeeffekten slår policyen 'Blokker' inn; den slipper under halvparten, slik at ramping og fasebytte ikke får vekselretteren til å skifte frem og tilbake.",
-          "external_control_entity": "Viser når en annen styring har batteriet: en binærsensor, hjelper eller bryter som er på, eller evccs kodesensor for batterimodus (sensor.evcc_battery_mode) mens den viser hold, charge eller holdcharge. Alle andre tilstander regnes som inaktive. Mens den er aktiv, kaller piloten ingen skript."
+          "external_control_entity": "Viser når en annen styring har batteriet: en binærsensor, hjelper eller bryter som er på, eller evccs kodesensor for batterimodus (sensor.evcc_battery_mode) mens den viser hold, charge eller holdcharge. Alle andre tilstander regnes som inaktive. Mens den er aktiv, kaller piloten ingen skript.",
+          "ev_source": "Valgfritt. Med evcc gir planen rom for ladinger evcc har planlagt: ladeplanen, billig lading under prisgrensen og hurtiglading. Batteriet holdes i disse periodene etter policyen over. Angi også effektsensorer for ladeboksen, ellers telles bilen to ganger hvis husmåleren din omfatter ladeboksen.",
+          "evcc_url": "evccs vertsnavn eller IP-adresse med port (standard 7070). Fylles ut fra evcc-integrasjonen når den er installert. Leses bare, skrives aldri."
         }
       }
     },
@@ -270,7 +274,9 @@
       "derating_not_monotonic": "Ladeeffekten skal ikke synke når temperaturen stiger. Kontroller glidebryterne.",
       "derating_needs_temperature": "Lading i kulde krever en entitet for batteritemperaturen.",
       "ev_block_needs_power": "Policyen 'Blokker' trenger minst én effektsensor for en ladeboks.",
-      "ev_external_needs_entity": "Policyen 'Ekstern' trenger en entitet for ekstern styring."
+      "ev_external_needs_entity": "Policyen 'Ekstern' trenger en entitet for ekstern styring.",
+      "evcc_url_required": "Skriv inn evcc-adressen.",
+      "evcc_unreachable": "evcc svarte ikke på denne adressen. Sjekk adressen og at evcc kjører."
     }
   },
   "selector": {
@@ -285,6 +291,12 @@
         "allow": "Tillat utlading til bilen",
         "block": "Blokker utlading mens elbilen lader",
         "external": "Overlat det til en ekstern styring (f.eks. evcc)"
+      }
+    },
+    "ev_source": {
+      "options": {
+        "none": "Ingen",
+        "evcc": "evcc"
       }
     }
   },

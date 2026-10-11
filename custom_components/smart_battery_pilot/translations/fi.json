@@ -250,13 +250,17 @@
           "ev_power_entities": "Latausaseman tehoanturit (valinnainen)",
           "ev_battery_policy": "Kodin akku sähköauton latautuessa",
           "ev_threshold_w": "Sähköauton latauksen kynnys",
-          "external_control_entity": "Ulkoisen ohjauksen entiteetti (valinnainen)"
+          "external_control_entity": "Ulkoisen ohjauksen entiteetti (valinnainen)",
+          "ev_source": "Suunnitellut sähköauton lataukset",
+          "evcc_url": "evcc-osoite"
         },
         "data_description": {
           "ev_power_entities": "Yksi tai useampi anturi (W tai kW), joka kertoo kunkin latausaseman tehon, esim. evcc:n lataustehon latauspisteittäin. Niiden energia vähennetään kulutushistoriasta, jotta ennuste oppii talon ilman autoa.",
           "ev_battery_policy": "Salli: ei mitään erityistä, invertteri saa purkaa autoon. Estä: pilotti estää purkamisen, kun latausasemat ottavat yli kynnyksen. Ulkoinen: toinen ohjaus, kuten evcc, päättää sen ollessa aktiivinen - pilotti pitää tauon ja palauttaa suunnitelmansa jälkeenpäin.",
           "ev_threshold_w": "Tämän latausasemien kokonaistehon ylittyessä 'Estä'-käytäntö kytkeytyy; se vapautuu alle puolikkaan, jotta tehon säätö ja vaiheiden vaihto eivät kytke invertteriä edestakaisin.",
-          "external_control_entity": "Kertoo, milloin akku on toisen ohjauksen hallinnassa: päällä oleva binäärianturi, apuri tai kytkin, tai evcc:n akkutilan koodianturi (sensor.evcc_battery_mode), kun se näyttää hold, charge tai holdcharge. Kaikki muut tilat katsotaan passiivisiksi. Sen ollessa aktiivinen pilotti ei kutsu skriptejä."
+          "external_control_entity": "Kertoo, milloin akku on toisen ohjauksen hallinnassa: päällä oleva binäärianturi, apuri tai kytkin, tai evcc:n akkutilan koodianturi (sensor.evcc_battery_mode), kun se näyttää hold, charge tai holdcharge. Kaikki muut tilat katsotaan passiivisiksi. Sen ollessa aktiivinen pilotti ei kutsu skriptejä.",
+          "ev_source": "Valinnainen. evcc:n kanssa suunnitelma jättää tilaa latauksille, jotka evcc on suunnitellut: latausuunnitelma, edullinen lataus hintarajan alla ja pikalataus. Akkua pidetään näissä jaksoissa yllä olevan käytännön mukaan. Määritä myös latausaseman tehoanturit, muuten auto lasketaan kahdesti, jos talon mittari sisältää latausaseman.",
+          "evcc_url": "evcc:n isäntänimi tai IP-osoite porttinumeroineen (oletus 7070). Täytetään evcc-integraatiosta, kun se on asennettu. Vain luetaan, ei koskaan kirjoiteta."
         }
       }
     },
@@ -270,7 +274,9 @@
       "derating_not_monotonic": "Lataustehon ei pidä laskea lämpötilan noustessa. Tarkista liukusäätimet.",
       "derating_needs_temperature": "Lataus kylmällä vaatii akun lämpötilan entiteetin.",
       "ev_block_needs_power": "'Estä'-käytäntö tarvitsee vähintään yhden latausaseman tehoanturin.",
-      "ev_external_needs_entity": "'Ulkoinen'-käytäntö tarvitsee ulkoisen ohjauksen entiteetin."
+      "ev_external_needs_entity": "'Ulkoinen'-käytäntö tarvitsee ulkoisen ohjauksen entiteetin.",
+      "evcc_url_required": "Anna evcc-osoite.",
+      "evcc_unreachable": "evcc ei vastannut tässä osoitteessa. Tarkista osoite ja että evcc on käynnissä."
     }
   },
   "selector": {
@@ -285,6 +291,12 @@
         "allow": "Salli purkaminen autoon",
         "block": "Estä purkaminen sähköauton latautuessa",
         "external": "Jätä ulkoiselle ohjaukselle (esim. evcc)"
+      }
+    },
+    "ev_source": {
+      "options": {
+        "none": "Ei mitään",
+        "evcc": "evcc"
       }
     }
   },

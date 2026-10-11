@@ -66,6 +66,12 @@ CONF_EV_POWER_ENTITIES = "ev_power_entities"
 CONF_EV_BATTERY_POLICY = "ev_battery_policy"
 CONF_EV_THRESHOLD_W = "ev_threshold_w"
 CONF_EXTERNAL_CONTROL_ENTITY = "external_control_entity"
+CONF_EV_SOURCE = "ev_source"
+CONF_EVCC_URL = "evcc_url"
+
+# Where planned EV sessions come from.
+EV_SOURCE_NONE = "none"
+EV_SOURCE_EVCC = "evcc"
 
 # What the house battery does while an EV charges.
 EV_POLICY_ALLOW = "allow"  # nothing special - the inverter may discharge into the car
@@ -99,6 +105,7 @@ DEFAULT_RESERVE_REFILL_HOURS = 12
 DEFAULT_RESERVE_BLOCK_DISCHARGE = False
 DEFAULT_EV_BATTERY_POLICY = EV_POLICY_ALLOW
 DEFAULT_EV_THRESHOLD_W = 1000
+DEFAULT_EV_SOURCE = EV_SOURCE_NONE
 
 # --- Plan actions ---
 ACTION_CHARGE = "charge"

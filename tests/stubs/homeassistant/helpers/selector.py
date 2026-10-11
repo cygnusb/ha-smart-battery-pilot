@@ -17,8 +17,10 @@ class _Selector:
 EntitySelectorConfig = _Config
 NumberSelectorConfig = _Config
 SelectSelectorConfig = _Config
+TextSelectorConfig = _Config
 
 EntitySelector = _Selector
 NumberSelector = _Selector
 SelectSelector = _Selector
 BooleanSelector = _Selector
+TextSelector = _Selector

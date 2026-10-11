@@ -93,7 +93,9 @@ and are off until you switch them on:
   consumption history so the forecast learns the house without the car. While
   an EV charges, the pilot can block discharging, or pause entirely while
   another controller such as evcc holds the battery, and re-apply its plan
-  afterwards. Works with any wallbox; evcc is pre-filled when found. See
+  afterwards. With evcc, sessions it has planned (charge plan, cheap-price
+  window, fast mode) show up in the plan and the card ahead of time. Works with
+  any wallbox; evcc is pre-filled when found. See
   [docs/ev-charging.md](docs/ev-charging.md).
 
 > **Safety first:** the integration starts **disabled** and in **dry-run**

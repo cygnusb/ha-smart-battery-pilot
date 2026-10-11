@@ -250,13 +250,17 @@
           "ev_power_entities": "Uzlādes staciju jaudas sensori (neobligāti)",
           "ev_battery_policy": "Mājas akumulators elektroauto uzlādes laikā",
           "ev_threshold_w": "Elektroauto uzlādes slieksnis",
-          "external_control_entity": "Ārējās vadības entītija (neobligāti)"
+          "external_control_entity": "Ārējās vadības entītija (neobligāti)",
+          "ev_source": "Plānotās elektroauto uzlādes",
+          "evcc_url": "evcc adrese"
         },
         "data_description": {
           "ev_power_entities": "Viens vai vairāki sensori (W vai kW) ar katras uzlādes stacijas patērēto jaudu, piem., evcc uzlādes jauda katram uzlādes punktam. To enerģija tiek atņemta no patēriņa vēstures, lai prognoze iemācītos māju bez automašīnas.",
           "ev_battery_policy": "Atļaut: nekas īpašs, invertors drīkst izlādēt automašīnā. Bloķēt: pilots bloķē izlādi, kamēr stacijas patērē vairāk par slieksni. Ārējā: cita vadība, piem., evcc, lemj, kamēr tā ir aktīva - pilots pauzē un pēc tam atkal piemēro savu plānu.",
           "ev_threshold_w": "Pārsniedzot šo kopējo staciju jaudu, stājas spēkā politika 'Bloķēt'; tā atlaižas zem puses no tās, lai jaudas maiņa un fāžu pārslēgšana nepārslēgtu invertoru turp un atpakaļ.",
-          "external_control_entity": "Norāda, kad akumulatoru vada cita vadība: ieslēgts binārais sensors, palīgs vai slēdzis vai evcc akumulatora režīma koda sensors (sensor.evcc_battery_mode), kamēr tas rāda hold, charge vai holdcharge. Jebkurš cits stāvoklis tiek uzskatīts par neaktīvu. Kamēr tā ir aktīva, pilots neizsauc nevienu skriptu."
+          "external_control_entity": "Norāda, kad akumulatoru vada cita vadība: ieslēgts binārais sensors, palīgs vai slēdzis vai evcc akumulatora režīma koda sensors (sensor.evcc_battery_mode), kamēr tas rāda hold, charge vai holdcharge. Jebkurš cits stāvoklis tiek uzskatīts par neaktīvu. Kamēr tā ir aktīva, pilots neizsauc nevienu skriptu.",
+          "ev_source": "Neobligāti. Ar evcc plāns atstāj vietu uzlādēm, ko evcc ir ieplānojis: uzlādes plānam, lētai uzlādei zem cenas robežas un ātrajai uzlādei. Šajos slotos akumulators tiek turēts saskaņā ar iepriekš norādīto politiku. Norādi arī uzlādes stacijas jaudas sensorus, citādi automašīna tiek skaitīta divreiz, ja mājas skaitītājs ietver staciju.",
+          "evcc_url": "evcc resursdatora nosaukums vai IP adrese ar portu (noklusējums 7070). Aizpilda no evcc integrācijas, ja tā ir instalēta. Tikai lasa, nekad neraksta."
         }
       }
     },
@@ -270,7 +274,9 @@
       "derating_not_monotonic": "Uzlādes jauda nedrīkst samazināties, temperatūrai pieaugot. Pārbaudiet slīdņus.",
       "derating_needs_temperature": "Uzlādei aukstumā nepieciešama akumulatora temperatūras entītija.",
       "ev_block_needs_power": "Politikai 'Bloķēt' nepieciešams vismaz viens stacijas jaudas sensors.",
-      "ev_external_needs_entity": "Politikai 'Ārējā' nepieciešama ārējās vadības entītija."
+      "ev_external_needs_entity": "Politikai 'Ārējā' nepieciešama ārējās vadības entītija.",
+      "evcc_url_required": "Ievadi evcc adresi.",
+      "evcc_unreachable": "evcc neatbildēja šajā adresē. Pārbaudi adresi un vai evcc darbojas."
     }
   },
   "selector": {
@@ -285,6 +291,12 @@
         "allow": "Atļaut izlādi automašīnā",
         "block": "Bloķēt izlādi elektroauto uzlādes laikā",
         "external": "Atstāt ārējai vadībai (piem., evcc)"
+      }
+    },
+    "ev_source": {
+      "options": {
+        "none": "Nav",
+        "evcc": "evcc"
       }
     }
   },

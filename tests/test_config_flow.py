@@ -28,7 +28,9 @@ from smart_battery_pilot.const import (
     CONF_EFFICIENCY,
     CONF_EV_BATTERY_POLICY,
     CONF_EV_POWER_ENTITIES,
+    CONF_EV_SOURCE,
     CONF_EV_THRESHOLD_W,
+    CONF_EVCC_URL,
     CONF_EXTERNAL_CONTROL_ENTITY,
     CONF_FEED_IN_TARIFF,
     CONF_HAS_HEAT_PUMP,
@@ -57,6 +59,8 @@ from smart_battery_pilot.const import (
     EV_POLICY_ALLOW,
     EV_POLICY_BLOCK,
     EV_POLICY_EXTERNAL,
+    EV_SOURCE_EVCC,
+    EV_SOURCE_NONE,
 )
 
 TZ = timezone(timedelta(hours=1))
@@ -679,14 +683,14 @@ def test_allow_only_cleans_the_forecast_and_needs_nothing_else():
 
 def test_evcc_entities_pre_fill_an_empty_ev_section():
     hass = _FakeHass()
-    hass.states.set("sensor.evcc_carport_charge_power", {"unit_of_measurement": "kW"})
+    hass.states.set("sensor.evcc_driveway_charge_power", {"unit_of_measurement": "kW"})
     hass.states.set("sensor.evcc_garage_charge_power", {"unit_of_measurement": "kW"})
     hass.states.set("sensor.evcc_battery_mode", {}, state="normal")
     hass.states.set("sensor.evcc_pv_power", {"unit_of_measurement": "W"})
     form = _run(_options_flow(hass, _entry()).async_step_ev())
     values = _suggested(form)
     assert values[CONF_EV_POWER_ENTITIES] == [
-        "sensor.evcc_carport_charge_power",
+        "sensor.evcc_driveway_charge_power",
         "sensor.evcc_garage_charge_power",
     ]
     assert values[CONF_EXTERNAL_CONTROL_ENTITY] == "sensor.evcc_battery_mode"
@@ -697,17 +701,17 @@ def test_evccs_translated_mode_sensor_is_never_suggested():
     """sensor.evcc_battery_mode_value reads "Unbekannt" or "entladen sperren"
     in German - no list of states could tell idle from active there."""
     hass = _FakeHass()
-    hass.states.set("sensor.evcc_carport_charge_power", {"unit_of_measurement": "kW"})
+    hass.states.set("sensor.evcc_driveway_charge_power", {"unit_of_measurement": "kW"})
     hass.states.set("sensor.evcc_battery_mode_value", {}, state="Unbekannt")
     values = _suggested(_run(_options_flow(hass, _entry()).async_step_ev()))
-    assert values[CONF_EV_POWER_ENTITIES] == ["sensor.evcc_carport_charge_power"]
+    assert values[CONF_EV_POWER_ENTITIES] == ["sensor.evcc_driveway_charge_power"]
     assert values.get(CONF_EXTERNAL_CONTROL_ENTITY) is None
     assert values[CONF_EV_BATTERY_POLICY] == EV_POLICY_ALLOW
 
 
 def test_a_configured_ev_section_is_not_overwritten_by_evcc():
     hass = _FakeHass()
-    hass.states.set("sensor.evcc_carport_charge_power", {"unit_of_measurement": "kW"})
+    hass.states.set("sensor.evcc_driveway_charge_power", {"unit_of_measurement": "kW"})
     hass.states.set("sensor.evcc_battery_mode", {}, state="normal")
     entry = _entry(
         **{
@@ -719,3 +723,89 @@ def test_a_configured_ev_section_is_not_overwritten_by_evcc():
     assert values[CONF_EV_POWER_ENTITIES] == ["sensor.goe_power"]
     assert values[CONF_EV_BATTERY_POLICY] == EV_POLICY_BLOCK
     assert values.get(CONF_EXTERNAL_CONTROL_ENTITY) is None
+
+
+# --- planned sessions from evcc --------------------------------------------------
+
+
+def _evcc_entry(host="192.0.2.5:7070"):
+    return SimpleNamespace(data={"host": host})
+
+
+class _EvccProbe:
+    def __init__(self, monkeypatch, *, reachable=True) -> None:
+        self.urls: list[str] = []
+        self.reachable = reachable
+        monkeypatch.setattr(cf, "async_fetch_state", self._fetch)
+
+    async def _fetch(self, hass, url):
+        self.urls.append(url)
+        if not self.reachable:
+            raise cf.EvccError("timeout")
+        return {"loadpoints": []}
+
+
+def test_the_ev_source_defaults_to_none():
+    defaults = _suggested({"data_schema": cf.schema_ev({})})
+    assert defaults[CONF_EV_SOURCE] == EV_SOURCE_NONE
+
+
+def test_the_evcc_integration_suggests_its_url_and_the_source():
+    hass = _FakeHass(entries=[_evcc_entry()])
+    values = _suggested(_run(_options_flow(hass, _entry()).async_step_ev()))
+    assert values[CONF_EVCC_URL] == "http://192.0.2.5:7070"
+    assert values[CONF_EV_SOURCE] == EV_SOURCE_EVCC
+
+
+def test_a_configured_section_still_gets_the_url_offered_but_keeps_its_source():
+    hass = _FakeHass(entries=[_evcc_entry()])
+    entry = _entry(**{CONF_EV_POWER_ENTITIES: ["sensor.goe_power"]})
+    values = _suggested(_run(_options_flow(hass, entry).async_step_ev()))
+    assert values[CONF_EVCC_URL] == "http://192.0.2.5:7070"
+    assert values[CONF_EV_SOURCE] == EV_SOURCE_NONE
+
+
+def test_evcc_as_source_is_checked_and_its_url_normalized(monkeypatch):
+    probe = _EvccProbe(monkeypatch)
+    flow = _options_flow(_FakeHass(), _entry())
+    result = _run(
+        flow.async_step_ev(
+            _ev_input(**{CONF_EV_SOURCE: EV_SOURCE_EVCC, CONF_EVCC_URL: " evcc.local:7070/ "})
+        )
+    )
+    assert result["type"] == "menu"
+    assert probe.urls == ["http://evcc.local:7070"]
+    data = _run(flow.async_step_apply())["data"]
+    assert data[CONF_EV_SOURCE] == EV_SOURCE_EVCC
+    assert data[CONF_EVCC_URL] == "http://evcc.local:7070"
+
+
+def test_evcc_as_source_needs_a_url(monkeypatch):
+    probe = _EvccProbe(monkeypatch)
+    flow = _options_flow(_FakeHass(), _entry())
+    result = _run(flow.async_step_ev(_ev_input(**{CONF_EV_SOURCE: EV_SOURCE_EVCC})))
+    assert result["errors"] == {"base": "evcc_url_required"}
+    assert probe.urls == []
+
+
+def test_an_unreachable_evcc_is_refused(monkeypatch):
+    _EvccProbe(monkeypatch, reachable=False)
+    flow = _options_flow(_FakeHass(), _entry())
+    result = _run(
+        flow.async_step_ev(
+            _ev_input(**{CONF_EV_SOURCE: EV_SOURCE_EVCC, CONF_EVCC_URL: "evcc.local:7070"})
+        )
+    )
+    assert result["errors"] == {"base": "evcc_unreachable"}
+
+
+def test_a_url_without_evcc_as_source_is_not_probed(monkeypatch):
+    probe = _EvccProbe(monkeypatch, reachable=False)
+    flow = _options_flow(_FakeHass(), _entry())
+    result = _run(
+        flow.async_step_ev(
+            _ev_input(**{CONF_EV_SOURCE: EV_SOURCE_NONE, CONF_EVCC_URL: "evcc.local:7070"})
+        )
+    )
+    assert result["type"] == "menu"
+    assert probe.urls == []

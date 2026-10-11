@@ -169,3 +169,30 @@ def test_wallbox_ticks_outside_an_auto_slot_do_nothing():
     _hass, _coord, executor = _live(ACTION_CHARGE, power=4000.0)
     executor._handle_ev_event(None)
     assert not executor._apply_queued
+
+
+# --- ledger flag -------------------------------------------------------------------
+
+
+def test_the_coordinator_learns_when_the_battery_is_held_for_a_car():
+    """The ledger must not book an EV hold as an arbitrage hold."""
+    _hass, coord, executor = _live(ACTION_AUTO, power=3000.0)
+    _run(executor.async_apply_current())
+    assert coord.ev_hold_active is True
+
+    coord.ev_power = 0.0
+    _run(executor.async_apply_current())
+    assert coord.ev_hold_active is False
+
+
+def test_an_external_hold_counts_as_an_ev_hold():
+    _hass, coord, executor = _live(ACTION_AUTO, policy=EV_POLICY_ALLOW)
+    coord.external = True
+    _run(executor.async_apply_current())
+    assert coord.ev_hold_active is True
+
+
+def test_a_planned_idle_is_no_ev_hold():
+    _hass, coord, executor = _live(ACTION_IDLE, power=3000.0)
+    _run(executor.async_apply_current())
+    assert coord.ev_hold_active is False
