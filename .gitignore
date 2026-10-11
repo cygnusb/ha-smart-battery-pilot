@@ -11,3 +11,4 @@ card/dist/
 .DS_Store
 .env
 *.log
+_site/

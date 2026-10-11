@@ -92,27 +92,29 @@ The usual split: **evcc owns the car, the pilot owns the house battery.**
    is the pilot's job; two planners charging the same battery at different
    price thresholds is the fight to avoid.
 3. In the pilot (options → *EV charging & other controllers*):
-   * Wallbox power sensors: `sensor.evcc_<loadpoint>_charge_power`, one per
-     loadpoint.
-   * Policy: **External**.
-   * External control entity: `sensor.evcc_battery_mode` — evcc's
-     *Battery mode [CODE]* sensor. The evcc integration ships it
-     **disabled**; enable it first under *Settings → Entities*.
+    * Wallbox power sensors: `sensor.evcc_<loadpoint>_charge_power`, one per
+      loadpoint.
+    * Policy: **External**.
+    * External control entity: `sensor.evcc_battery_mode` — evcc's
+      *Battery mode [CODE]* sensor. The evcc integration ships it
+      **disabled**; enable it first under *Settings → Entities*.
 
-   * Planned EV sessions: **evcc**, with evcc's address (optional, see
-     [Planned sessions](#planned-sessions-evcc)).
+    * Planned EV sessions: **evcc**, with evcc's address (optional, see
+      [Planned sessions](#planned-sessions-evcc)).
 
-   With evcc's Home Assistant integration installed, the section is
-   pre-filled with these values while it is still empty (the mode sensor only
-   once it is enabled).
+    With evcc's Home Assistant integration installed, the section is
+    pre-filled with these values while it is still empty (the mode sensor only
+    once it is enabled).
 
-   Two look-alikes that do **not** work:
-   * `sensor.evcc_battery_mode_value` is the same mode, translated
-     ("entladen sperren", "Unbekannt" …). Its states cannot be matched, so it
-     never counts as active.
-   * `switch.evcc_battery_discharge_control` is the setting that *allows* evcc
-     to hold the battery, not a sign that it does. It is on all the time and
-     would pause the pilot for good.
+    Two look-alikes that do **not** work:
+
+    * `sensor.evcc_battery_mode_value` is the same mode, translated
+      ("entladen sperren", "Unbekannt" …). Its states cannot be matched, so it
+      never counts as active.
+    * `switch.evcc_battery_discharge_control` is the setting that *allows* evcc
+      to hold the battery, not a sign that it does. It is on all the time and
+      would pause the pilot for good.
+
 4. Give evcc the real battery capacity in its site settings. evcc's buffer
    and priority SOC logic works on it, and a wrong value (some templates
    default to 1 kWh) makes its decisions hard to predict.

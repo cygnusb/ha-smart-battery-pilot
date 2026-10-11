@@ -45,11 +45,11 @@ cold-weather charge factor.
 1. **Sort** all slots by price, most expensive first. These are the discharge
    candidates — the hours where battery energy is worth the most.
 2. For each candidate, the energy needed to cover its net demand is sourced:
-   1. from **energy already in the battery** (PV surplus, initial SOC) — free
-      energy is always used at the most expensive hours first;
-   2. from **grid charging in cheaper, earlier slots** — only if
-      `charge price / efficiency + spread < discharge price`, and never while
-      the battery would still be below an unfilled reserve at that slot.
+    1. from **energy already in the battery** (PV surplus, initial SOC) — free
+       energy is always used at the most expensive hours first;
+    2. from **grid charging in cheaper, earlier slots** — only if
+       `charge price / efficiency + spread < discharge price`, and never while
+       the battery would still be below an unfilled reserve at that slot.
 3. Every assignment is validated against the battery **timeline**: SOC never
    leaves the window between the floor and max SOC at any point, and per-slot charge/discharge
    power limits are respected. **Forecasted PV surplus charges the battery

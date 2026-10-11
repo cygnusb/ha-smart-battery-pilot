@@ -1,0 +1,5 @@
+# The documentation pages of the project site (mkdocs.yml). Pinned like ruff:
+# an unpinned theme release must not turn a docs build red, and MkDocs 2.0 is
+# not compatible with Material for MkDocs.
+mkdocs==1.6.1
+mkdocs-material==9.7.7
