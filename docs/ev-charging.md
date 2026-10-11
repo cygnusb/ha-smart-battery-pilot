@@ -54,14 +54,20 @@ retrain or after a restart.
 The entity says when another controller has the battery right now:
 
 * a `binary_sensor`, `input_boolean` or `switch` that is **on**, or
-* a mode sensor or `input_select` whose state is anything other than
-  `normal`, `off`, `auto`, `unknown` or `unavailable` — evcc's
-  `sensor.evcc_battery_mode_value` reads `normal`, `hold` or `charge`, so it fits
-  as it is.
+* a sensor that reads one of evcc's battery mode codes `hold`, `charge` or
+  `holdcharge` — evcc's `sensor.evcc_battery_mode`.
+
+Every other state counts as inactive, including `unknown` and `unavailable`.
+The list names the active states on purpose: integrations translate their
+states, and a state nobody anticipated must not pause the pilot for good. For
+anything else, a template binary sensor turns the condition into on/off.
 
 While it is active the pilot calls **no** script (decision
-`external_control`), not even a planned grid charge, and lets the other
-controller do its job. When it ends, the pilot sends its current action once
+`external_control`), not even a planned grid charge. That avoids a tug of war
+over the inverter, but it has a price: an evcc session that charges the car in
+the cheapest hours runs in exactly the slots the pilot would pick to charge the
+house battery from the grid, and those charges are skipped. The plan picks up
+again with the next slot after the hold. When it ends, the pilot sends its current action once
 more, even if that is the same action it sent before. Whatever the other
 controller left in the inverter is not what the pilot last applied, and
 without the re-send it would stay there until the plan changes. An
@@ -86,10 +92,21 @@ The usual split: **evcc owns the car, the pilot owns the house battery.**
    * Wallbox power sensors: `sensor.evcc_<loadpoint>_charge_power`, one per
      loadpoint.
    * Policy: **External**.
-   * External control entity: `sensor.evcc_battery_mode_value`.
+   * External control entity: `sensor.evcc_battery_mode` — evcc's
+     *Battery mode [CODE]* sensor. The evcc integration ships it
+     **disabled**; enable it first under *Settings → Entities*.
 
    With evcc's Home Assistant integration installed, the section is
-   pre-filled with exactly these values while it is still empty.
+   pre-filled with these values while it is still empty (the mode sensor only
+   once it is enabled).
+
+   Two look-alikes that do **not** work:
+   * `sensor.evcc_battery_mode_value` is the same mode, translated
+     ("entladen sperren", "Unbekannt" …). Its states cannot be matched, so it
+     never counts as active.
+   * `switch.evcc_battery_discharge_control` is the setting that *allows* evcc
+     to hold the battery, not a sign that it does. It is on all the time and
+     would pause the pilot for good.
 4. Give evcc the real battery capacity in its site settings. evcc's buffer
    and priority SOC logic works on it, and a wrong value (some templates
    default to 1 kWh) makes its decisions hard to predict.

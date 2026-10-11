@@ -256,7 +256,7 @@
           "ev_power_entities": "Üks või mitu andurit (W või kW) iga laadija tarbitava võimsusega, nt evcc laadimisvõimsus iga laadimispunkti kohta. Nende energia arvatakse tarbimisajaloost maha, et prognoos õpiks maja ilma autota.",
           "ev_battery_policy": "Luba: midagi erilist, inverter võib autosse tühjeneda. Blokeeri: piloot blokeerib tühjenemise, kuni laadijad tarbivad üle läve. Väline: teine juhtimine, näiteks evcc, otsustab, kuni see on aktiivne - piloot peatub ja rakendab hiljem oma plaani uuesti.",
           "ev_threshold_w": "Selle laadijate koguvõimsuse ületamisel rakendub poliitika 'Blokeeri'; see vabaneb alla poole sellest, et võimsuse muutmine ja faaside vahetus inverterit edasi-tagasi ei lülitaks.",
-          "external_control_entity": "Näitab, millal aku on teise juhtimise käes: sisse lülitatud binaarandur, abiline või lüliti või režiimiandur nagu evcc aku režiim (sensor.evcc_battery_mode_value), kui see näitab midagi muud kui 'normal'. Kuni see on aktiivne, ei kutsu piloot ühtegi skripti."
+          "external_control_entity": "Näitab, millal aku on teise juhtimise käes: sisse lülitatud binaarandur, abiline või lüliti või evcc aku režiimi koodiandur (sensor.evcc_battery_mode), kui see näitab hold, charge või holdcharge. Iga muu olek loetakse mitteaktiivseks. Kuni see on aktiivne, ei kutsu piloot ühtegi skripti."
         }
       }
     },

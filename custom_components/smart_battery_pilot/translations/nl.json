@@ -256,7 +256,7 @@
           "ev_power_entities": "Eén of meer sensoren (W of kW) met wat elke laadpaal trekt, bijv. het laadvermogen per laadpunt van evcc. Hun energie wordt uit de verbruiksgeschiedenis gehaald, zodat de voorspelling het huis zonder de auto leert.",
           "ev_battery_policy": "Toestaan: niets bijzonders, de omvormer mag in de auto ontladen. Blokkeren: de piloot blokkeert ontladen zolang de laadpalen meer dan de drempel trekken. Extern: een andere regelaar zoals evcc beslist zolang die actief is - de piloot pauzeert en past daarna zijn plan opnieuw toe.",
           "ev_threshold_w": "Boven dit totale laadpaalvermogen treedt het beleid 'Blokkeren' in werking; het laat los onder de helft ervan, zodat op- en afregelen en faseschakelen de omvormer niet heen en weer schakelen.",
-          "external_control_entity": "Geeft aan wanneer een andere regelaar de batterij heeft: een binaire sensor, helper of schakelaar die aan staat, of een modussensor zoals de batterijmodus van evcc (sensor.evcc_battery_mode_value) zodra die iets anders dan 'normal' meldt. Zolang die actief is, roept de piloot geen script aan."
+          "external_control_entity": "Geeft aan wanneer een andere regelaar de batterij heeft: een binaire sensor, helper of schakelaar die aan staat, of de codesensor voor de batterijmodus van evcc (sensor.evcc_battery_mode) zolang die hold, charge of holdcharge meldt. Elke andere toestand telt als inactief. Zolang die actief is, roept de piloot geen script aan."
         }
       }
     },

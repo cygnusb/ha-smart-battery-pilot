@@ -256,7 +256,7 @@
           "ev_power_entities": "Ein oder mehrere Sensoren (W oder kW) mit der Leistung jeder Wallbox, z. B. die Ladeleistung je evcc-Ladepunkt. Ihre Energie wird aus dem Verbrauchsverlauf herausgerechnet, damit die Prognose das Haus ohne das Auto lernt.",
           "ev_battery_policy": "Erlauben: nichts Besonderes, der Wechselrichter darf ins Auto entladen. Sperren: der Pilot blockiert das Entladen, solange die Wallboxen mehr als die Schwelle ziehen. Extern: eine andere Steuerung wie evcc entscheidet, solange sie aktiv ist - der Pilot pausiert und setzt danach seinen Plan wieder durch.",
           "ev_threshold_w": "Ab dieser gesamten Wallbox-Leistung greift die Richtlinie 'Sperren'; sie löst unter der Hälfte davon wieder, damit Rampen und Phasenumschaltung den Wechselrichter nicht hin- und herschalten.",
-          "external_control_entity": "Zeigt an, wann eine andere Steuerung die Batterie hat: ein Binärsensor, Helfer oder Schalter, der an ist, oder ein Modus-Sensor wie evccs Batteriemodus (sensor.evcc_battery_mode_value), sobald er etwas anderes als 'normal' meldet. Solange sie aktiv ist, ruft der Pilot kein Skript auf."
+          "external_control_entity": "Zeigt an, wann eine andere Steuerung die Batterie hat: ein Binärsensor, Helfer oder Schalter, der an ist, oder evccs Batteriemodus-Code-Sensor (sensor.evcc_battery_mode), solange er hold, charge oder holdcharge meldet. Jeder andere Zustand gilt als inaktiv. Solange sie aktiv ist, ruft der Pilot kein Skript auf."
         }
       }
     },

@@ -116,12 +116,12 @@ DEFAULT_SUNSET_HOUR = 21.0
 # Charge factor source while derating is on but the temperature cannot be read.
 SOURCE_NO_TEMPERATURE = "no_temperature"
 
-# States of a mode sensor (evcc's battery mode, an input_select ...) that mean
-# "no other controller has the battery". On/off entities only count "on".
-EXTERNAL_IDLE_STATES = frozenset(
-    {"", "normal", "off", "false", "none", "auto", "unknown", "unavailable"}
-)
-ON_OFF_DOMAINS = ("binary_sensor", "input_boolean", "switch")
+# States that mean "another controller has the battery": on for binary
+# sensors, helpers and switches, plus evcc's battery mode codes. A list of
+# active states, not of idle ones - integrations translate their states
+# (evcc's readable mode sensor says "Unbekannt" in German), and a state nobody
+# anticipated must not pause the pilot for good.
+EXTERNAL_ACTIVE_STATES = frozenset({"on", "true", "hold", "charge", "holdcharge"})
 
 # Observation rules for learning the cold charge limit (see the spec).
 MIN_OBSERVATION = timedelta(minutes=10)
@@ -768,10 +768,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         state = self.hass.states.get(entity_id)
         if state is None:
             return False
-        value = str(state.state).strip().lower()
-        if entity_id.split(".", 1)[0] in ON_OFF_DOMAINS:
-            return value == "on"
-        return value not in EXTERNAL_IDLE_STATES
+        return str(state.state).strip().lower() in EXTERNAL_ACTIVE_STATES
 
     def ev_inputs(self) -> dict[str, Any]:
         """The EV section of the diagnostics and sensor attributes."""
@@ -867,6 +864,13 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             return
 
         ev_rows = {ev: stats.get(ev, []) for ev in ev_entities}
+        for ev, rows in ev_rows.items():
+            if not rows:
+                _LOGGER.warning(
+                    "No statistics found for wallbox sensor %s - its energy stays in "
+                    "the consumption history. It needs a state_class to be recorded.",
+                    ev,
+                )
         samples = self._build_samples(
             stats.get(entity_id, []), stats.get(temp_entity or "", []), ev_rows
         )

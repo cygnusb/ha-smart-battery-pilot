@@ -256,7 +256,7 @@
           "ev_power_entities": "Yksi tai useampi anturi (W tai kW), joka kertoo kunkin latausaseman tehon, esim. evcc:n lataustehon latauspisteittäin. Niiden energia vähennetään kulutushistoriasta, jotta ennuste oppii talon ilman autoa.",
           "ev_battery_policy": "Salli: ei mitään erityistä, invertteri saa purkaa autoon. Estä: pilotti estää purkamisen, kun latausasemat ottavat yli kynnyksen. Ulkoinen: toinen ohjaus, kuten evcc, päättää sen ollessa aktiivinen - pilotti pitää tauon ja palauttaa suunnitelmansa jälkeenpäin.",
           "ev_threshold_w": "Tämän latausasemien kokonaistehon ylittyessä 'Estä'-käytäntö kytkeytyy; se vapautuu alle puolikkaan, jotta tehon säätö ja vaiheiden vaihto eivät kytke invertteriä edestakaisin.",
-          "external_control_entity": "Kertoo, milloin akku on toisen ohjauksen hallinnassa: päällä oleva binäärianturi, apuri tai kytkin, tai tila-anturi kuten evcc:n akkutila (sensor.evcc_battery_mode_value), kun se näyttää muuta kuin 'normal'. Sen ollessa aktiivinen pilotti ei kutsu skriptejä."
+          "external_control_entity": "Kertoo, milloin akku on toisen ohjauksen hallinnassa: päällä oleva binäärianturi, apuri tai kytkin, tai evcc:n akkutilan koodianturi (sensor.evcc_battery_mode), kun se näyttää hold, charge tai holdcharge. Kaikki muut tilat katsotaan passiivisiksi. Sen ollessa aktiivinen pilotti ei kutsu skriptejä."
         }
       }
     },

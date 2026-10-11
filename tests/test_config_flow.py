@@ -681,7 +681,7 @@ def test_evcc_entities_pre_fill_an_empty_ev_section():
     hass = _FakeHass()
     hass.states.set("sensor.evcc_carport_charge_power", {"unit_of_measurement": "kW"})
     hass.states.set("sensor.evcc_garage_charge_power", {"unit_of_measurement": "kW"})
-    hass.states.set("sensor.evcc_battery_mode_value", {}, state="normal")
+    hass.states.set("sensor.evcc_battery_mode", {}, state="normal")
     hass.states.set("sensor.evcc_pv_power", {"unit_of_measurement": "W"})
     form = _run(_options_flow(hass, _entry()).async_step_ev())
     values = _suggested(form)
@@ -689,14 +689,26 @@ def test_evcc_entities_pre_fill_an_empty_ev_section():
         "sensor.evcc_carport_charge_power",
         "sensor.evcc_garage_charge_power",
     ]
-    assert values[CONF_EXTERNAL_CONTROL_ENTITY] == "sensor.evcc_battery_mode_value"
+    assert values[CONF_EXTERNAL_CONTROL_ENTITY] == "sensor.evcc_battery_mode"
     assert values[CONF_EV_BATTERY_POLICY] == EV_POLICY_EXTERNAL
+
+
+def test_evccs_translated_mode_sensor_is_never_suggested():
+    """sensor.evcc_battery_mode_value reads "Unbekannt" or "entladen sperren"
+    in German - no list of states could tell idle from active there."""
+    hass = _FakeHass()
+    hass.states.set("sensor.evcc_carport_charge_power", {"unit_of_measurement": "kW"})
+    hass.states.set("sensor.evcc_battery_mode_value", {}, state="Unbekannt")
+    values = _suggested(_run(_options_flow(hass, _entry()).async_step_ev()))
+    assert values[CONF_EV_POWER_ENTITIES] == ["sensor.evcc_carport_charge_power"]
+    assert values.get(CONF_EXTERNAL_CONTROL_ENTITY) is None
+    assert values[CONF_EV_BATTERY_POLICY] == EV_POLICY_ALLOW
 
 
 def test_a_configured_ev_section_is_not_overwritten_by_evcc():
     hass = _FakeHass()
     hass.states.set("sensor.evcc_carport_charge_power", {"unit_of_measurement": "kW"})
-    hass.states.set("sensor.evcc_battery_mode_value", {}, state="normal")
+    hass.states.set("sensor.evcc_battery_mode", {}, state="normal")
     entry = _entry(
         **{
             CONF_EV_POWER_ENTITIES: ["sensor.goe_power"],

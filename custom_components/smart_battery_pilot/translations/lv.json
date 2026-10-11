@@ -256,7 +256,7 @@
           "ev_power_entities": "Viens vai vairāki sensori (W vai kW) ar katras uzlādes stacijas patērēto jaudu, piem., evcc uzlādes jauda katram uzlādes punktam. To enerģija tiek atņemta no patēriņa vēstures, lai prognoze iemācītos māju bez automašīnas.",
           "ev_battery_policy": "Atļaut: nekas īpašs, invertors drīkst izlādēt automašīnā. Bloķēt: pilots bloķē izlādi, kamēr stacijas patērē vairāk par slieksni. Ārējā: cita vadība, piem., evcc, lemj, kamēr tā ir aktīva - pilots pauzē un pēc tam atkal piemēro savu plānu.",
           "ev_threshold_w": "Pārsniedzot šo kopējo staciju jaudu, stājas spēkā politika 'Bloķēt'; tā atlaižas zem puses no tās, lai jaudas maiņa un fāžu pārslēgšana nepārslēgtu invertoru turp un atpakaļ.",
-          "external_control_entity": "Norāda, kad akumulatoru vada cita vadība: ieslēgts binārais sensors, palīgs vai slēdzis vai režīma sensors, piem., evcc akumulatora režīms (sensor.evcc_battery_mode_value), kad tas rāda ko citu nekā 'normal'. Kamēr tā ir aktīva, pilots neizsauc nevienu skriptu."
+          "external_control_entity": "Norāda, kad akumulatoru vada cita vadība: ieslēgts binārais sensors, palīgs vai slēdzis vai evcc akumulatora režīma koda sensors (sensor.evcc_battery_mode), kamēr tas rāda hold, charge vai holdcharge. Jebkurš cits stāvoklis tiek uzskatīts par neaktīvu. Kamēr tā ir aktīva, pilots neizsauc nevienu skriptu."
         }
       }
     },

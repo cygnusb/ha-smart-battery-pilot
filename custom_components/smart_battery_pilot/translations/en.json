@@ -256,7 +256,7 @@
           "ev_power_entities": "One or more sensors (W or kW) with what each wallbox draws, e.g. evcc's charge power per loadpoint. Their energy is taken out of the consumption history, so the forecast learns the house without the car.",
           "ev_battery_policy": "Allow: nothing special, the inverter may discharge into the car. Block: the pilot blocks discharging while the wallboxes draw more than the threshold. External: another controller such as evcc decides while it is active - the pilot pauses and re-applies its plan afterwards.",
           "ev_threshold_w": "Above this total wallbox power the 'Block' policy engages; it releases below half of it, so ramping and phase switching do not flip the inverter.",
-          "external_control_entity": "Tells when another controller has the battery: a binary sensor, helper or switch that is on, or a mode sensor such as evcc's battery mode (sensor.evcc_battery_mode_value) whenever it reads something other than 'normal'. While it is active the pilot calls no script."
+          "external_control_entity": "Tells when another controller has the battery: a binary sensor, helper or switch that is on, or evcc's battery mode code sensor (sensor.evcc_battery_mode) while it reads hold, charge or holdcharge. Every other state counts as inactive. While it is active the pilot calls no script."
         }
       }
     },

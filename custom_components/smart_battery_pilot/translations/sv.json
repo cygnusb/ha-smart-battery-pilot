@@ -256,7 +256,7 @@
           "ev_power_entities": "En eller flera sensorer (W eller kW) med effekten varje laddbox drar, t.ex. evccs laddeffekt per laddpunkt. Deras energi dras bort från förbrukningshistoriken så att prognosen lär sig huset utan bilen.",
           "ev_battery_policy": "Tillåt: inget särskilt, växelriktaren får ladda ur till bilen. Blockera: piloten blockerar urladdning medan laddboxarna drar mer än tröskeln. Extern: en annan styrning som evcc bestämmer medan den är aktiv - piloten pausar och tillämpar sin plan igen efteråt.",
           "ev_threshold_w": "Över denna sammanlagda laddeffekt träder policyn 'Blockera' i kraft; den släpper under hälften, så att rampning och fasbyte inte får växelriktaren att slå fram och tillbaka.",
-          "external_control_entity": "Visar när en annan styrning har batteriet: en binär sensor, hjälpare eller brytare som är på, eller en lägessensor som evccs batteriläge (sensor.evcc_battery_mode_value) när den visar något annat än 'normal'. Medan den är aktiv anropar piloten inga skript."
+          "external_control_entity": "Visar när en annan styrning har batteriet: en binär sensor, hjälpare eller brytare som är på, eller evccs kodsensor för batteriläge (sensor.evcc_battery_mode) medan den visar hold, charge eller holdcharge. Alla andra tillstånd räknas som inaktiva. Medan den är aktiv anropar piloten inga skript."
         }
       }
     },

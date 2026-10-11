@@ -223,7 +223,7 @@ async def test_the_ev_options_step_renders_and_saves(sbp_hass: HomeAssistant) ->
     sbp_hass.states.async_set(
         "sensor.evcc_carport_charge_power", "3.7", {"unit_of_measurement": "kW"}
     )
-    sbp_hass.states.async_set("sensor.evcc_battery_mode_value", "hold")
+    sbp_hass.states.async_set("sensor.evcc_battery_mode", "hold")
     entry = await _setup(sbp_hass)
     options = sbp_hass.config_entries.options
 
@@ -245,7 +245,7 @@ async def test_the_ev_options_step_renders_and_saves(sbp_hass: HomeAssistant) ->
             "ev_power_entities": ["sensor.evcc_carport_charge_power"],
             "ev_battery_policy": "external",
             "ev_threshold_w": 1000,
-            "external_control_entity": "sensor.evcc_battery_mode_value",
+            "external_control_entity": "sensor.evcc_battery_mode",
         },
     )
     assert saved["type"] == "menu"

@@ -100,11 +100,15 @@ def test_the_policy_defaults_to_allow():
 @pytest.mark.parametrize(
     ("entity_id", "state", "active"),
     [
-        ("sensor.evcc_battery_mode_value", "normal", False),
-        ("sensor.evcc_battery_mode_value", "hold", True),
-        ("sensor.evcc_battery_mode_value", "charge", True),
-        ("sensor.evcc_battery_mode_value", "unknown", False),
-        ("sensor.evcc_battery_mode_value", "unavailable", False),
+        ("sensor.evcc_battery_mode", "normal", False),
+        ("sensor.evcc_battery_mode", "hold", True),
+        ("sensor.evcc_battery_mode", "charge", True),
+        ("sensor.evcc_battery_mode", "holdcharge", True),
+        ("sensor.evcc_battery_mode", "unknown", False),
+        ("sensor.evcc_battery_mode", "unavailable", False),
+        # The translated sibling: never mistaken for an active controller.
+        ("sensor.evcc_battery_mode_value", "Unbekannt", False),
+        ("sensor.evcc_battery_mode_value", "entladen sperren", False),
         ("binary_sensor.wallbox_holds_battery", "on", True),
         ("binary_sensor.wallbox_holds_battery", "off", False),
         ("input_boolean.manual_battery", "on", True),

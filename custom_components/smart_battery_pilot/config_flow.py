@@ -90,17 +90,17 @@ _BATTERY_TEMPERATURE = selector.EntitySelector(selector.EntitySelectorConfig(dom
 # carry no device class. W or kW is read from the unit at runtime.
 _EV_POWER = selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor", multiple=True))
 # Whatever tells that another controller has the battery right now: a binary
-# sensor, a helper, a switch - or a mode sensor such as evcc's battery mode,
-# which reads "normal" while evcc leaves the battery alone.
+# sensor, a helper, a switch - or evcc's battery mode code sensor, which reads
+# hold or charge while evcc steers the battery.
 _EXTERNAL_CONTROL = selector.EntitySelector(
-    selector.EntitySelectorConfig(
-        domain=["binary_sensor", "input_boolean", "switch", "sensor", "input_select"]
-    )
+    selector.EntitySelectorConfig(domain=["binary_sensor", "input_boolean", "switch", "sensor"])
 )
 
 # evcc's Home Assistant integration names its entities like this; they only
-# pre-fill the EV step, nothing depends on evcc being installed.
-EVCC_BATTERY_MODE_ENTITY = "sensor.evcc_battery_mode_value"
+# pre-fill the EV step, nothing depends on evcc being installed. The mode
+# sensor is the "[CODE]" one (disabled by default): its sibling
+# sensor.evcc_battery_mode_value is translated and cannot be matched.
+EVCC_BATTERY_MODE_ENTITY = "sensor.evcc_battery_mode"
 EVCC_CHARGE_POWER_SUFFIX = "_charge_power"
 
 

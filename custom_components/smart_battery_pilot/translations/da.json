@@ -256,7 +256,7 @@
           "ev_power_entities": "En eller flere sensorer (W eller kW) med det, hver ladeboks trækker, f.eks. evcc's ladeeffekt pr. ladepunkt. Deres energi trækkes ud af forbrugshistorikken, så prognosen lærer huset uden bilen.",
           "ev_battery_policy": "Tillad: intet særligt, inverteren må aflade til bilen. Bloker: piloten blokerer afladning, mens ladeboksene trækker mere end tærsklen. Ekstern: en anden styring som evcc bestemmer, mens den er aktiv - piloten holder pause og genanvender sin plan bagefter.",
           "ev_threshold_w": "Over denne samlede ladeeffekt træder politikken 'Bloker' i kraft; den slipper under halvdelen, så rampning og faseskift ikke får inverteren til at skifte frem og tilbage.",
-          "external_control_entity": "Viser, hvornår en anden styring har batteriet: en binær sensor, hjælper eller kontakt, der er tændt, eller en tilstandssensor som evcc's batteritilstand (sensor.evcc_battery_mode_value), når den viser andet end 'normal'. Mens den er aktiv, kalder piloten ingen script."
+          "external_control_entity": "Viser, hvornår en anden styring har batteriet: en binær sensor, hjælper eller kontakt, der er tændt, eller evcc's sensor for batteritilstandskode (sensor.evcc_battery_mode), mens den viser hold, charge eller holdcharge. Alle andre tilstande regnes som inaktive. Mens den er aktiv, kalder piloten ingen script."
         }
       }
     },
