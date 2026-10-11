@@ -180,7 +180,7 @@ class ChargePlanSensor(SBPEntity, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     # Up to ~190 slot dicts, rewritten twice an hour. Useful live, pure
     # ballast in the recorder database.
-    _unrecorded_attributes = frozenset({ATTR_SLOTS, "ev_sessions"})
+    _unrecorded_attributes = frozenset({ATTR_SLOTS, "ev_sessions", "ev_loadpoints"})
 
     def __init__(self, coordinator: SBPCoordinator) -> None:
         super().__init__(coordinator, "charge_plan")
@@ -226,6 +226,8 @@ class ChargePlanSensor(SBPEntity, SensorEntity):
                 "ev_sessions": data.ev_sessions or [],
                 "ev_price_limit": data.ev_price_limit,
                 "ev_price_limit_evcc": data.ev_price_limit_evcc,
+                "ev_status": data.ev_status,
+                "ev_loadpoints": data.ev_loadpoints or [],
             }
             if data.ev_source
             else {}

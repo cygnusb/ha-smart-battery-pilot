@@ -289,3 +289,33 @@ def test_the_grid_import_limit_reaches_the_planner(monkeypatch, value, expected)
     _Evcc(monkeypatch)
     data = _run(_coord(**{CONF_GRID_IMPORT_LIMIT_W: value})._async_update_data())
     assert data.inputs["config"]["grid_import_limit_w"] == expected
+
+
+def test_the_plan_tells_the_card_how_each_loadpoint_stands(monkeypatch):
+    """Nothing to plan for a full car: the card still says why."""
+    _Evcc(monkeypatch, _evcc_state(charging=False, chargePower=0, mode="smart", vehicleSoc=80))
+    coord = _coord()
+    coord.data = _run(coord._async_update_data())
+    sensor = object.__new__(ChargePlanSensor)
+    sensor.coordinator = coord
+    attrs = sensor.extra_state_attributes
+    assert attrs["ev_kwh_total"] == 0
+    assert attrs["ev_status"] == "ok"
+    assert attrs["ev_loadpoints"] == [
+        {
+            "connected": True,
+            "charging": False,
+            "mode": "smart",
+            "vehicle_soc": 80.0,
+            "limit_soc": 80.0,
+        }
+    ]
+    assert "ev_loadpoints" in ChargePlanSensor._unrecorded_attributes
+
+
+def test_an_unreachable_evcc_shows_as_offline(monkeypatch):
+    evcc = _Evcc(monkeypatch)
+    evcc.fail = True
+    data = _run(_coord()._async_update_data())
+    assert data.ev_status == "offline"
+    assert data.ev_loadpoints == []

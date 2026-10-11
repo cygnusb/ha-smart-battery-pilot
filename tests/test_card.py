@@ -604,7 +604,8 @@ const plans = {
     ev_source: "evcc", ev_kwh_total: 0, ev_sessions: [], ev_price_limit: 0.12,
   }),
   ev: Object.assign({ slots: evSlots }, baseAttrs, {
-    ev_source: "evcc", ev_kwh_total: 13.0, ev_price_limit: 0.12,
+    ev_source: "evcc", ev_kwh_total: 13.0, ev_price_limit: 0.12, ev_status: "ok",
+    ev_loadpoints: [{ connected: true, charging: false, mode: "smart", vehicle_soc: 40, limit_soc: 80 }],
     ev_sessions: [
       { start: iso(-3), end: iso(-2), energy_kwh: 5.0, source: "plan" },
       { start: iso(1), end: iso(5), energy_kwh: 12.3, source: "smart_cost" },
@@ -612,6 +613,22 @@ const plans = {
   }),
   ev_nosessions: Object.assign({ slots: evSlots }, baseAttrs, {
     ev_source: "evcc", ev_kwh_total: 13.0, ev_price_limit: null, ev_sessions: [],
+  }),
+  // Nothing to plan, with the charger's state from a 1.2.3 backend.
+  ev_full: Object.assign({ slots: idleSlots }, baseAttrs, {
+    ev_source: "evcc", ev_kwh_total: 0, ev_sessions: [], ev_price_limit: null, ev_status: "ok",
+    ev_loadpoints: [
+      { connected: true, charging: false, mode: "smart", vehicle_soc: 100, limit_soc: 100 },
+      { connected: false, charging: false, mode: "off", vehicle_soc: null, limit_soc: null },
+    ],
+  }),
+  ev_unplugged: Object.assign({ slots: idleSlots }, baseAttrs, {
+    ev_source: "evcc", ev_kwh_total: 0, ev_sessions: [], ev_price_limit: null, ev_status: "ok",
+    ev_loadpoints: [{ connected: false, charging: false, mode: "pv", vehicle_soc: null, limit_soc: null }],
+  }),
+  ev_offline: Object.assign({ slots: idleSlots }, baseAttrs, {
+    ev_source: "evcc", ev_kwh_total: 0, ev_sessions: [], ev_price_limit: null, ev_status: "offline",
+    ev_loadpoints: [],
   }),
   // A 1.2.1 backend with both figures: the line on the plan's axis, the
   // label quoting evcc's own limit.
@@ -761,6 +778,29 @@ def test_the_limit_line_quotes_evccs_own_figure(ev_views):
     assert html.count('class="evlimit"') == 1
     assert ">evcc limit 0.22</text>" in html
     assert ">evcc limit 0.12</text>" not in html
+
+
+@pytest.mark.parametrize(
+    ("plan", "text"),
+    [
+        ("ev_full", "EV: 100 % · no charging planned"),
+        ("ev_unplugged", "EV: not plugged in"),
+        ("ev_offline", "EV: evcc not reachable"),
+    ],
+)
+def test_a_quiet_charger_still_says_how_it_stands(ev_views, plan, text):
+    """Nothing planned for the car: every view names the reason, and draws
+    nothing else for the car."""
+    for view in ("tracks", "balance", "compact"):
+        html = ev_views[plan][view]["html"]
+        assert f'<span class="next">{text}</span>' in html, view
+        for marker in ("evwin", "evlimit", "evheld", "ev-i"):
+            assert marker not in html, f"{view}: {marker}"
+
+
+def test_a_planned_session_replaces_the_idle_text(ev_views):
+    for view in ("tracks", "balance", "compact"):
+        assert "no charging planned" not in ev_views["ev"][view]["html"], view
 
 
 def test_the_soc_panel_marks_the_held_battery(ev_views):

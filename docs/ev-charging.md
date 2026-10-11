@@ -194,7 +194,11 @@ The card draws the charging windows as a band across the panels, evcc's price
 limit as a dashed line where it fits, and a thick SOC segment where the
 battery is held for the car. A slot evcc picked for its price shows evcc's own
 limit in the tooltip. The compact view adds an EV tile with the next session;
-the other views show it in the status line.
+the other views show it in the status line. With nothing planned for the car, the status line
+still says how the charger stands: the plugged-in car's SOC with "no charging
+planned", "not plugged in", or "evcc not reachable". The plan sensor carries
+that as `ev_status` and `ev_loadpoints` (connected, charging, mode, SOC and
+limit per loadpoint, without names).
 
 ### Grid import limit
 

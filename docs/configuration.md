@@ -277,7 +277,9 @@ band through all panels, the slots where the battery is held for the car as a
 thick SOC segment, and, where it fits on the price axis, evcc's price limit as
 a dashed line. The tooltip names the EV energy, why evcc charges, and evcc's
 own limit for slots it picked for their price. A plan without EV charging
-looks exactly as before. See [EV charging](ev-charging.md#planned-sessions-evcc).
+looks exactly as before, apart from one line in the status bar that says
+how the charger stands (car SOC and "no charging planned", "not plugged in" or
+"evcc not reachable"). See [EV charging](ev-charging.md#planned-sessions-evcc).
 
 The SOC panel is drawn against the battery's configured window (`min_soc` to
 `max_soc`, published on the plan sensor) instead of 0–100 %, so the discharge
