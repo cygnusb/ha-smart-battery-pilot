@@ -153,9 +153,6 @@ section.block { padding-block: 88px 24px; display: flex; flex-direction: column;
 .install p { margin: 0; color: var(--on-night-soft); }
 .install ol { flex: 1 1 480px; min-width: 0; margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 14px; color: #dfe6f4; }
 .repo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
-.repo code { background: var(--night-2); color: var(--amber); padding: 6px 10px; border-radius: 6px; font-family: var(--mono); font-size: 14px; overflow-wrap: anywhere; }
-.copy { min-height: 36px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--night-line); background: transparent; color: var(--on-night); font: inherit; font-size: 14px; cursor: pointer; }
-.copy:hover { border-color: var(--on-night-soft); }
 footer.foot { border-top: 1px solid #1d2c55; }
 footer.foot .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding-block: 24px; font-size: 14px; color: var(--on-night-dim); }
 footer.foot nav { display: flex; gap: 22px; }
@@ -292,9 +289,9 @@ footer.foot a { color: var(--on-night-soft); }
 <p>It ships switched off and in dry-run, so the first days are only a plan to read.</p>
 </div>
 <ol>
-<li>In HACS, open the menu, choose <em>Custom repositories</em> and add this repository as an <em>Integration</em>:
-<div class="repo"><code id="repo-url">https://github.com/cygnusb/ha-smart-battery-pilot</code><button class="copy" type="button" id="copy-btn">Copy</button></div></li>
-<li>Install Smart Battery Pilot and restart Home Assistant.</li>
+<li>Search for <em>Smart Battery Pilot</em> in HACS, it is in the default repository. Or open it there directly:
+<div class="repo"><a class="btn btn-amber" href="https://my.home-assistant.io/redirect/hacs_repository/?owner=cygnusb&amp;repository=ha-smart-battery-pilot&amp;category=integration">Open in HACS</a></div></li>
+<li>Download it and restart Home Assistant.</li>
 <li>Add the integration: price sensor, battery, four control scripts, consumption meter and PV forecast.</li>
 <li>Put the card on a dashboard, and switch the pilot on once the plan makes sense to you.</li>
 </ol>
@@ -307,17 +304,5 @@ footer.foot a { color: var(--on-night-soft); }
 </footer>
 </div>
 
-<script>
-document.getElementById("copy-btn").addEventListener("click", function () {
-  var btn = this;
-  var text = document.getElementById("repo-url").textContent;
-  function done(label) { btn.textContent = label; setTimeout(function () { btn.textContent = "Copy"; }, 1800); }
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(function () { done("Copied"); }, function () { done("Select and copy"); });
-  } else {
-    done("Select and copy");
-  }
-});
-</script>
 </body>
 </html>
