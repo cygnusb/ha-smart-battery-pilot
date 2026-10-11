@@ -92,3 +92,39 @@ def test_an_unblocked_car_eats_pv_surplus_before_the_battery():
     # 2 kWh PV go into the car, the other 3 kWh are grid demand at 10 % SOC.
     assert plan.slots[0].soc_forecast == BATTERY.soc
     assert plan.slots[0].action in (ACTION_AUTO, ACTION_IDLE)
+
+
+# --- grid import limit ------------------------------------------------------------
+
+
+def test_the_grid_limit_leaves_the_charge_what_house_and_car_do_not_draw():
+    prices = [0.10] * 4 + [0.50] * 4
+    slots = with_ev(make_slots(prices, demand_kwh=1.0), dict.fromkeys(range(4), 7.0), blocked=True)
+    free = build_plan(slots, BATTERY, CONFIG)
+    assert max(s.power_w for s in free.slots[:4]) > 3000.0
+
+    limited = build_plan(slots, BATTERY, replace(CONFIG, grid_import_limit_w=11000))
+    # 11 kW connection - 1 kW house - 7 kW car = 3 kW for the battery.
+    charging = [s for s in limited.slots[:4] if s.action == ACTION_CHARGE]
+    assert charging
+    assert all(s.power_w <= 3000.0 + 1 for s in charging)
+    assert limited.grid_limited_slots == len(
+        [s for s in charging if s.power_w == pytest.approx(3000.0, abs=1)]
+    )
+    assert limited.grid_limited_slots > 0
+
+
+def test_a_generous_grid_limit_changes_nothing():
+    slots = make_slots(PRICES, demand_kwh=1.0)
+    plain = build_plan(slots, BATTERY, CONFIG)
+    limited = build_plan(slots, BATTERY, replace(CONFIG, grid_import_limit_w=50000))
+    assert [s.power_w for s in limited.slots] == [s.power_w for s in plain.slots]
+    assert limited.grid_limited_slots == 0
+
+
+def test_a_cold_battery_under_the_grid_limit_asks_for_the_limit_not_the_maximum():
+    prices = [0.10] * 4 + [0.50] * 4
+    slots = with_ev(make_slots(prices, demand_kwh=1.0), dict.fromkeys(range(4), 7.0), blocked=True)
+    cold = replace(BATTERY, charge_factor=0.8)
+    plan = build_plan(slots, cold, replace(CONFIG, grid_import_limit_w=11000))
+    assert all(s.power_w <= 3000.0 + 1 for s in plan.slots[:4] if s.action == ACTION_CHARGE)

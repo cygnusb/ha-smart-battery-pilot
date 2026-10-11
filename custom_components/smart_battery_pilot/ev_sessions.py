@@ -37,6 +37,10 @@ CHARGE_EFFICIENCY = 0.9
 LIVE_WINDOW = timedelta(minutes=15)
 NOMINAL_VOLTAGE = 230.0
 MIN_SESSION_KWH = 0.05
+# evcc's limit is only moved onto the planner's prices when both series are
+# known for this many slots and stay this close to a constant offset.
+MIN_LIMIT_OVERLAP = 4
+LIMIT_OFFSET_TOLERANCE = 0.02  # EUR/kWh
 
 
 @dataclass(frozen=True, slots=True)
@@ -319,12 +323,14 @@ def limit_on_price_basis(
     rates: list[tuple[datetime, datetime, float]],
     slots: list[tuple[datetime, datetime, float]],
 ) -> float | None:
-    """evcc's price limit moved onto the planner's own price basis.
+    """evcc's price limit moved onto the planner's own price basis, or None.
 
     evcc and the planner may price the same hour differently (fees, VAT, a
-    different provider). The typical gap between the two series over the
-    hours both know is added to the limit, so a line drawn at the result
-    separates the slots evcc picks on the planner's price axis.
+    different provider). When the two series are a constant offset apart,
+    the offset is added to the limit, so a line drawn at the result
+    separates the slots evcc picks on the planner's price axis. When they
+    are not (a percentage VAT on one side, another tariff), no single line
+    does that, and None says so.
     """
     if limit is None:
         return None
@@ -335,6 +341,6 @@ def limit_on_price_basis(
             if r_start <= middle < r_end:
                 gaps.append(price - value)
                 break
-    if not gaps:
+    if len(gaps) < MIN_LIMIT_OVERLAP or max(gaps) - min(gaps) > LIMIT_OFFSET_TOLERANCE:
         return None
     return round(limit + statistics.median(gaps), 4)

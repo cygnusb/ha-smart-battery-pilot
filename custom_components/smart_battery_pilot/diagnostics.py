@@ -78,6 +78,8 @@ async def async_get_config_entry_diagnostics(
         "warnings": list(data.plan.warnings),
         "ev_sessions": data.ev_sessions,
         "ev_price_limit": data.ev_price_limit,
+        "ev_price_limit_evcc": data.ev_price_limit_evcc,
+        "grid_limited_slots": data.plan.grid_limited_slots,
         "slots": [
             {
                 "start": slot.start.isoformat(),

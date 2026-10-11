@@ -27,6 +27,7 @@ see. Every field is optional, and the defaults change nothing.
 | External control entity | – | Tells when another controller has the battery, see below. Works with any policy. |
 | Planned EV sessions | None | *evcc*: the plan leaves room for sessions evcc will run, see [Planned sessions](#planned-sessions-evcc). |
 | evcc address | – | Where evcc runs, e.g. `http://evcc.local:7070`. Pre-filled from evcc's Home Assistant integration. |
+| Grid import limit | – | Your grid connection's limit in W. The pilot's grid charge only uses what the house and a charging car leave below it, see [Grid import limit](#grid-import-limit). |
 
 ### Forecast
 
@@ -179,12 +180,30 @@ Keep the wallbox power sensors set as well. They clean the consumption
 history; without them a house meter that includes the wallbox counts the car
 twice, once in the learned forecast and once as a planned session.
 
-The plan sensor carries the sessions (`ev_sessions`, `ev_kwh_total`, and
-`ev_price_limit`: evcc's price limit moved onto the plan's price basis, since
-evcc's prices may leave out fees the pilot's include). Each slot gets
-`ev_kwh`, `ev_source` and `battery_blocked`. The card draws the charging
-windows, evcc's price limit and the slots where the battery is held. The
+The plan sensor carries the sessions (`ev_sessions`, `ev_kwh_total`), evcc's
+price limit as evcc states it (`ev_price_limit_evcc`) and the same limit on
+the plan's price basis (`ev_price_limit`). evcc's prices may leave out fees
+the pilot's include, so the limit is moved by the offset between the two
+series - but only when that offset is constant within 0.02 EUR/kWh over the
+hours both know. A percentage VAT on one side or a different tariff leaves no
+single line that separates the slots evcc picks; `ev_price_limit` is then
+empty. Each slot gets `ev_kwh`, `ev_source` and `battery_blocked`. The
 diagnostics show what evcc reported per loadpoint, without vehicle names.
+
+The card draws the charging windows as a band across the panels, evcc's price
+limit as a dashed line where it fits, and a thick SOC segment where the
+battery is held for the car. A slot evcc picked for its price shows evcc's own
+limit in the tooltip. The compact view adds an EV tile with the next session;
+the other views show it in the status line.
+
+### Grid import limit
+
+Optional. With a grid connection limit set, the pilot plans its grid charge
+only into what the house and a charging car leave below it: in an hour where
+the house draws 1 kW and the car 7 kW, an 11 kW limit leaves 3 kW for the
+battery. The pilot never throttles the house or the car, and the limit holds
+for the battery's charge request too, even on a cold battery. The diagnostics
+count the charge slots the limit capped (`grid_limited_slots`).
 
 Not included: a smart cost limit on a CO₂ tariff (it is an emission limit,
 not a price), and evcc's PV mode as a forecast. Whether PV surplus goes to the

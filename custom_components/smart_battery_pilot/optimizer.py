@@ -76,6 +76,9 @@ class OptimizerConfig:
     # Another controller holds the battery while the car charges (EV policy
     # "external"): the pilot's charge script would not run there either.
     ev_no_grid_charge: bool = False
+    # Grid connection limit (W) the pilot's grid charge stays under, on top of
+    # what the house and the car draw. None or 0: no limit.
+    grid_import_limit_w: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -136,6 +139,8 @@ class Plan:
     # arbitrage choice, so kept out of estimated_savings_eur.
     reserve_refill_kwh: float = 0.0
     reserve_refill_cost_eur: float = 0.0
+    # Charge slots whose power the grid import limit capped.
+    grid_limited_slots: int = 0
 
 
 def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerConfig) -> Plan:
@@ -210,11 +215,6 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
     power_cap = [
         battery.max_charge_power_w * charge_factor / 1000.0 * h * eta_one_way for h in hours
     ]
-    # What the pilot may charge from the grid. PV keeps charging a battery
-    # another controller holds - a hold only stops discharging.
-    charge_cap = [
-        0.0 if blocked[i] and config.ev_no_grid_charge else power_cap[i] for i in range(n)
-    ]
     discharge_cap = [
         0.0 if blocked[i] else battery.max_discharge_power_w / 1000.0 * h
         for i, h in enumerate(hours)
@@ -230,6 +230,25 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
         )
         for i in range(n)
     ]
+
+    # What the battery may take in a slot, PV included. PV keeps charging a
+    # battery another controller holds - a hold only stops discharging.
+    charge_cap = [
+        pv_surplus_stored[i] if blocked[i] and config.ev_no_grid_charge else power_cap[i]
+        for i in range(n)
+    ]
+    # A grid import limit leaves the pilot's grid charge only what the house
+    # and the car do not already draw. The pilot never throttles either.
+    grid_limited = [False] * n
+    if config.grid_import_limit_w:
+        for i in range(n):
+            ev_grid = max(0.0, slots[i].ev_kwh) - ev_from_pv[i]
+            drawn = max(0.0, slots[i].net_demand_kwh) + ev_grid
+            room = max(0.0, config.grid_import_limit_w / 1000.0 * hours[i] - drawn)
+            limited = pv_surplus_stored[i] + room * eta_one_way
+            if limited < charge_cap[i] - 1e-9:
+                charge_cap[i] = limited
+                grid_limited[i] = True
 
     def timeline() -> tuple[list[float], list[float]]:
         """Stored energy (above min SOC) at the END of each slot, and the PV
@@ -447,13 +466,18 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
     # --- build plan slots ----------------------------------------------------
     def charge_request_w(i: int, stored: float) -> float:
         """Power to ask the charge script for, to store `stored` kWh in slot i."""
-        if 0.0 < charge_factor < 1.0 and stored + pv_surplus_stored[i] >= charge_cap[i] - 1e-9:
+        if (
+            0.0 < charge_factor < 1.0
+            and not grid_limited[i]
+            and stored + pv_surplus_stored[i] >= charge_cap[i] - 1e-9
+        ):
             # Filled to the cold limit: the planned power is that limit, and
             # passing it on would make the pilot throttle the battery itself.
             # Ask for the maximum and let the BMS cap it. A slot that needs
             # less keeps its planned power - a cold BMS caps the current, it
             # does not take a share of the request, so asking for more there
-            # would overshoot the plan (and max SOC).
+            # would overshoot the plan (and max SOC). Under a grid import
+            # limit the planned power is the limit, and must stay it.
             return battery.max_charge_power_w
         return stored / eta_one_way / hours[i] * 1000.0
 
@@ -472,6 +496,10 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
             grid_kwh = charge_stored[i] / eta_one_way
             charge_power = charge_request_w(i, charge_stored[i])
             plan.grid_charge_kwh += grid_kwh
+            if grid_limited[i] and (
+                charge_stored[i] + pv_surplus_stored[i] >= charge_cap[i] - 1e-6
+            ):
+                plan.grid_limited_slots += 1
         elif export_stored[i] > 1e-9:
             action = ACTION_EXPORT
             if hours[i] > 0:

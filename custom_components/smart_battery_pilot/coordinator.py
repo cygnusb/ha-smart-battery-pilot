@@ -43,6 +43,7 @@ from .const import (
     CONF_EVCC_URL,
     CONF_EXTERNAL_CONTROL_ENTITY,
     CONF_FEED_IN_TARIFF,
+    CONF_GRID_IMPORT_LIMIT_W,
     CONF_HAS_HEAT_PUMP,
     CONF_MAX_CHARGE_POWER_W,
     CONF_MAX_DISCHARGE_POWER_W,
@@ -241,8 +242,11 @@ class SBPData:
     ev_source: str | None = None
     ev_sessions: list[dict[str, Any]] | None = None
     ev_kwh_total: float = 0.0
-    # evcc's cheap-price limit on this plan's price basis, or None.
+    # evcc's cheap-price limit on this plan's price basis, or None when the
+    # two price series are not a constant offset apart.
     ev_price_limit: float | None = None
+    # The same limit as evcc states it, against evcc's own prices.
+    ev_price_limit_evcc: float | None = None
     # What each plan slot's EV energy comes from (plan, smart_cost, now,
     # charging), aligned with plan.slots.
     ev_slot_sources: list[str | None] | None = None
@@ -558,6 +562,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             price_offset=float(self.conf(CONF_PRICE_OFFSET, DEFAULT_PRICE_OFFSET)),
             reserve_refill_hours=refill_hours,
             ev_no_grid_charge=ev_forecast is not None and self.ev_policy() == EV_POLICY_EXTERNAL,
+            grid_import_limit_w=self._grid_import_limit_w(),
         )
 
         plan = await self.hass.async_add_executor_job(build_plan, input_slots, battery, config)
@@ -886,6 +891,14 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             }
         return inputs
 
+    def _grid_import_limit_w(self) -> float | None:
+        value = self.conf(CONF_GRID_IMPORT_LIMIT_W)
+        try:
+            limit = float(value) if value not in (None, "") else None
+        except (TypeError, ValueError):
+            return None
+        return limit if limit and limit > 0 else None
+
     def ev_source(self) -> str:
         return self.conf(CONF_EV_SOURCE) or DEFAULT_EV_SOURCE
 
@@ -975,6 +988,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             "ev_sessions": sessions,
             "ev_kwh_total": round(sum(kwh for kwh, _ in ev_per_slot), 2),
             "ev_price_limit": limit,
+            "ev_price_limit_evcc": forecast.price_limit if forecast is not None else None,
             "ev_slot_sources": [source for _, source in ev_per_slot],
         }
 

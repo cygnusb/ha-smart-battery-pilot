@@ -252,7 +252,8 @@
           "ev_threshold_w": "Drempel voor EV-laden",
           "external_control_entity": "Entiteit voor externe regeling (optioneel)",
           "ev_source": "Geplande EV-laadsessies",
-          "evcc_url": "evcc-adres"
+          "evcc_url": "evcc-adres",
+          "grid_import_limit_w": "Limiet netafname (optioneel)"
         },
         "data_description": {
           "ev_power_entities": "Eén of meer sensoren (W of kW) met wat elke laadpaal trekt, bijv. het laadvermogen per laadpunt van evcc. Hun energie wordt uit de verbruiksgeschiedenis gehaald, zodat de voorspelling het huis zonder de auto leert.",
@@ -260,7 +261,8 @@
           "ev_threshold_w": "Boven dit totale laadpaalvermogen treedt het beleid 'Blokkeren' in werking; het laat los onder de helft ervan, zodat op- en afregelen en faseschakelen de omvormer niet heen en weer schakelen.",
           "external_control_entity": "Geeft aan wanneer een andere regelaar de batterij heeft: een binaire sensor, helper of schakelaar die aan staat, of de codesensor voor de batterijmodus van evcc (sensor.evcc_battery_mode) zolang die hold, charge of holdcharge meldt. Elke andere toestand telt als inactief. Zolang die actief is, roept de piloot geen script aan.",
           "ev_source": "Optioneel. Met evcc laat het plan ruimte voor laden dat evcc heeft gepland: het laadplan, goedkoop laden onder de prijsgrens en snelladen. De batterij wordt in die slots vastgehouden volgens het beleid hierboven. Stel ook de vermogenssensoren van de laadpaal in, anders telt de auto dubbel als je huismeter de laadpaal meet.",
-          "evcc_url": "Hostnaam of IP-adres van evcc met poort (standaard 7070). Wordt ingevuld vanuit de evcc-integratie als die is geïnstalleerd. Wordt alleen gelezen, nooit beschreven."
+          "evcc_url": "Hostnaam of IP-adres van evcc met poort (standaard 7070). Wordt ingevuld vanuit de evcc-integratie als die is geïnstalleerd. Wordt alleen gelezen, nooit beschreven.",
+          "grid_import_limit_w": "De limiet van je netaansluiting. Het laden van het net door de pilot gebruikt alleen wat het huis en een ladende auto eronder overlaten; geen van beide wordt beperkt. Leeg: geen limiet."
         }
       }
     },

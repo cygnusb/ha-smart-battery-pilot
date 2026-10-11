@@ -225,6 +225,7 @@ class ChargePlanSensor(SBPEntity, SensorEntity):
                 "ev_kwh_total": data.ev_kwh_total,
                 "ev_sessions": data.ev_sessions or [],
                 "ev_price_limit": data.ev_price_limit,
+                "ev_price_limit_evcc": data.ev_price_limit_evcc,
             }
             if data.ev_source
             else {}

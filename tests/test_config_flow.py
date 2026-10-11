@@ -33,6 +33,7 @@ from smart_battery_pilot.const import (
     CONF_EVCC_URL,
     CONF_EXTERNAL_CONTROL_ENTITY,
     CONF_FEED_IN_TARIFF,
+    CONF_GRID_IMPORT_LIMIT_W,
     CONF_HAS_HEAT_PUMP,
     CONF_MAX_CHARGE_POWER_W,
     CONF_MAX_DISCHARGE_POWER_W,
@@ -809,3 +810,13 @@ def test_a_url_without_evcc_as_source_is_not_probed(monkeypatch):
     )
     assert result["type"] == "menu"
     assert probe.urls == []
+
+
+def test_a_grid_import_limit_is_saved_and_can_be_cleared():
+    flow = _options_flow(_FakeHass(), _entry())
+    _run(flow.async_step_ev(_ev_input(**{CONF_GRID_IMPORT_LIMIT_W: 11000})))
+    assert _run(flow.async_step_apply())["data"][CONF_GRID_IMPORT_LIMIT_W] == 11000
+
+    flow = _options_flow(_FakeHass(), _entry(**{CONF_GRID_IMPORT_LIMIT_W: 11000}))
+    _run(flow.async_step_ev(_ev_input()))
+    assert _run(flow.async_step_apply())["data"][CONF_GRID_IMPORT_LIMIT_W] is None
