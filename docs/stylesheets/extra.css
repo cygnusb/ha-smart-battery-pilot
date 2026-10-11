@@ -1,57 +1,66 @@
-/* The project page's "winter night" look on top of Material for MkDocs:
-   night-blue header, amber accents, Instrument Serif headlines over Manrope. */
-@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap");
+/* The project page's daylight price-board look on top of Material for MkDocs:
+   cool paper, graphite ink, hairline rules, Archivo condensed headlines over
+   Atkinson Hyperlegible Next. The fonts come from assets/fonts/fonts.css. */
 
 :root {
-  --sbp-night: #0b1530;
-  --sbp-night-2: #1a2a52;
-  --sbp-on-night: #e6ecf8;
-  --sbp-on-night-soft: #b7c4dd;
-  --sbp-amber: #ffc46b;
-  --sbp-display: "Instrument Serif", Georgia, "Times New Roman", serif;
-}
-
-[data-md-color-primary="custom"] {
-  --md-primary-fg-color: var(--sbp-night);
-  --md-primary-fg-color--light: var(--sbp-night-2);
-  --md-primary-fg-color--dark: #070e22;
-  --md-primary-bg-color: var(--sbp-on-night);
-  --md-primary-bg-color--light: var(--sbp-on-night-soft);
-}
-
-[data-md-color-accent="custom"] {
-  --md-accent-fg-color: #b8741a;
-  --md-accent-fg-color--transparent: rgba(255, 196, 107, 0.16);
-  --md-accent-bg-color: var(--sbp-night);
+  --sbp-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  /* Material puts its own system-font fallbacks after this one. */
+  --md-text-font: "Atkinson Hyperlegible Next";
 }
 
 [data-md-color-scheme="default"] {
-  --md-default-fg-color: #1b2440;
-  --md-default-fg-color--light: #4a5778;
-  --md-typeset-color: #1b2440;
-  --md-typeset-a-color: #2a54b0;
-  --md-code-bg-color: #f3f5f9;
+  --sbp-paper: #eef2f3;
+  --sbp-ink: #13262d;
+  --sbp-rule: #d2dce0;
+  --sbp-hold: #6f5bd6;
+  --md-default-bg-color: #ffffff;
+  --md-default-fg-color: var(--sbp-ink);
+  --md-default-fg-color--light: #475c65;
+  --md-default-fg-color--lighter: #5c7079;
+  --md-default-fg-color--lightest: var(--sbp-rule);
+  --md-typeset-color: var(--sbp-ink);
+  --md-typeset-a-color: #5a46c4;
+  --md-code-bg-color: var(--sbp-paper);
+  --md-code-fg-color: var(--sbp-ink);
 }
 
 [data-md-color-scheme="slate"] {
-  --md-default-bg-color: #0f1730;
-  --md-default-fg-color: #e6ecf8;
-  --md-default-fg-color--light: #b7c4dd;
-  --md-default-fg-color--lighter: #8ea0c4;
-  --md-default-fg-color--lightest: #26355e;
-  --md-typeset-color: #e6ecf8;
-  --md-typeset-a-color: var(--sbp-amber);
-  --md-accent-fg-color: #ffd28c;
-  --md-code-bg-color: #16213f;
-  --md-code-fg-color: #dfe6f4;
-  --md-footer-bg-color: #0b1530;
-  --md-footer-bg-color--dark: #070e22;
+  --sbp-paper: #121b1f;
+  --sbp-ink: #e3ebee;
+  --sbp-rule: #2b3b43;
+  --sbp-hold: #8b7bf0;
+  --md-hue: 200;
+  --md-default-bg-color: #18232a;
+  --md-default-fg-color: var(--sbp-ink);
+  --md-default-fg-color--light: #a6b6bd;
+  --md-default-fg-color--lighter: #8fa2aa;
+  --md-default-fg-color--lightest: var(--sbp-rule);
+  --md-typeset-color: var(--sbp-ink);
+  --md-typeset-a-color: #a59af5;
+  --md-code-bg-color: var(--sbp-paper);
+  --md-code-fg-color: var(--sbp-ink);
+  --md-footer-bg-color: var(--sbp-paper);
+  --md-footer-bg-color--dark: #0d1417;
 }
 
-/* The header and footer are night bands on both schemes, as on the project page. */
-.md-header,
-.md-tabs {
-  background-color: var(--sbp-night);
+[data-md-color-primary="custom"] {
+  --md-primary-fg-color: var(--sbp-paper);
+  --md-primary-fg-color--light: var(--sbp-paper);
+  --md-primary-fg-color--dark: var(--sbp-paper);
+  --md-primary-bg-color: var(--sbp-ink);
+  --md-primary-bg-color--light: var(--md-default-fg-color--light);
+}
+
+[data-md-color-accent="custom"] {
+  --md-accent-fg-color: var(--sbp-hold);
+  --md-accent-fg-color--transparent: rgba(111, 91, 214, 0.1);
+  --md-accent-bg-color: #ffffff;
+}
+
+/* The header and footer sit on the page's paper, divided by a hairline. */
+.md-header {
+  border-bottom: 1px solid var(--sbp-rule);
+  box-shadow: none;
 }
 
 .md-header__button.md-logo img {
@@ -59,44 +68,56 @@
 }
 
 .md-header__topic:first-child {
-  font-weight: 700;
+  font-family: var(--sbp-display);
+  font-weight: 600;
+}
+
+.md-search__form {
+  background-color: var(--md-default-bg-color);
+  border: 1px solid var(--sbp-rule);
 }
 
 .md-footer {
-  background-color: var(--sbp-night);
+  background-color: var(--sbp-paper);
+  color: var(--sbp-ink);
+  border-top: 1px solid var(--sbp-rule);
 }
 
 .md-footer-meta {
-  background-color: #070e22;
+  background-color: var(--sbp-paper);
 }
 
-/* Headlines in the display serif. */
+/* Headlines in the condensed display face. */
 .md-typeset h1,
-.md-typeset h2 {
+.md-typeset h2,
+.md-typeset h3 {
   font-family: var(--sbp-display);
-  font-weight: 400;
-  letter-spacing: -0.005em;
+  font-stretch: 75%;
+  font-weight: 700;
+  letter-spacing: 0;
   color: var(--md-typeset-color);
 }
 
 .md-typeset h1 {
   font-size: 2.4em;
-  line-height: 1.1;
+  line-height: 1.05;
   margin-bottom: 0.8em;
 }
 
 .md-typeset h2 {
-  font-size: 1.75em;
-  line-height: 1.15;
+  font-size: 1.7em;
+  line-height: 1.1;
+  padding-top: 0.6em;
+  border-top: 1px solid var(--sbp-rule);
 }
 
 .md-typeset h3 {
-  font-weight: 700;
+  font-size: 1.3em;
 }
 
-/* Quoted notes read as callouts with an amber rule. */
+/* Quoted notes read as callouts with a violet rule, the board's "held" colour. */
 .md-typeset blockquote {
-  border-left: 0.2rem solid var(--sbp-amber);
+  border-left: 0.2rem solid var(--sbp-hold);
   background: var(--md-accent-fg-color--transparent);
   color: var(--md-typeset-color);
   padding: 0.6em 1em;
@@ -109,6 +130,11 @@
 
 .md-typeset blockquote > :last-child {
   margin-bottom: 0;
+}
+
+.md-typeset table:not([class]) {
+  border: 1px solid var(--sbp-rule);
+  box-shadow: none;
 }
 
 .md-typeset table:not([class]) th {

@@ -1,0 +1,194 @@
+{
+  "meta": {
+    "title": "Smart Battery Pilot – styrning av hembatteri för Home Assistant",
+    "description": "Gratis Home Assistant-integration som planerar hembatteriet ett dygn framåt efter spotpris, förbrukning och solelprognos. För alla växelriktare som kan styras med skript.",
+    "og_title": "Smart Battery Pilot för Home Assistant",
+    "og_description": "Ladda hembatteriet när elen är billig och täck de dyra timmarna, planerat ett dygn i förväg i Home Assistant."
+  },
+  "nav": {
+    "main_label": "Huvudmeny",
+    "plans": "Så planerar den",
+    "card": "Kortet",
+    "features": "Funktioner",
+    "install": "Installation",
+    "docs": "Dokumentation (EN)",
+    "language_label": "Språk"
+  },
+  "hero": {
+    "title": "Ladda när det är billigt. Täck när det är dyrt.",
+    "lede": "Smart Battery Pilot är en Home Assistant-integration som planerar ditt hembatteri 24 till 36 timmar framåt utifrån ditt dynamiska elpris, hushållets egen förbrukning och solelprognosen. Den styr alla växelriktare som går att styra med ett skript.",
+    "cta_install": "Installera från HACS",
+    "cta_planner": "Så fungerar planeraren",
+    "facts": {
+      "free": "Gratis, MIT-licens",
+      "local": "Körs lokalt",
+      "home_assistant": "Home Assistant 2024.11+",
+      "safe": "Installeras avstängd, i testkörning"
+    }
+  },
+  "board": {
+    "title": "En vinterdag som exempel",
+    "subtitle": "96 kvartspriser i EUR/kWh, färgade efter vad piloten gör i varje period",
+    "hint": "Peka på en stapel, eller fokusera diagrammet och använd piltangenterna, för att läsa av en period.",
+    "segment_charge": "Ladda för 0,10",
+    "segment_cover": "Batteriet täcker",
+    "segment_hold": "Hålls till kvällen",
+    "chart_label": "Exempel på en vinterdag: priser runt 0,10 EUR/kWh på natten, en morgontopp nära 0,45, omkring 0,20 under dagen och en kvällstopp nära 0,50. Piloten laddar från 02:00 till 06:00, batteriet täcker 06:00 till 09:00 och 17:00 till 21:00, och laddningen hålls kvar från 09:00 till 17:00; före 02:00 och efter 21:00 sköter växelriktaren sig själv.",
+    "sum": "En kWh som laddas på natten för 0,10, delat med 90 % verkningsgrad för laddning och urladdning, plus en spread på 0,10, kostar 0,21. Det är långt under kvällstoppen på 0,50, så nattens el är värd att lagra. Dagen på 0,20 är inte värd att lägga batteriet på, så laddningen får vänta."
+  },
+  "actions": {
+    "c": "Ladda från nätet",
+    "p": "Solel fyller batteriet",
+    "o": "Batteriet täcker huset",
+    "h": "Hålls till en dyrare timme",
+    "e": "Sälj till nätet",
+    "a": "Växelriktaren sköter sig själv"
+  },
+  "plans": {
+    "title": "En planerare, alla årstider",
+    "lede": "Var 30:e minut, och så fort nya priser kommer, planerar piloten de kommande 24 till 36 timmarna: de billigaste perioderna laddar, de dyraste täcks från batteriet och timmarna däremellan sparar energin till senare. Samma indata ger alltid samma plan.",
+    "seasons": {
+      "winter": {
+        "title": "Vinterarbitrage",
+        "text": "Nattström för 0,10, toppar på 0,45 och 0,50. Batteriet fylls före gryningen, täcker morgonen, väntar genom dagen på 0,20 och töms in i kvällstoppen."
+      },
+      "summer": {
+        "title": "Sommar: solel till nätet",
+        "text": "Taket fyller batteriet till lunch, så piloten lämnar laddningen åt solen. Med försäljningsläget på säljs kvällstoppen till nätet."
+      },
+      "dunkelflaute": {
+        "title": "Dunkelflaute",
+        "text": "Mörka, vindstilla veckor ger de största prisskillnaderna. När priset varierar åttafaldigt inom ett dygn lönar sig laddning från nätet, även efter omvandlingsförlusterna."
+      }
+    }
+  },
+  "card": {
+    "title": "Planen på din kontrollpanel",
+    "lede": "Med integrationen följer ett Lovelace-kort: planerade åtgärder, pris, förbrukning och laddningsnivå i en vy, med tre layouter från mobilkolumn till väggpanel.",
+    "views_label": "Exempel på kortet",
+    "shots": {
+      "dunkelflaute": {
+        "title": "Dunkelflaute",
+        "caption": "Åttafaldig prisskillnad på ett dygn, och planen som utnyttjar den.",
+        "alt": "Plan vid dunkelflaute: laddning mitt på dagen och igen på natten, batteriet täcker båda kvällstopparna"
+      },
+      "winter_arbitrage": {
+        "title": "Vinterarbitrage",
+        "caption": "Ladda under den billiga natten, håll under dagen, täck kvällstoppen.",
+        "alt": "Plan för vinterarbitrage: laddning under den billiga natten, batteriet hålls under dagen till kvällstoppen"
+      },
+      "summer_export": {
+        "title": "Sommar: solel till nätet",
+        "caption": "Solen fyller batteriet; kvällstoppen går till nätet.",
+        "alt": "Sommarplan med försäljning: solel fyller batteriet och kvällstoppen säljs till nätet"
+      },
+      "ev_overnight": {
+        "title": "Planerad elbilsladdning",
+        "caption": "evcc:s nattladdning, dess prisgräns och batteriet som hålls för bilen.",
+        "alt": "Plan med en nattladdning från evcc: laddfönstret, evcc-gränsen för priset och batteriet som hålls för bilen"
+      },
+      "ev_compact": {
+        "title": "Kompakt vy med bilen",
+        "caption": "Siffrorna först, med nästa elbilsladdning som egen ruta.",
+        "alt": "Kompakt vy med elbilsrutan bredvid SOC, nästa byte och planerad urladdning"
+      },
+      "view_balance": {
+        "title": "Balansvy",
+        "caption": "PV minus förbrukning, den storhet planeraren arbetar mot.",
+        "alt": "Balansvy: PV minus förbrukning som en yta kring noll"
+      },
+      "view_compact": {
+        "title": "För mobilen",
+        "caption": "Statusrad, tre värden och kurvorna under.",
+        "alt": "Kompakt vy: status, värden och ett mindre diagram"
+      }
+    }
+  },
+  "steps": {
+    "title": "Sex steg bakom varje plan",
+    "lede": "Från prislistan till pengarna den gav, i den ordning piloten kör dem.",
+    "items": {
+      "price": {
+        "title": "Prisprognos",
+        "text": "Läser pris-entiteten från din elprisintegration: perioder på 15 minuter eller en timme, i dag och i morgon."
+      },
+      "consumption": {
+        "title": "Förbrukningsprognos",
+        "text": "En liten modell som tränas dagligen på din egen historik: timme, veckodag och, med värmepump, utomhustemperatur."
+      },
+      "pv": {
+        "title": "Solelprognos",
+        "text": "Förväntad solelproduktion dras av från behovet, och överskottet fyller på batteriet i simuleringen."
+      },
+      "optimisation": {
+        "title": "Optimering",
+        "text": "Parar ihop de billigaste laddperioderna med de dyraste timmarna, inom kapacitet, effekt, SOC-gränser och verkningsgrad."
+      },
+      "execution": {
+        "title": "Utförande",
+        "text": "Vid varje periodgräns anropar den dina skript: ladda, spärra urladdning, auto eller sälj."
+      },
+      "accounting": {
+        "title": "Uppföljning",
+        "text": "Utifrån batteriets mätare redovisar den vad batteriet är värt och, separat, vad piloten tillförde."
+      }
+    }
+  },
+  "features": {
+    "title": "Varsam med batteriet, ärlig om pengarna",
+    "lede": "Leverantörsoberoende: piloten styr din växelriktare via Home Assistant-skript som du själv skriver, så den fungerar med alla batterier som Home Assistant kan styra.",
+    "items": {
+      "consumption": {
+        "title": "Lär sig din förbrukning",
+        "text": "Tränas dagligen på din historik och tar hänsyn till veckodag, temperatur och värmepump."
+      },
+      "pv": {
+        "title": "Använder solelprognosen",
+        "text": "Låser inte batteriet en dag då solen ändå fyller det."
+      },
+      "car": {
+        "title": "Planerar runt bilen",
+        "text": "Laddningar som evcc har planerat syns i förväg, och husbatteriet kan hållas utanför billaddningen."
+      },
+      "reserve": {
+        "title": "Reservkraft",
+        "text": "En lägstanivå som arbitraget aldrig rör, och som fylls på inom en tidsgräns efter ett strömavbrott."
+      },
+      "cold": {
+        "title": "Laddning i kyla",
+        "text": "Planerar med den laddeffekt ett kallt batteri faktiskt tar emot, och lär sig den."
+      },
+      "numbers": {
+        "title": "Två ärliga siffror",
+        "text": "Vad batteriet är värt, och vad piloten tillförde utöver det."
+      },
+      "safe": {
+        "title": "Säker från start",
+        "text": "Installeras avstängd och i testkörning. Saknas pris eller SOC lämnas batteriet tillbaka till auto."
+      },
+      "languages": {
+        "title": "Tio språk",
+        "text": "Engelska, tyska, nederländska, danska, svenska, norska, finska, estniska, lettiska, litauiska."
+      }
+    },
+    "prices_from": "Priser från",
+    "batteries_via": "Batterier, via dina skript",
+    "any_inverter": "alla växelriktare som Home Assistant kan styra"
+  },
+  "install": {
+    "title": "Installera från HACS",
+    "lede": "Smart Battery Pilot finns i HACS standardarkiv, så du behöver inte lägga till något anpassat arkiv. Den installeras avstängd och i testkörning: de första dagarna är en plan att läsa, inget mer.",
+    "open_hacs": "Öppna i HACS",
+    "download": "Sök efter <strong>Smart Battery Pilot</strong> i HACS, ladda ner den och starta om Home Assistant.",
+    "add": "Lägg till integrationen under <strong>Inställningar</strong>, <strong>Enheter och tjänster</strong>.",
+    "add_detail": "Välj prissensor, batteri, styrskript, förbrukningsmätare och solelprognos.",
+    "card": "Lägg kortet på en kontrollpanel.",
+    "card_detail": "Slå på piloten när planen känns rimlig för dig."
+  },
+  "footer": {
+    "text": "Smart Battery Pilot. MIT-licens. Inte knuten till någon tillverkare av växelriktare eller batterier eller något elbolag.",
+    "nav_label": "Sidfot",
+    "changelog": "Ändringslogg",
+    "issues": "Ärenden"
+  }
+}

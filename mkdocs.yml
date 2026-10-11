@@ -45,9 +45,9 @@ theme:
   name: material
   logo: assets/icon.svg
   favicon: assets/icon.svg
-  font:
-    text: Manrope
-    code: JetBrains Mono
+  # The site serves its own fonts (assets/fonts, added by the hooks), so no
+  # page loads anything from Google Fonts.
+  font: false
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -77,6 +77,7 @@ extra:
   generator: false
 
 extra_css:
+  - assets/fonts/fonts.css
   - stylesheets/extra.css
 
 markdown_extensions:

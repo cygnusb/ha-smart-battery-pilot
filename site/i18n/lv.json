@@ -1,0 +1,194 @@
+{
+  "meta": {
+    "title": "Smart Battery Pilot – mājas akumulatora vadība ar Home Assistant",
+    "description": "Bezmaksas Home Assistant integrācija plāno mājas akumulatoru dienu uz priekšu pēc biržas cenām, patēriņa un saules prognozes: uzlādē lēti, sedz dārgās stundas.",
+    "og_title": "Smart Battery Pilot Home Assistant sistēmai",
+    "og_description": "Uzlādē mājas akumulatoru lētajās stundās un sedz ar to dārgās – plānots dienu uz priekšu tieši Home Assistant."
+  },
+  "nav": {
+    "main_label": "Galvenā izvēlne",
+    "plans": "Kā tas plāno",
+    "card": "Kartīte",
+    "features": "Iespējas",
+    "install": "Instalēšana",
+    "docs": "Dokumentācija (EN)",
+    "language_label": "Valoda"
+  },
+  "hero": {
+    "title": "Uzlādē lēti. Sedz dārgās stundas.",
+    "lede": "Smart Battery Pilot ir Home Assistant integrācija, kas plāno tava mājas akumulatora darbu 24–36 stundas uz priekšu, ņemot vērā tavu dinamisko tarifu, mājsaimniecības patēriņu un saules prognozi. Tā darbojas ar jebkuru invertoru, ko var vadīt ar skriptu.",
+    "cta_install": "Instalēt no HACS",
+    "cta_planner": "Kā darbojas plānotājs",
+    "facts": {
+      "free": "Bezmaksas, MIT licence",
+      "local": "Darbojas lokāli",
+      "home_assistant": "Home Assistant 2024.11+",
+      "safe": "Sākas izslēgts, testa palaišanas režīmā"
+    }
+  },
+  "board": {
+    "title": "Ziemas dienas piemērs",
+    "subtitle": "96 ceturtstundu cenas EUR/kWh, katra iekrāsota pēc tā, ko pilots dara šajā laika posmā",
+    "hint": "Lai nolasītu vienu laika posmu, norādi uz stabiņu vai fokusē diagrammu un izmanto bulttaustiņus.",
+    "segment_charge": "Uzlāde par 0,10",
+    "segment_cover": "Akumulators sedz",
+    "segment_hold": "Bloķēts vakaram",
+    "chart_label": "Ziemas dienas piemērs: naktī cenas ap 0,10 EUR/kWh, rīta maksimums tuvu 0,45, dienā ap 0,20 un vakara maksimums tuvu 0,50. Pilots uzlādē no 02:00 līdz 06:00, akumulators sedz patēriņu no 06:00 līdz 09:00 un no 17:00 līdz 21:00, bet no 09:00 līdz 17:00 lādiņš tiek noturēts; pirms 02:00 un pēc 21:00 invertors darbojas pats.",
+    "sum": "Naktī par 0,10 uzlādēta kWh, dalīta ar 90 % lietderības koeficientu turp un atpakaļ, plus 0,10 starpība, maksā 0,21. Tas ir krietni zem vakara maksimuma 0,50, tāpēc nakts elektrību ir vērts uzkrāt. Dienā pie 0,20 akumulatoru tērēt nav vērts, tāpēc lādiņš gaida."
+  },
+  "actions": {
+    "c": "Uzlāde no tīkla",
+    "p": "PV uzlādē akumulatoru",
+    "o": "Akumulators sedz mājas patēriņu",
+    "h": "Bloķēts dārgākai stundai",
+    "e": "Pārdošana tīklā",
+    "a": "Invertors darbojas pats"
+  },
+  "plans": {
+    "title": "Viens plānotājs visiem gadalaikiem",
+    "lede": "Ik pēc 30 minūtēm un ikreiz, kad pienāk jaunas cenas, pilots plāno nākamās 24–36 stundas: lētākajos laika posmos notiek uzlāde, dārgākos sedz akumulators, un starplaikā enerģija tiek saglabāta vēlākam. Vienādi ievades dati vienmēr dod vienādu plānu.",
+    "seasons": {
+      "winter": {
+        "title": "Ziemas arbitrāža",
+        "text": "Nakts elektrība par 0,10, maksimumi 0,45 un 0,50. Akumulators uzlādējas pirms rītausmas, sedz rītu, dienā pie 0,20 gaida un izlādējas vakara maksimumā."
+      },
+      "summer": {
+        "title": "Vasaras PV pārdošana",
+        "text": "Jumta paneļi līdz pusdienlaikam piepilda akumulatoru, tāpēc pilots uzlādi atstāj saules ziņā. Ja pārdošana tīklā ir ieslēgta, vakara maksimumā enerģija tiek pārdota."
+      },
+      "dunkelflaute": {
+        "title": "Dunkelflaute",
+        "text": "Tumšas nedēļas bez vēja dod vislielākās cenu starpības. Ja cena vienas dienas laikā svārstās astoņkārtīgi, uzlāde no tīkla atmaksājas pat pēc pārveidošanas zudumiem."
+      }
+    }
+  },
+  "card": {
+    "title": "Plāns tavā infopanelī",
+    "lede": "Integrācijai līdzi nāk Lovelace kartīte: plānotās darbības, cena, patēriņš un uzlādes līmenis vienā skatā, ar trim izkārtojumiem – no tālruņa kolonnas līdz sienas panelim.",
+    "views_label": "Kartītes piemēri",
+    "shots": {
+      "dunkelflaute": {
+        "title": "Dunkelflaute",
+        "caption": "Astoņkārtīga cenu starpība vienā dienā un plāns, kas to izmanto.",
+        "alt": "Dunkelflaute plāns: uzlāde pusdienlaikā un vēlreiz naktī, akumulators sedz abus vakara maksimumus"
+      },
+      "winter_arbitrage": {
+        "title": "Ziemas arbitrāža",
+        "caption": "Uzlādē lētajā naktī, notur dienā, sedz vakara maksimumu.",
+        "alt": "Ziemas arbitrāžas plāns: uzlāde lētajā naktī, akumulators dienā noturēts vakara maksimumam"
+      },
+      "summer_export": {
+        "title": "Vasaras PV pārdošana",
+        "caption": "Saule piepilda akumulatoru, vakara maksimums nonāk tīklā.",
+        "alt": "Vasaras plāns ar pārdošanu: PV piepilda akumulatoru, un vakara maksimumā enerģija tiek pārdota tīklā"
+      },
+      "ev_overnight": {
+        "title": "Plānota elektroauto uzlāde",
+        "caption": "evcc nakts uzlādes sesija, tās cenu robeža un automašīnai noturēts akumulators.",
+        "alt": "Plāns ar evcc nakts uzlādes sesiju: uzlādes logs, evcc cenu robeža un elektroauto noturēts akumulators"
+      },
+      "ev_compact": {
+        "title": "Kompaktais skats ar auto",
+        "caption": "Vispirms skaitļi, nākamā elektroauto uzlāde atsevišķā flīzē.",
+        "alt": "Kompaktais skats ar elektroauto flīzi blakus SOC, nākamajai maiņai un plānotajai izlādei"
+      },
+      "view_balance": {
+        "title": "Bilances skats",
+        "caption": "PV mīnus patēriņš – lielums, pēc kura vadās plānotājs.",
+        "alt": "Bilances skats: PV mīnus patēriņš kā laukums ap nulli"
+      },
+      "view_compact": {
+        "title": "Tālruņiem",
+        "caption": "Statusa rinda, trīs rādītāji un līknes zem tiem.",
+        "alt": "Kompaktais skats: statuss, rādītāji un mazāka diagramma"
+      }
+    }
+  },
+  "steps": {
+    "title": "Seši soļi aiz katra plāna",
+    "lede": "No cenu saraksta līdz nopelnītajai naudai – tādā secībā, kādā pilots tos izpilda.",
+    "items": {
+      "price": {
+        "title": "Cenu prognoze",
+        "text": "Nolasa tava tarifa integrācijas cenu entītiju: 15 minūšu vai stundas intervāli, šodien un rīt."
+      },
+      "consumption": {
+        "title": "Patēriņa prognoze",
+        "text": "Neliels modelis, ko katru dienu apmāca ar tavu vēsturi: stunda, nedēļas diena un, ja ir siltumsūknis, āra temperatūra."
+      },
+      "pv": {
+        "title": "Saules enerģijas prognoze",
+        "text": "Sagaidāmo saules ražošanu atskaita no pieprasījuma, un pārpalikums simulācijā atkal uzlādē akumulatoru."
+      },
+      "optimisation": {
+        "title": "Optimizācija",
+        "text": "Savieto lētākos uzlādes laika posmus ar dārgākajām stundām, ievērojot ietilpību, jaudu, SOC robežas un lietderības koeficientu."
+      },
+      "execution": {
+        "title": "Izpilde",
+        "text": "Katra laika posma sākumā tas izsauc tavus skriptus: uzlāde, izlādes bloķēšana, auto vai pārdošana."
+      },
+      "accounting": {
+        "title": "Uzskaite",
+        "text": "Pēc akumulatora skaitītājiem tas parāda, cik akumulators ir vērts, un atsevišķi – ko pievienoja pilots."
+      }
+    }
+  },
+  "features": {
+    "title": "Saudzīgs pret akumulatoru, godīgs par naudu",
+    "lede": "Neatkarīgs no ražotāja: pilots vada tavu invertoru ar paša rakstītiem Home Assistant skriptiem, tāpēc tas darbojas ar jebkuru akumulatoru, ko Home Assistant spēj vadīt.",
+    "items": {
+      "consumption": {
+        "title": "Apgūst tavu patēriņu",
+        "text": "Katru dienu apmācīts ar tavu vēsturi, ņem vērā nedēļas dienas, temperatūru un siltumsūkni."
+      },
+      "pv": {
+        "title": "Izmanto saules prognozi",
+        "text": "Nebloķē akumulatoru dienā, kad saule to tāpat uzlādēs."
+      },
+      "car": {
+        "title": "Ņem vērā tavu auto",
+        "text": "evcc plānotās uzlādes sesijas redzamas laikus, un mājas akumulators var nepiedalīties auto uzlādē."
+      },
+      "reserve": {
+        "title": "Rezerve strāvas pārrāvumam",
+        "text": "Slieksnis, ko arbitrāža nekad netērē; pēc pārrāvuma to atjauno līdz noteiktam termiņam."
+      },
+      "cold": {
+        "title": "Uzlāde aukstumā",
+        "text": "Plāno ar uzlādes jaudu, ko auksts akumulators patiešām pieņem, un to apgūst."
+      },
+      "numbers": {
+        "title": "Divi godīgi skaitļi",
+        "text": "Cik vērts ir akumulators un ko pilots pievienoja klāt."
+      },
+      "safe": {
+        "title": "Drošs pēc noklusējuma",
+        "text": "Sākas izslēgts un testa palaišanas režīmā. Ja trūkst cenas vai SOC, akumulators atgriežas režīmā Auto."
+      },
+      "languages": {
+        "title": "Desmit valodas",
+        "text": "Angļu, vācu, nīderlandiešu, dāņu, zviedru, norvēģu, somu, igauņu, latviešu un lietuviešu."
+      }
+    },
+    "prices_from": "Cenas no",
+    "batteries_via": "Akumulatori, ar taviem skriptiem",
+    "any_inverter": "jebkurš invertors, ko Home Assistant spēj vadīt"
+  },
+  "install": {
+    "title": "Instalēšana no HACS",
+    "lede": "Smart Battery Pilot ir HACS noklusējuma repozitorijā, tāpēc pielāgots repozitorijs nav jāpievieno. Tas sākas izslēgts un testa palaišanas režīmā: pirmajās dienās tas ir tikai plāns, ko izlasīt, nekas vairāk.",
+    "open_hacs": "Atvērt HACS",
+    "download": "Sameklē <strong>Smart Battery Pilot</strong> HACS katalogā, lejupielādē to un restartē Home Assistant.",
+    "add": "Pievieno integrāciju sadaļā <strong>Konfigurācija</strong>, <strong>Ierīces un pakalpojumi</strong>.",
+    "add_detail": "Izvēlies cenu sensoru, akumulatoru, vadības skriptus, patēriņa skaitītāju un saules prognozi.",
+    "card": "Pievieno kartīti infopanelim.",
+    "card_detail": "Ieslēdz pilotu, kad plāns tev šķiet saprātīgs."
+  },
+  "footer": {
+    "text": "Smart Battery Pilot. MIT licence. Nav saistīts ne ar vienu invertoru, akumulatoru vai elektroenerģijas tirgotāju.",
+    "nav_label": "Kājene",
+    "changelog": "Izmaiņu žurnāls",
+    "issues": "Problēmas"
+  }
+}

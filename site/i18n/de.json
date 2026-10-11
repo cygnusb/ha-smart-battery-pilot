@@ -1,0 +1,194 @@
+{
+  "meta": {
+    "title": "Smart Battery Pilot – Heimspeicher-Optimierung für Home Assistant",
+    "description": "Kostenlose Home-Assistant-Integration: plant deinen Batteriespeicher einen Tag voraus nach dynamischem Stromtarif, Verbrauch und PV-Prognose.",
+    "og_title": "Smart Battery Pilot für Home Assistant",
+    "og_description": "Den Heimspeicher in den günstigen Stunden laden und die teuren damit abdecken, einen Tag im Voraus geplant in Home Assistant."
+  },
+  "nav": {
+    "main_label": "Hauptmenü",
+    "plans": "So wird geplant",
+    "card": "Die Karte",
+    "features": "Funktionen",
+    "install": "Installation",
+    "docs": "Doku (EN)",
+    "language_label": "Sprache"
+  },
+  "hero": {
+    "title": "Günstig laden. Teure Stunden abdecken.",
+    "lede": "Smart Battery Pilot ist eine Home-Assistant-Integration, die deinen Hausakku 24 bis 36 Stunden im Voraus plant – nach deinem dynamischen Tarif, dem Verbrauch deines Haushalts und der PV-Prognose. Sie steuert jeden Wechselrichter, den du per Script ansprechen kannst.",
+    "cta_install": "Über HACS installieren",
+    "cta_planner": "So arbeitet der Planer",
+    "facts": {
+      "free": "Kostenlos, MIT-Lizenz",
+      "local": "Läuft lokal",
+      "home_assistant": "Home Assistant 2024.11+",
+      "safe": "Startet ausgeschaltet, im Testmodus"
+    }
+  },
+  "board": {
+    "title": "Ein Beispieltag im Winter",
+    "subtitle": "96 Viertelstundenpreise in EUR/kWh, jeweils gefärbt nach dem, was der Pilot in diesem Slot tut",
+    "hint": "Zeige auf einen Balken oder fokussiere das Diagramm und nutze die Pfeiltasten, um einen Slot abzulesen.",
+    "segment_charge": "Laden zu 0,10",
+    "segment_cover": "Akku übernimmt",
+    "segment_hold": "Gesperrt für den Abend",
+    "chart_label": "Beispieltag im Winter: nachts Preise um 0,10 EUR/kWh, morgens eine Spitze nahe 0,45, tagsüber etwa 0,20 und abends eine Spitze nahe 0,50. Der Pilot lädt von 02:00 bis 06:00, der Akku übernimmt von 06:00 bis 09:00 und von 17:00 bis 21:00, und von 09:00 bis 17:00 bleibt die Ladung gesperrt; vor 02:00 und nach 21:00 regelt der Wechselrichter selbst.",
+    "sum": "Eine kWh, nachts für 0,10 geladen, geteilt durch 90 % Roundtrip-Wirkungsgrad, plus 0,10 Spread, kostet 0,21. Das liegt deutlich unter der Abendspitze von 0,50, also lohnt es sich, Nachtstrom zu speichern. Den Tag zu 0,20 aus dem Akku zu decken, lohnt sich nicht, also wartet die Ladung."
+  },
+  "actions": {
+    "c": "Laden aus dem Netz",
+    "p": "PV lädt den Akku",
+    "o": "Akku versorgt das Haus",
+    "h": "Gesperrt für eine teurere Stunde",
+    "e": "Einspeisen ins Netz",
+    "a": "Wechselrichter regelt selbst"
+  },
+  "plans": {
+    "title": "Ein Planer für jede Jahreszeit",
+    "lede": "Alle 30 Minuten und sobald neue Preise vorliegen, plant der Pilot die nächsten 24 bis 36 Stunden: In den günstigsten Slots wird geladen, die teuersten deckt der Akku ab, und die Stunden dazwischen halten die Energie für später zurück. Dieselben Eingaben ergeben immer denselben Plan.",
+    "seasons": {
+      "winter": {
+        "title": "Arbitrage im Winter",
+        "text": "Nachtstrom zu 0,10, Spitzen bei 0,45 und 0,50. Der Akku lädt vor Sonnenaufgang, deckt den Morgen ab, wartet tagsüber bei 0,20 und entlädt sich in die Abendspitze."
+      },
+      "summer": {
+        "title": "PV-Einspeisung im Sommer",
+        "text": "Das Dach füllt den Akku bis Mittag, also überlässt der Pilot das Laden der Sonne. Mit eingeschaltetem Einspeise-Modus wird die Abendspitze ins Netz verkauft."
+      },
+      "dunkelflaute": {
+        "title": "Dunkelflaute",
+        "text": "Dunkle, windstille Wochen bringen die größten Preisunterschiede. Schwankt der Preis an einem Tag um das Achtfache, lohnt sich das Laden aus dem Netz, auch nach den Umwandlungsverlusten."
+      }
+    }
+  },
+  "card": {
+    "title": "Der Plan auf deinem Dashboard",
+    "lede": "Zur Integration gehört eine Lovelace-Karte: geplante Aktionen, Preis, Verbrauch und Ladezustand in einer Ansicht, mit drei Layouts von der Handy-Spalte bis zum Wandpanel.",
+    "views_label": "Beispiele der Karte",
+    "shots": {
+      "dunkelflaute": {
+        "title": "Dunkelflaute",
+        "caption": "Achtfacher Preisunterschied an einem Tag, und der Plan, der ihn nutzt.",
+        "alt": "Plan in der Dunkelflaute: Laden mittags und erneut nachts, der Akku deckt beide Abendspitzen ab"
+      },
+      "winter_arbitrage": {
+        "title": "Arbitrage im Winter",
+        "caption": "Nachts günstig laden, tagsüber sperren, die Abendspitze abdecken.",
+        "alt": "Arbitrage-Plan im Winter: Laden in der günstigen Nacht, tagsüber ist der Akku für die Abendspitze gesperrt"
+      },
+      "summer_export": {
+        "title": "PV-Einspeisung im Sommer",
+        "caption": "Die Sonne füllt den Akku, die Abendspitze geht ins Netz.",
+        "alt": "Sommerplan mit Einspeisung: PV füllt den Akku, die Abendspitze wird ins Netz verkauft"
+      },
+      "ev_overnight": {
+        "title": "Geplantes Laden des E-Autos",
+        "caption": "Der nächtliche Ladevorgang aus evcc, seine Preisgrenze und der für das Auto gehaltene Akku.",
+        "alt": "Plan mit einem nächtlichen evcc-Ladevorgang: das Ladefenster, die evcc-Preisgrenze und der für das Auto gehaltene Akku"
+      },
+      "ev_compact": {
+        "title": "Kompakt mit E-Auto",
+        "caption": "Zuerst die Kennzahlen, die nächste E-Auto-Ladung als eigene Kachel.",
+        "alt": "Kompaktansicht mit der E-Auto-Kachel neben SOC, nächstem Wechsel und geplanter Entladung"
+      },
+      "view_balance": {
+        "title": "Bilanz-Ansicht",
+        "caption": "PV minus Verbrauch – die Größe, mit der der Planer rechnet.",
+        "alt": "Bilanz-Ansicht: PV minus Verbrauch als Fläche um die Nulllinie"
+      },
+      "view_compact": {
+        "title": "Fürs Handy",
+        "caption": "Statuszeile, drei Kennzahlen und darunter die Kurven.",
+        "alt": "Kompaktansicht: Status, Kennzahlen und ein kleineres Diagramm"
+      }
+    }
+  },
+  "steps": {
+    "title": "Sechs Schritte hinter jedem Plan",
+    "lede": "Von der Preisliste bis zum eingesparten Geld, in der Reihenfolge, in der der Pilot sie ausführt.",
+    "items": {
+      "price": {
+        "title": "Preisprognose",
+        "text": "Liest die Preis-Entity deiner Tarif-Integration: 15-Minuten- oder Stunden-Slots, heute und morgen."
+      },
+      "consumption": {
+        "title": "Verbrauchsprognose",
+        "text": "Ein kleines Modell, täglich mit deinen eigenen Verlaufsdaten trainiert: Stunde, Wochentag und, mit Wärmepumpe, Außentemperatur."
+      },
+      "pv": {
+        "title": "PV-Prognose",
+        "text": "Die erwartete Solarerzeugung wird vom Bedarf abgezogen, und Überschuss lädt den Akku in der Simulation wieder auf."
+      },
+      "optimisation": {
+        "title": "Optimierung",
+        "text": "Ordnet die günstigsten Lade-Slots den teuersten Stunden zu, im Rahmen von Kapazität, Leistung, SOC-Grenzen und Wirkungsgrad."
+      },
+      "execution": {
+        "title": "Ausführung",
+        "text": "An jeder Slot-Grenze ruft er deine Scripts auf: Laden, Entladen sperren, Auto oder Einspeisen."
+      },
+      "accounting": {
+        "title": "Abrechnung",
+        "text": "Aus deinen Akku-Zählern berechnet er, was der Akku wert ist, und getrennt davon, was der Pilot zusätzlich gebracht hat."
+      }
+    }
+  },
+  "features": {
+    "title": "Schonend zum Akku, ehrlich beim Geld",
+    "lede": "Herstellerunabhängig: Der Pilot steuert deinen Wechselrichter über Home-Assistant-Scripts, die du selbst schreibst. Damit funktioniert er mit jedem Akku, den Home Assistant steuern kann.",
+    "items": {
+      "consumption": {
+        "title": "Lernt deinen Verbrauch",
+        "text": "Täglich mit deinen Verlaufsdaten trainiert, berücksichtigt Wochentage, Temperatur und Wärmepumpen."
+      },
+      "pv": {
+        "title": "Nutzt die PV-Prognose",
+        "text": "Sperrt den Akku nicht an einem Tag, an dem ihn die Sonne ohnehin wieder füllt."
+      },
+      "car": {
+        "title": "Plant um dein Auto herum",
+        "text": "Von evcc geplante Ladevorgänge erscheinen im Voraus, und der Hausakku muss nicht ins Auto laden."
+      },
+      "reserve": {
+        "title": "Notstrom-Reserve",
+        "text": "Eine Untergrenze, die die Arbitrage nie antastet und die nach einem Stromausfall bis zu einer Frist wieder aufgefüllt wird."
+      },
+      "cold": {
+        "title": "Laden bei Kälte",
+        "text": "Plant mit der Ladeleistung, die ein kalter Akku tatsächlich aufnimmt, und lernt sie dazu."
+      },
+      "numbers": {
+        "title": "Zwei ehrliche Zahlen",
+        "text": "Was der Akku wert ist und was der Pilot obendrauf gebracht hat."
+      },
+      "safe": {
+        "title": "Sicher voreingestellt",
+        "text": "Startet ausgeschaltet und im Testmodus. Fehlt ein Preis oder der SOC, geht der Akku zurück auf Auto."
+      },
+      "languages": {
+        "title": "Zehn Sprachen",
+        "text": "Englisch, Deutsch, Niederländisch, Dänisch, Schwedisch, Norwegisch, Finnisch, Estnisch, Lettisch, Litauisch."
+      }
+    },
+    "prices_from": "Preise von",
+    "batteries_via": "Akkus, über deine Scripts",
+    "any_inverter": "jeder Wechselrichter, den Home Assistant steuern kann"
+  },
+  "install": {
+    "title": "Über HACS installieren",
+    "lede": "Smart Battery Pilot ist im HACS-Standard-Repository, du musst also kein benutzerdefiniertes Repository hinzufügen. Die Integration startet ausgeschaltet und im Testmodus: In den ersten Tagen gibt es nur einen Plan zum Mitlesen, mehr nicht.",
+    "open_hacs": "In HACS öffnen",
+    "download": "Suche in HACS nach <strong>Smart Battery Pilot</strong>, lade die Integration herunter und starte Home Assistant neu.",
+    "add": "Füge die Integration unter <strong>Einstellungen</strong>, <strong>Geräte &amp; Dienste</strong> hinzu.",
+    "add_detail": "Wähle deinen Preissensor, den Akku, die Steuerungs-Scripts, den Verbrauchszähler und die PV-Prognose.",
+    "card": "Leg die Karte auf ein Dashboard.",
+    "card_detail": "Schalte den Piloten ein, sobald dir der Plan sinnvoll erscheint."
+  },
+  "footer": {
+    "text": "Smart Battery Pilot. MIT-Lizenz. Steht in keiner Verbindung zu Herstellern von Wechselrichtern oder Akkus oder zu Stromanbietern.",
+    "nav_label": "Fußzeile",
+    "changelog": "Changelog",
+    "issues": "Issues"
+  }
+}

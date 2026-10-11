@@ -1,8 +1,8 @@
 """MkDocs hooks for the documentation pages of the project site.
 
-The icon lives in assets/, shared by the README and the project page. MkDocs
-only publishes files under docs/, so this hands it the icon from there instead
-of keeping a second copy.
+The icon and the fonts live in assets/, shared by the README and the project
+page. MkDocs only publishes files under docs/, so this hands them over from
+there instead of keeping a second copy.
 
 The changelog page is built from the GitHub releases, so the release notes
 stay the one place a release is described. It needs network access; set
@@ -32,6 +32,8 @@ SHALLOW_ITEM = re.compile(r"^ {1,3}(?=(?:[-*+]|\d+\.) )")
 
 def on_files(files, config):
     files.append(File.generated(config, "assets/icon.svg", abs_src_path=str(ASSETS / "icon.svg")))
+    for font in sorted((ASSETS / "fonts").iterdir()):
+        files.append(File.generated(config, f"assets/fonts/{font.name}", abs_src_path=str(font)))
     files.append(File.generated(config, "changelog.md", content=_changelog(_fetch_releases())))
     return files
 
