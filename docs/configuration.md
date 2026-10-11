@@ -272,6 +272,13 @@ a "now" marker, the most expensive slot labeled on the price curve, the SOC
 endpoint labeled, and a hover tooltip showing time slot, action, price, SOC
 forecast, PV and net demand.
 
+With planned EV sessions (evcc), every view adds the charging windows as a
+band through all panels, the slots where the battery is held for the car as a
+thick SOC segment, and, where it fits on the price axis, evcc's price limit as
+a dashed line. The tooltip names the EV energy, why evcc charges, and evcc's
+own limit for slots it picked for their price. A plan without EV charging
+looks exactly as before. See [EV charging](ev-charging.md#planned-sessions-evcc).
+
 The SOC panel is drawn against the battery's configured window (`min_soc` to
 `max_soc`, published on the plan sensor) instead of 0–100 %, so the discharge
 depth uses the panel's full height rather than a sliver along the top edge.
