@@ -51,6 +51,9 @@ const TRANSLATIONS = {
     ev_src_smart_cost: "cheap price",
     ev_src_now: "now",
     ev_src_charging: "charging",
+    ev_unplugged: "not plugged in",
+    ev_idle: "no charging planned",
+    ev_offline: "evcc not reachable",
   },
   de: {
     action_charge: "Laden",
@@ -84,6 +87,9 @@ const TRANSLATIONS = {
     ev_src_smart_cost: "günstiger Preis",
     ev_src_now: "sofort",
     ev_src_charging: "lädt",
+    ev_unplugged: "nicht eingesteckt",
+    ev_idle: "keine Ladung geplant",
+    ev_offline: "evcc nicht erreichbar",
   },
   da: {
     action_charge: "Lad",
@@ -117,6 +123,9 @@ const TRANSLATIONS = {
     ev_src_smart_cost: "billig pris",
     ev_src_now: "nu",
     ev_src_charging: "lader",
+    ev_unplugged: "ikke tilsluttet",
+    ev_idle: "ingen opladning planlagt",
+    ev_offline: "evcc kan ikke nås",
   },
   et: {
     action_charge: "Laadimine",
@@ -150,6 +159,9 @@ const TRANSLATIONS = {
     ev_src_smart_cost: "odav hind",
     ev_src_now: "kohe",
     ev_src_charging: "laeb",
+    ev_unplugged: "pole ühendatud",
+    ev_idle: "laadimist pole planeeritud",
+    ev_offline: "evcc pole kättesaadav",
   },
   fi: {
     action_charge: "Lataa",
@@ -183,6 +195,9 @@ const TRANSLATIONS = {
     ev_src_smart_cost: "halpa hinta",
     ev_src_now: "heti",
     ev_src_charging: "latautuu",
+    ev_unplugged: "ei kytketty",
+    ev_idle: "ei suunniteltua latausta",
+    ev_offline: "evcc ei vastaa",
   },
   lt: {
     action_charge: "Įkrauti",
@@ -216,6 +231,9 @@ const TRANSLATIONS = {
     ev_src_smart_cost: "pigi kaina",
     ev_src_now: "dabar",
     ev_src_charging: "kraunasi",
+    ev_unplugged: "neprijungtas",
+    ev_idle: "įkrovimas nesuplanuotas",
+    ev_offline: "evcc nepasiekiamas",
   },
   lv: {
     action_charge: "Uzlāde",
@@ -249,6 +267,9 @@ const TRANSLATIONS = {
     ev_src_smart_cost: "lēta cena",
     ev_src_now: "tūlīt",
     ev_src_charging: "lādējas",
+    ev_unplugged: "nav pievienots",
+    ev_idle: "uzlāde nav plānota",
+    ev_offline: "evcc nav sasniedzams",
   },
   nb: {
     action_charge: "Lad",
@@ -282,6 +303,9 @@ const TRANSLATIONS = {
     ev_src_smart_cost: "billig pris",
     ev_src_now: "nå",
     ev_src_charging: "lader",
+    ev_unplugged: "ikke tilkoblet",
+    ev_idle: "ingen lading planlagt",
+    ev_offline: "evcc svarer ikke",
   },
   nl: {
     action_charge: "Laden",
@@ -315,6 +339,9 @@ const TRANSLATIONS = {
     ev_src_smart_cost: "lage prijs",
     ev_src_now: "nu",
     ev_src_charging: "laadt",
+    ev_unplugged: "niet aangesloten",
+    ev_idle: "geen laden gepland",
+    ev_offline: "evcc niet bereikbaar",
   },
   sv: {
     action_charge: "Ladda",
@@ -348,6 +375,9 @@ const TRANSLATIONS = {
     ev_src_smart_cost: "lågt pris",
     ev_src_now: "nu",
     ev_src_charging: "laddar",
+    ev_unplugged: "inte ansluten",
+    ev_idle: "ingen laddning planerad",
+    ev_offline: "evcc kan inte nås",
   },
 };
 
@@ -969,6 +999,12 @@ class SmartBatteryPilotCard extends HTMLElement {
     if (evSession && view !== "compact") {
       statusBits.push(`<span class="next ev">${this._evStatus(evSession)}</span>`);
     }
+    // With an EV source but nothing to plan, say why - so a quiet card still
+    // shows that the charger is being read.
+    if (!evSession) {
+      const idle = this._evIdleStatus(state.attributes);
+      if (idle) statusBits.push(`<span class="next">${idle}</span>`);
+    }
     const pvState = this._livePvState(state);
     if (pvState && pvState.state !== "unavailable" && pvState.state !== "unknown") {
       const pvNum = Number(pvState.state);
@@ -1493,6 +1529,23 @@ class SmartBatteryPilotCard extends HTMLElement {
   _evStatus(session) {
     const energy = session.kwh !== null ? ` ${session.kwh.toFixed(1)} kWh ·` : "";
     return `${esc(this._tr("ev"))}:${energy} ${this._evSpan(session)}`;
+  }
+
+  // The EV source's state while nothing is planned: unreachable, nothing
+  // plugged in, or the plugged-in cars' SOC. Null without that information
+  // (no EV source, or a backend older than 1.2.3).
+  _evIdleStatus(attrs) {
+    if (attrs.ev_source !== "evcc" || !Array.isArray(attrs.ev_loadpoints)) return null;
+    const label = `${esc(this._tr("ev"))}:`;
+    if (attrs.ev_status === "offline") return `${label} ${esc(this._tr("ev_offline"))}`;
+    const plugged = attrs.ev_loadpoints.filter((lp) => lp && lp.connected);
+    if (!plugged.length) return `${label} ${esc(this._tr("ev_unplugged"))}`;
+    const socs = plugged
+      .map((lp) => finiteOrNull(lp.vehicle_soc))
+      .filter((soc) => soc !== null && soc > 0)
+      .map((soc) => `${Math.round(soc)} %`);
+    const soc = socs.length ? ` ${socs.join(" / ")} ·` : "";
+    return `${label}${soc} ${esc(this._tr("ev_idle"))}`;
   }
 
   // Why the car charges in a slot. An unknown reason from a newer backend is

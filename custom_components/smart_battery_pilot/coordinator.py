@@ -247,6 +247,10 @@ class SBPData:
     ev_price_limit: float | None = None
     # The same limit as evcc states it, against evcc's own prices.
     ev_price_limit_evcc: float | None = None
+    # "ok" while evcc answers, "offline" otherwise; with each loadpoint's
+    # state (no names), so the card can say why nothing is planned.
+    ev_status: str | None = None
+    ev_loadpoints: list[dict[str, Any]] | None = None
     # What each plan slot's EV energy comes from (plan, smart_cost, now,
     # charging), aligned with plan.slots.
     ev_slot_sources: list[str | None] | None = None
@@ -989,6 +993,17 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             "ev_kwh_total": round(sum(kwh for kwh, _ in ev_per_slot), 2),
             "ev_price_limit": limit,
             "ev_price_limit_evcc": forecast.price_limit if forecast is not None else None,
+            "ev_status": "ok" if forecast is not None else "offline",
+            "ev_loadpoints": [
+                {
+                    "connected": lp["connected"],
+                    "charging": lp["charging"],
+                    "mode": lp["mode"],
+                    "vehicle_soc": lp["vehicle_soc"],
+                    "limit_soc": lp["effective_limit_soc"],
+                }
+                for lp in (forecast.loadpoints if forecast is not None else [])
+            ],
             "ev_slot_sources": [source for _, source in ev_per_slot],
         }
 
