@@ -67,7 +67,7 @@ class _Evcc:
         self.calls = 0
         self.fail = False
         monkeypatch.setattr(coordinator_module, "async_fetch_state", self._state)
-        monkeypatch.setattr(coordinator_module, "async_fetch_plan_power", self._power)
+        monkeypatch.setattr(coordinator_module, "async_fetch_plans", self._plans)
 
     async def _state(self, hass, url):
         self.calls += 1
@@ -76,7 +76,7 @@ class _Evcc:
             raise EvccError("timeout reading evcc")
         return self.state
 
-    async def _power(self, hass, url, state):
+    async def _plans(self, hass, url, state):
         return {}
 
 
@@ -199,15 +199,23 @@ def test_the_poll_replans_only_when_the_sessions_change(monkeypatch):
     assert refreshes.count == 1
 
 
-def test_the_poll_replans_when_evcc_goes_away_with_sessions_planned(monkeypatch):
+def test_the_poll_replans_once_when_evcc_goes_away_with_sessions_planned(monkeypatch):
     evcc = _Evcc(monkeypatch)
     coord = _coord()
     coord.data = _run(coord._async_update_data())
     refreshes = _Refreshes(coord)
     evcc.fail = True
     _run(coord._async_poll_evcc())
+    assert refreshes.count == 1
+    # The re-plan it asked for, while evcc stays away.
+    coord.data = _run(coord._async_update_data())
+    _run(coord._async_poll_evcc())
     _run(coord._async_poll_evcc())
     assert refreshes.count == 1
+
+    evcc.fail = False
+    _run(coord._async_poll_evcc())
+    assert refreshes.count == 2
 
 
 def test_the_sensors_carry_the_ev_plan(monkeypatch):

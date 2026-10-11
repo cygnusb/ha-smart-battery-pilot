@@ -59,23 +59,30 @@ async def async_fetch_state(hass: HomeAssistant, base_url: str) -> dict[str, Any
     return state
 
 
-async def async_fetch_plan_power(
+async def async_fetch_plans(
     hass: HomeAssistant, base_url: str, state: dict[str, Any]
-) -> dict[int, float]:
-    """Charge power each active plan was sized with, by loadpoint id.
+) -> dict[int, dict[str, Any]]:
+    """Each active charge plan's slots and the power it was sized with.
 
-    Only loadpoints with a plan are asked; a failure leaves that loadpoint
-    out, and the session falls back to current x phases.
+    Keyed by loadpoint id, from ``/api/loadpoints/{id}/plan``. Only loadpoints
+    with a plan target are asked; a failure leaves that loadpoint out, and
+    the session falls back to the plan in the state and current x phases.
     """
-    power: dict[int, float] = {}
+    plans: dict[int, dict[str, Any]] = {}
     for index, lp in enumerate(state.get("loadpoints") or []):
-        if not isinstance(lp, dict) or not lp.get("plan"):
+        if not isinstance(lp, dict):
+            continue
+        if not (lp.get("effectivePlanTime") or lp.get("planActive") or lp.get("plan")):
             continue
         try:
             plan = _unwrap(await _get_json(hass, f"{base_url}/api/loadpoints/{index + 1}/plan"))
         except EvccError:
             continue
-        value = plan.get("power") if isinstance(plan, dict) else None
-        if isinstance(value, (int, float)) and value > 0:
-            power[index + 1] = float(value)
-    return power
+        if not isinstance(plan, dict):
+            continue
+        power = plan.get("power")
+        plans[index + 1] = {
+            "plan": plan.get("plan") if isinstance(plan.get("plan"), list) else None,
+            "power": float(power) if isinstance(power, (int, float)) and power > 0 else None,
+        }
+    return plans

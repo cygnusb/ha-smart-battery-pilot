@@ -261,24 +261,38 @@ async def test_planned_sessions_from_evcc_reach_the_plan(
     sbp_hass: HomeAssistant, aioclient_mock
 ) -> None:
     """The real HTTP path, the real interval tracker and the options form."""
+    start = dt_util.now().replace(minute=0, second=0, microsecond=0)
     state = {
         "version": "0.300.0",
         "loadpoints": [
             {
                 "connected": True,
-                "charging": True,
-                "chargePower": 11000,
-                "mode": "now",
+                "charging": False,
+                "chargePower": 0,
+                "mode": "pv",
                 "vehicleName": "car",
                 "vehicleSoc": 40,
                 "effectiveLimitSoc": 80,
+                "effectivePlanTime": (start + timedelta(hours=8)).isoformat(),
+                "plan": None,
             }
         ],
         "vehicles": {"car": {"capacity": 50}},
         "forecast": {},
         "batteryDischargeControl": True,
     }
+    plan = {
+        "plan": [
+            {
+                "start": (start + timedelta(hours=3)).isoformat(),
+                "end": (start + timedelta(hours=4)).isoformat(),
+                "value": 0.1,
+            }
+        ],
+        "power": 11000,
+    }
     aioclient_mock.get("http://evcc.test:7070/api/state", json=state)
+    aioclient_mock.get("http://evcc.test:7070/api/loadpoints/1/plan", json=plan)
     entry = await _setup(sbp_hass)
     options = sbp_hass.config_entries.options
 
@@ -303,7 +317,8 @@ async def test_planned_sessions_from_evcc_reach_the_plan(
 
     data = entry.runtime_data.coordinator.data
     assert data.ev_source == "evcc"
-    assert data.ev_kwh_total > 0
+    assert data.ev_kwh_total == 11.0
+    assert data.ev_sessions[0]["source"] == "plan"
     assert data.inputs["ev"]["evcc"]["status"] == "ok"
     plans = [
         sbp_hass.states.get(eid)

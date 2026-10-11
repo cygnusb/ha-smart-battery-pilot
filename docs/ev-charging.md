@@ -186,6 +186,7 @@ evcc's prices may leave out fees the pilot's include). Each slot gets
 windows, evcc's price limit and the slots where the battery is held. The
 diagnostics show what evcc reported per loadpoint, without vehicle names.
 
-Not included: evcc's PV mode as a forecast. Whether PV surplus goes to the
+Not included: a smart cost limit on a CO₂ tariff (it is an emission limit,
+not a price), and evcc's PV mode as a forecast. Whether PV surplus goes to the
 car or the battery depends on evcc's `prioritySoc` and `bufferSoc` and on the
 sun minute by minute. A PV session is counted once it runs, not ahead.

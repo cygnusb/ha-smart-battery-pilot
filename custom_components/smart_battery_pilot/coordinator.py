@@ -87,7 +87,7 @@ from .const import (
     UPDATE_INTERVAL_MINUTES,
 )
 from .ev_sessions import MIN_SESSION_KWH, EvForecast, derive, limit_on_price_basis, per_slot
-from .evcc import EvccError, async_fetch_plan_power, async_fetch_state, normalize_url
+from .evcc import EvccError, async_fetch_plans, async_fetch_state, normalize_url
 from .forecast.charge_rate import (
     SOURCE_OFF,
     ChargeRateModel,
@@ -312,7 +312,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         # Planned EV sessions from evcc: the last good fetch (time, state,
         # plan power per loadpoint), why the last one failed, and the session
         # signature the current plan was built with.
-        self._evcc_fetch: tuple[datetime, dict[str, Any], dict[int, float]] | None = None
+        self._evcc_fetch: tuple[datetime, dict[str, Any], dict[int, dict[str, Any]]] | None = None
         self._evcc_error: str | None = None
         self._ev_signature: tuple | None = None
         self._unsub_evcc_poll = None
@@ -901,7 +901,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             return False
         try:
             state = await async_fetch_state(self.hass, url)
-            power = await async_fetch_plan_power(self.hass, url, state)
+            plans = await async_fetch_plans(self.hass, url, state)
         except EvccError as err:
             if self._evcc_error is None:
                 _LOGGER.warning(
@@ -914,7 +914,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         if self._evcc_error is not None:
             _LOGGER.info("evcc is readable again")
         self._evcc_error = None
-        self._evcc_fetch = (now, state, power)
+        self._evcc_fetch = (now, state, plans)
         return True
 
     async def _ev_forecast(self, now: datetime) -> EvForecast | None:
@@ -924,8 +924,8 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         fresh = self._evcc_fetch is not None and now - self._evcc_fetch[0] < EVCC_MAX_AGE
         if not fresh and not await self._async_fetch_evcc(now):
             return None
-        _, state, power = self._evcc_fetch
-        return derive(state, power, now)
+        _, state, plans = self._evcc_fetch
+        return derive(state, plans, now)
 
     def _ev_blocks_battery(self, ev_kwh: float, hours: float, forecast: EvForecast | None) -> bool:
         """Whether the EV policy will hold the battery in a planned EV slot.
@@ -984,10 +984,12 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         Windows keep their real start here, so the slot in progress counts
         in full instead of shrinking with every poll.
         """
-        if self._evcc_fetch is None or not slots:
+        # A failed fetch plans without sessions; the last good one must not
+        # bring them back, or every poll would ask for another re-plan.
+        if self._evcc_fetch is None or self._evcc_error is not None or not slots:
             return ()
-        _, state, power = self._evcc_fetch
-        forecast = derive(state, power, dt_util.now(), trim=False)
+        _, state, plans = self._evcc_fetch
+        forecast = derive(state, plans, dt_util.now(), trim=False)
         bounds = [(s.start, s.end) for s in slots]
         return tuple(round(kwh, 1) for kwh, _ in per_slot(forecast.windows, bounds))
 

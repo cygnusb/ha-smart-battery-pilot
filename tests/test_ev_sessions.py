@@ -75,7 +75,7 @@ def test_plan_slots_are_used_as_they_are():
         {"start": "2026-03-03T01:00:00Z", "end": "2026-03-03T01:10:00Z", "value": 0.1},
     ]
     lp = _lp(effectivePlanTime="2026-03-03T06:00:00Z", plan=plan)
-    forecast = derive(_state(lp), {1: 11000.0}, NOW)
+    forecast = derive(_state(lp), {1: {"power": 11000.0}}, NOW)
     (session,) = forecast.sessions
     assert session.source == SOURCE_PLAN
     assert [w.kwh for w in session.windows] == pytest.approx([11 * 0.25, 11 * 10 / 60])
@@ -146,7 +146,7 @@ def test_past_windows_are_dropped_and_the_running_one_counts_from_now():
         {"start": "2026-03-02T17:30:00Z", "end": "2026-03-02T18:30:00Z", "value": 0.1},
     ]
     lp = _lp(effectivePlanTime="2026-03-03T06:00:00Z", plan=plan, vehicleSoc=10)
-    (session,) = derive(_state(lp), {1: 11000.0}, NOW).sessions
+    (session,) = derive(_state(lp), {1: {"power": 11000.0}}, NOW).sessions
     assert len(session.windows) == 1
     assert session.windows[0].start == NOW
     assert session.energy_kwh == pytest.approx(5.5)
@@ -168,7 +168,7 @@ def test_quarter_hour_windows_fit_onto_hourly_slots():
         {"start": "2026-03-02T20:45:00Z", "end": "2026-03-02T21:15:00Z", "value": 0.1},
     ]
     lp = _lp(effectivePlanTime="2026-03-03T06:00:00Z", plan=plan)
-    forecast = derive(_state(lp), {1: 4000.0}, NOW)
+    forecast = derive(_state(lp), {1: {"power": 4000.0}}, NOW)
     hour = timedelta(hours=1)
     t20 = datetime(2026, 3, 2, 20, tzinfo=UTC)
     slots = per_slot(forecast.windows, [(t20, t20 + hour), (t20 + hour, t20 + 2 * hour)])
@@ -190,3 +190,27 @@ def test_the_limit_moves_onto_the_planner_price_basis():
     assert limit_on_price_basis(0.20, rates, slots) == pytest.approx(0.39)
     assert limit_on_price_basis(None, rates, slots) is None
     assert limit_on_price_basis(0.20, [], slots) is None
+
+
+def test_the_plan_endpoint_supplies_the_slots_when_the_state_has_none():
+    lp = _lp(effectivePlanTime="2026-03-03T06:00:00Z", plan=None)
+    plans = {
+        1: {
+            "plan": [{"start": "2026-03-02T23:00:00Z", "end": "2026-03-03T00:00:00Z"}],
+            "power": 7400.0,
+        }
+    }
+    (session,) = derive(_state(lp), plans, NOW).sessions
+    assert session.source == SOURCE_PLAN
+    assert session.energy_kwh == pytest.approx(7.4)
+
+
+def test_a_co2_limit_is_not_compared_with_prices():
+    planner = _rates([0.10] * 8)
+    state = _state(_lp(smartCostLimit=300), planner=planner)
+    state["smartCostType"] = "co2"
+    forecast = derive(state, {}, NOW)
+    assert forecast.sessions == []
+    assert forecast.price_limit is None
+    state["smartCostType"] = "priceforecast"
+    assert derive(state, {}, NOW).sessions

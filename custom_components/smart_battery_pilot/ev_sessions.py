@@ -175,15 +175,17 @@ def _consume(windows: list[EvWindow], budget: float) -> list[EvWindow]:
 
 def derive(
     state: dict[str, Any],
-    plan_power: dict[int, float],
+    plans: dict[int, dict[str, Any]],
     now: datetime,
     *,
     trim: bool = True,
 ) -> EvForecast:
     """Expected sessions per connected loadpoint.
 
-    `plan_power` is the charge power evcc sized each plan with (from
-    ``/api/loadpoints/{id}/plan``), keyed by loadpoint id. With `trim` False a
+    `plans` holds what ``/api/loadpoints/{id}/plan`` returned, keyed by
+    loadpoint id: the plan's slots (``plan``) and the charge power evcc sized
+    it with (``power``). The plan in the state is the fallback for the
+    slots. With `trim` False a
     window already under way keeps its real start, so the slot in progress
     counts in full - stable enough to compare one poll with the next.
     """
@@ -195,6 +197,8 @@ def derive(
     rates = parse_rates(tariffs.get("planner")) or parse_rates(tariffs.get("grid"))
     control = state.get("batteryDischargeControl")
     forecast.battery_discharge_control = control if isinstance(control, bool) else None
+    # The smart cost limit is a CO2 intensity with a CO2 tariff, not a price.
+    price_limits = str(state.get("smartCostType") or "").lower() != "co2"
 
     for index, lp in enumerate(state.get("loadpoints") or []):
         if not isinstance(lp, dict):
@@ -221,15 +225,21 @@ def derive(
         if budget is not None and budget < MIN_SESSION_KWH:
             continue
 
-        power = _power_w(lp, plan_power.get(lp_id))
+        endpoint = plans.get(lp_id) or {}
+        power = _power_w(lp, endpoint.get("power"))
         windows: list[EvWindow] = []
-        plan_rates = parse_rates(lp.get("plan")) if lp.get("effectivePlanTime") else []
+        if endpoint.get("plan"):
+            plan_rates = parse_rates(endpoint["plan"])
+        elif lp.get("effectivePlanTime"):
+            plan_rates = parse_rates(lp.get("plan"))
+        else:
+            plan_rates = []
         windows += [_window(s, e, power, SOURCE_PLAN) for s, e, _ in plan_rates]
         if mode == "now":
             hours = (budget if budget is not None else 0.0) / (power / 1000.0)
             if hours > 0:
                 windows.append(_window(now, now + timedelta(hours=hours), power, SOURCE_NOW))
-        limit = info["smart_cost_limit"]
+        limit = info["smart_cost_limit"] if price_limits else None
         if mode in ("smart", "pv", "minpv") and limit is not None and budget is not None:
             cheap = [(s, e) for s, e, value in rates if value <= limit and e > now]
             if cheap:
