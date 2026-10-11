@@ -42,6 +42,10 @@ class _ExecutorSwitch(SBPEntity, SwitchEntity, RestoreEntity):
         last = await self.async_get_last_state()
         if last is not None:
             setattr(self.coordinator, self._flag, last.state == "on")
+            # Entities set up before this one (the configuration sensor shows
+            # whether the pilot is enabled) would show the default until the
+            # next refresh.
+            self.coordinator.async_update_listeners()
 
     @property
     def is_on(self) -> bool:
@@ -49,7 +53,8 @@ class _ExecutorSwitch(SBPEntity, SwitchEntity, RestoreEntity):
 
     async def _set(self, value: bool) -> None:
         setattr(self.coordinator, self._flag, value)
-        self.async_write_ha_state()
+        # Every entity, not only this one: the configuration sensor shows it too.
+        self.coordinator.async_update_listeners()
         await self._executor.async_apply_current()
 
     async def async_turn_on(self, **kwargs: Any) -> None:

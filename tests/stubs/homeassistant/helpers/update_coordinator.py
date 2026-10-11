@@ -19,6 +19,10 @@ class DataUpdateCoordinator:
         self._listeners.append(listener)
         return lambda: self._listeners.remove(listener)
 
+    def async_update_listeners(self):
+        for listener in list(self._listeners):
+            listener()
+
     async def async_request_refresh(self):
         self.data = await self._async_update_data()
         for listener in list(self._listeners):
