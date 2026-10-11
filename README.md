@@ -6,7 +6,7 @@
 
 [![GitHub Release][release-badge]][release-url]
 [![GitHub Downloads (all assets, all releases)][downloads-badge]][release-url]
-[![HACS Custom][hacs-badge]][hacs-url]
+[![HACS Default][hacs-badge]][hacs-url]
 [![HA Version][ha-badge]][ha-url]
 [![License][license-badge]][license-url]
 [![GitHub commit activity][commits-badge]][commits-url]
@@ -79,10 +79,14 @@ vendor configurations.
 
 ## Installation (HACS)
 
-1. HACS → Integrations → ⋮ → *Custom repositories* →
-   `https://github.com/cygnusb/ha-smart-battery-pilot` (category: Integration)
-2. Install **Smart Battery Pilot** and restart Home Assistant.
-3. Settings → Devices & Services → *Add Integration* → **Smart Battery Pilot**.
+Smart Battery Pilot is in the HACS default repository, so no custom
+repository is needed:
+
+[![Open your Home Assistant instance and open this repository in HACS.][my-hacs-badge]][my-hacs-url]
+
+1. In HACS, search for **Smart Battery Pilot** (or use the button above),
+   download it and restart Home Assistant.
+2. Settings → Devices & Services → *Add Integration* → **Smart Battery Pilot**.
 
 ## Configuration
 
@@ -293,8 +297,10 @@ MIT
 [release-badge]: https://img.shields.io/github/v/release/cygnusb/ha-smart-battery-pilot?include_prereleases
 [release-url]: https://github.com/cygnusb/ha-smart-battery-pilot/releases
 [downloads-badge]: https://img.shields.io/github/downloads/cygnusb/ha-smart-battery-pilot/total
-[hacs-badge]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg
+[hacs-badge]: https://img.shields.io/badge/HACS-Default-41BDF5.svg
 [hacs-url]: https://hacs.xyz
+[my-hacs-badge]: https://my.home-assistant.io/badges/hacs_repository.svg
+[my-hacs-url]: https://my.home-assistant.io/redirect/hacs_repository/?owner=cygnusb&repository=ha-smart-battery-pilot&category=integration
 [ha-badge]: https://img.shields.io/badge/HA-2024.11.0+-blue.svg
 [ha-url]: https://www.home-assistant.io/
 [license-badge]: https://img.shields.io/github/license/cygnusb/ha-smart-battery-pilot
