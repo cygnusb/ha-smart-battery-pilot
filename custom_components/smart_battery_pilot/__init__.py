@@ -102,7 +102,7 @@ async def _async_register_lovelace_resource(hass: HomeAssistant) -> bool:
                     )
                 return True
         await resources.async_create_item({"res_type": "module", "url": url})
-    except Exception:  # noqa: BLE001
+    except Exception:
         _LOGGER.warning("Could not register Lovelace resource", exc_info=True)
         return False
     return True
