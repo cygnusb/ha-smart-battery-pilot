@@ -187,7 +187,7 @@ baseline, and every executor decision including skipped script calls.
 ## Dashboard card
 
 The integration ships its own Lovelace card (registered automatically as a
-frontend module and lovelace resource):
+Lovelace resource):
 
 ```yaml
 type: custom:smart-battery-pilot-card
@@ -209,6 +209,21 @@ scaled to it, so it stays legible from a 300 px phone column to a full-width
 panel view: more width buys a denser hour grid, more height buys taller
 panels. `height` overrides the automatic sizing, and in a sections view
 `grid_options: {columns: full}` lets the card use the whole section.
+> **YAML dashboards (`lovelace: resource_mode: yaml`):** the resource list is
+> read-only, so the card cannot be added automatically. Add it yourself:
+>
+> ```yaml
+> lovelace:
+>   resource_mode: yaml
+>   resources:
+>     - url: /smart_battery_pilot/smart-battery-pilot-card.js
+>       type: module
+> ```
+>
+> Without it the card may intermittently be missing after a page load
+> ([#47](https://github.com/cygnusb/ha-smart-battery-pilot/issues/47),
+> [home-assistant/frontend#53890](https://github.com/home-assistant/frontend/issues/53890)).
+
 See [docs/configuration.md](docs/configuration.md#dashboard).
 
 Each image is shown in your GitHub theme; click one to open it at full

@@ -4,11 +4,11 @@
   "after_dependencies": ["sun"],
   "codeowners": ["@cygnusb"],
   "config_flow": true,
-  "dependencies": ["recorder", "http", "frontend"],
+  "dependencies": ["recorder", "http", "frontend", "lovelace"],
   "documentation": "https://cygnusb.github.io/ha-smart-battery-pilot/docs/",
   "integration_type": "service",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/cygnusb/ha-smart-battery-pilot/issues",
   "requirements": [],
-  "version": "1.2.4"
+  "version": "1.2.5"
 }
