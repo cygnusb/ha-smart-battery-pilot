@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 
@@ -69,9 +70,50 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         await hass.http.async_register_static_paths(
             [StaticPathConfig(FRONTEND_SCRIPT_URL, str(card_path), cache_headers=False)]
         )
-        add_extra_js_url(hass, FRONTEND_SCRIPT_URL)
+        if not await _async_register_lovelace_resource(hass):
+            # YAML resource mode (read-only) or Lovelace unavailable.
+            add_extra_js_url(hass, FRONTEND_SCRIPT_URL)
     _ensure_replan_service(hass)
     return True
+
+
+async def _async_register_lovelace_resource(hass: HomeAssistant) -> bool:
+    """Add the card as a Lovelace resource (storage mode).
+
+    Resources are imported by the Lovelace panel after the scoped custom element
+    registry polyfill is active, unlike extra_js_url modules, which can lose
+    their registration in a race (home-assistant/frontend#53890).
+    Returns False if the resource collection cannot be written.
+    """
+    lovelace = hass.data.get("lovelace")
+    resources = getattr(lovelace, "resources", None)
+    if resources is None or not hasattr(resources, "async_create_item"):
+        return False
+    try:
+        if not getattr(resources, "loaded", True):
+            await resources.async_load()
+        version = await hass.async_add_executor_job(_integration_version)
+        url = f"{FRONTEND_SCRIPT_URL}?v={version}"
+        for item in resources.async_items():
+            if item["url"].split("?")[0] == FRONTEND_SCRIPT_URL:
+                if item["url"] != url:
+                    await resources.async_update_item(
+                        item["id"], {"res_type": "module", "url": url}
+                    )
+                return True
+        await resources.async_create_item({"res_type": "module", "url": url})
+    except Exception:  # noqa: BLE001
+        _LOGGER.warning("Could not register Lovelace resource", exc_info=True)
+        return False
+    return True
+
+
+def _integration_version() -> str:
+    try:
+        manifest = Path(__file__).parent / "manifest.json"
+        return json.loads(manifest.read_text())["version"]
+    except (OSError, KeyError, ValueError):
+        return "0"
 
 
 def _ensure_unique_id(hass: HomeAssistant, entry: SBPConfigEntry) -> None:

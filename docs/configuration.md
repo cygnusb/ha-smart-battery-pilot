@@ -208,8 +208,8 @@ the reason, and stops interfering until planning works again. Turning dry-run
 
 ## Dashboard
 
-The bundled card (auto-registered as frontend module *and* lovelace
-resource, no manual resource setup needed):
+The bundled card (auto-registered as a lovelace resource in storage mode; with
+`resource_mode: yaml` add it manually, see the README):
 
 ```yaml
 type: custom:smart-battery-pilot-card
