@@ -1,0 +1,29 @@
+name: Release
+
+# Attaches the integration as a ZIP to every published release. HACS installs
+# this asset (zip_release in hacs.json) and its download counter counts it.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  zip:
+    name: Attach ZIP
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build ZIP
+        run: |
+          cd custom_components/smart_battery_pilot
+          zip -r "$GITHUB_WORKSPACE/smart_battery_pilot.zip" . -x "__pycache__/*" "*/__pycache__/*" "*.pyc"
+
+      - name: Upload release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" smart_battery_pilot.zip --clobber
