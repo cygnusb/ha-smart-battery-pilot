@@ -43,7 +43,7 @@ logged; planning carries on unchanged.
 | Max charge / discharge power | Inverter limits in W. |
 | Min / Max SOC | The plan never leaves this window (e.g. 10–95 %). |
 | Roundtrip efficiency | Grid → battery → load efficiency, typically 88–92 %. Losses are priced into every charge decision. |
-| Battery charge / discharge energy (optional) | Cumulative kWh or Wh meters. **Both** are required before the battery benefit (net, gross), pilot savings and energy sensors report a value. Unavailable readings are skipped so a glitch cannot inflate the totals. See [how the three euro totals differ](optimizer.md) — in short: *battery benefit* is what the battery is worth (counted whether or not the pilot steers), *pilot savings* is only what the pilot added by charging from the grid or holding energy back. |
+| Battery charge / discharge energy (optional) | Cumulative kWh or Wh meters. **Both** are required before the battery benefit (net, gross), pilot savings and energy sensors report a value. Unavailable readings are skipped so a glitch cannot inflate the totals. See [how the three money totals differ](optimizer.md) — in short: *battery benefit* is what the battery is worth (counted whether or not the pilot steers), *pilot savings* is only what the pilot added by charging from the grid or holding energy back. |
 
 ### 3. Control scripts
 
