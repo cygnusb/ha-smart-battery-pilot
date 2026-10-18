@@ -42,14 +42,21 @@ cold-weather charge factor.
 0. **Refill the backup reserve** (only if the SOC is below it): forecast PV
    first, then the cheapest grid slots up to the refill deadline, regardless of
    the spread. These become ordinary `charge` slots.
-1. **Sort** all slots by price, most expensive first. These are the discharge
-   candidates — the hours where battery energy is worth the most.
-2. For each candidate, the energy needed to cover its net demand is sourced:
+1. **Sort** the uses of battery energy by value, most valuable first. These
+   are the discharge candidates. Covering a slot's net demand is worth its
+   import price. In export mode, selling into the grid in a slot is a second
+   candidate, worth the sell price minus the spread. Both kinds compete for
+   the same stored energy in this one list, so a cheap night cannot drain the
+   battery before a much pricier export peak is considered. The spread
+   discount keeps a slot's demand covered unless exporting the energy
+   elsewhere clearly pays more.
+2. For each candidate, the energy it needs is sourced:
     1. from **energy already in the battery** (PV surplus, initial SOC) — free
-       energy is always used at the most expensive hours first;
+       energy always goes to the most valuable use first;
     2. from **grid charging in cheaper, earlier slots** — only if
-       `charge price / efficiency + spread < discharge price`, and never while
-       the battery would still be below an unfilled reserve at that slot.
+       `charge price / efficiency + spread < discharge price` (the sell price
+       for an export), and never while the battery would still be below an
+       unfilled reserve at that slot.
 3. Every assignment is validated against the battery **timeline**: SOC never
    leaves the window between the floor and max SOC at any point, and per-slot charge/discharge
    power limits are respected. **Forecasted PV surplus charges the battery
@@ -74,9 +81,10 @@ cold-weather charge factor.
    it, which is what keeps the inverter's behaviour and the cost model in
    agreement. Slots with PV surplus stay in **auto** — the inverter charges
    from PV and won't discharge anyway.
-6. In **export mode**, remaining peak slots can additionally be paired for
-   grid export, valued at the feed-in tariff (or the raw market price if 0 —
-   the configured import offset is not counted as export revenue). An export
+6. In **export mode**, the export candidates from step 1 turn peak slots
+   into `export` slots. Export is valued at the feed-in tariff (or the raw
+   market price if 0 — the configured import offset is not counted as export
+   revenue). An export
    script is required for this mode; the options flow refuses to select it
    without one. What the cost model assumes of that script is spelled out
    under [Export slots](#what-an-export-slot-assumes) below.
@@ -130,9 +138,9 @@ while it discharges into the grid. A script that switches the inverter to a
 pure "sell at `power_w`" mode and leaves the house on the grid meter still
 runs safely, but the household demand of those slots is then bought at the
 import price without the model knowing, and the realised saving comes out
-below `estimated_savings`. Export slots are rare and short by construction
-(only genuine price peaks qualify), so the gap stays small — but if your
-inverter cannot do both, prefer self-consumption mode.
+below `estimated_savings`. Only genuine price peaks qualify for export, so
+the gap stays small — but if your inverter cannot do both, prefer
+self-consumption mode.
 
 ## What curtailed PV is worth
 
