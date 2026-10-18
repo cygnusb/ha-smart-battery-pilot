@@ -92,7 +92,8 @@
       "no_future_prices": "De entiteit bevat geen toekomstige prijzen.",
       "soc_range_invalid": "Minimale SOC moet lager zijn dan maximale SOC.",
       "export_spread_unreachable": "De terugleverstand kan met deze waarden niets doen: de terugleververgoeding ligt op of onder de minimale prijsspread, waardoor geen enkel tijdvak ooit in aanmerking komt. Verhoog de vergoeding, verlaag de spread, of zet de vergoeding op 0 om tegen de marktprijs terug te leveren.",
-      "export_script_missing": "De exportmodus heeft een script voor geforceerd ontladen nodig. Stel er een in bij de stuurscripts, of zet de ontlaadmodus terug op eigen verbruik."
+      "export_script_missing": "De exportmodus heeft een script voor geforceerd ontladen nodig. Stel er een in bij de stuurscripts, of zet de ontlaadmodus terug op eigen verbruik.",
+      "currency_mismatch": "Deze sensor levert prijzen in {sensor_currency}, maar de valuta van Home Assistant is {ha_currency}. Prijzen worden niet omgerekend, dus alles zou als {ha_currency} worden gelabeld en gedimensioneerd. Wijzig eerst de valuta onder Instellingen → Systeem → Algemeen, of verstuur opnieuw om toch door te gaan."
     },
     "abort": {
       "already_configured": "Al geconfigureerd."
@@ -187,7 +188,7 @@
           "training_days": "Dagen historie voor de verbruikstraining"
         },
         "data_description": {
-          "spread_threshold": "Minimaal prijsverschil tussen laden en ontladen, in EUR/kWh. Daaronder weegt de handel niet op tegen de omzettingsverliezen. Aanbevolen: 0,10-0,25 EUR/kWh.",
+          "spread_threshold": "Minimaal prijsverschil tussen laden en ontladen, per kWh in de valuta van de prijssensor. Daaronder weegt de handel niet op tegen de omzettingsverliezen. Aanbevolen: 0,10-0,25 EUR/kWh of het equivalent.",
           "discharge_mode": "Alleen eigen verbruik: de accu dekt je eigen vraag. Eigen verbruik + teruglevering: verkoopt bij zeer hoge prijzen ook aan het net (vereist een terugleverscript).",
           "training_days": "Dagen historie om het verbruiksprofiel te trainen. Meer = stabieler, maar volgt een verandering in gewoonten trager. Aanbevolen: 30-60 dagen."
         }
@@ -278,7 +279,8 @@
       "ev_block_needs_power": "Het beleid 'Blokkeren' heeft minstens één vermogenssensor van een laadpaal nodig.",
       "ev_external_needs_entity": "Het beleid 'Extern' heeft een entiteit voor externe regeling nodig.",
       "evcc_url_required": "Voer het evcc-adres in.",
-      "evcc_unreachable": "evcc antwoordde niet op dit adres. Controleer het adres en of evcc draait."
+      "evcc_unreachable": "evcc antwoordde niet op dit adres. Controleer het adres en of evcc draait.",
+      "currency_mismatch": "Deze sensor levert prijzen in {sensor_currency}, maar de valuta van Home Assistant is {ha_currency}. Prijzen worden niet omgerekend, dus alles zou als {ha_currency} worden gelabeld en gedimensioneerd. Wijzig eerst de valuta onder Instellingen → Systeem → Algemeen, of verstuur opnieuw om toch door te gaan."
     }
   },
   "selector": {
@@ -385,6 +387,12 @@
     "replan": {
       "name": "Opnieuw plannen",
       "description": "Bereken het laadplan onmiddellijk opnieuw."
+    }
+  },
+  "issues": {
+    "currency_mismatch": {
+      "title": "Prijssensor rekent in een andere valuta",
+      "description": "**{entity}** levert prijzen in **{sensor_currency}**, maar de valuta van Home Assistant is **{ha_currency}**.\n\nSmart Battery Pilot rekent prijzen niet om. De planning klopt, maar prijzen en besparingen worden als {ha_currency} gelabeld, en standaardwaarden en plausibiliteitsgrenzen zijn afgestemd op {ha_currency}.\n\nStel onder **Instellingen → Systeem → Algemeen** de valuta in waarin je tarief wordt gefactureerd, herlaad de integratie en controleer eenmalig de prijsopslag, de terugleververgoeding en de spread. Deze melding verdwijnt zodra beide valuta overeenkomen."
     }
   }
 }

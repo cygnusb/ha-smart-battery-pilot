@@ -128,3 +128,4 @@ STORE_SAVE_DELAY_SECONDS = 60
 SCRIPT_CALL_TIMEOUT_SECONDS = 120
 
 FRONTEND_SCRIPT_URL = f"/{DOMAIN}/smart-battery-pilot-card.js"
+CURRENCY_DOCS_URL = "https://cygnusb.github.io/ha-smart-battery-pilot/docs/configuration/#currency"

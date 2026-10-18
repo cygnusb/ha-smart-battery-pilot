@@ -92,7 +92,8 @@
       "no_future_prices": "Entītijā nav nākotnes cenu.",
       "soc_range_invalid": "Minimālajam SOC jābūt zemākam par maksimālo SOC.",
       "export_spread_unreachable": "Pārdošanas režīms ar šīm vērtībām neko nevar izdarīt: atlīdzība ir vienāda ar minimālo cenu starpību vai zemāka, tāpēc neviena stunda nekad nekvalificēsies. Palielini atlīdzību, samazini starpību vai iestati atlīdzību uz 0, lai pārdotu par tirgus cenu.",
-      "export_script_missing": "Eksporta režīmam nepieciešams piespiedu izlādes skripts. Pievienojiet to vadības skriptos vai iestatiet izlādes režīmu atpakaļ uz pašpatēriņu."
+      "export_script_missing": "Eksporta režīmam nepieciešams piespiedu izlādes skripts. Pievienojiet to vadības skriptos vai iestatiet izlādes režīmu atpakaļ uz pašpatēriņu.",
+      "currency_mismatch": "Šis sensors norāda cenas valūtā {sensor_currency}, bet Home Assistant valūta ir {ha_currency}. Cenas netiek konvertētas, tāpēc viss tiktu apzīmēts un mērogots kā {ha_currency}. Vispirms nomainiet valūtu sadaļā Iestatījumi → Sistēma → Vispārīgi vai iesniedziet vēlreiz, lai tomēr turpinātu."
     },
     "abort": {
       "already_configured": "Jau konfigurēts."
@@ -187,7 +188,7 @@
           "training_days": "Vēstures dienas patēriņa apmācībai"
         },
         "data_description": {
-          "spread_threshold": "Minimālā cenu starpība starp uzlādi un izlādi, EUR/kWh. Zem tās arbitrāža nesedz pārveidošanas zudumus. Ieteicams: 0,10-0,25 EUR/kWh.",
+          "spread_threshold": "Minimālā cenu starpība starp uzlādi un izlādi, par kWh cenu sensora valūtā. Zem tās arbitrāža nesedz pārveidošanas zudumus. Ieteicams: 0,10-0,25 EUR/kWh vai līdzvērtīgi.",
           "discharge_mode": "Tikai pašpatēriņš: akumulators sedz tavu paša pieprasījumu. Pašpatēriņš + pārdošana: ļoti augstu cenu laikā pārdod arī tīklā (nepieciešams pārdošanas skripts).",
           "training_days": "Vēstures dienu skaits patēriņa profila apmācībai. Vairāk = stabilāk, bet lēnāk seko paradumu maiņai. Ieteicams: 30-60 dienas."
         }
@@ -278,7 +279,8 @@
       "ev_block_needs_power": "Politikai 'Bloķēt' nepieciešams vismaz viens stacijas jaudas sensors.",
       "ev_external_needs_entity": "Politikai 'Ārējā' nepieciešama ārējās vadības entītija.",
       "evcc_url_required": "Ievadi evcc adresi.",
-      "evcc_unreachable": "evcc neatbildēja šajā adresē. Pārbaudi adresi un vai evcc darbojas."
+      "evcc_unreachable": "evcc neatbildēja šajā adresē. Pārbaudi adresi un vai evcc darbojas.",
+      "currency_mismatch": "Šis sensors norāda cenas valūtā {sensor_currency}, bet Home Assistant valūta ir {ha_currency}. Cenas netiek konvertētas, tāpēc viss tiktu apzīmēts un mērogots kā {ha_currency}. Vispirms nomainiet valūtu sadaļā Iestatījumi → Sistēma → Vispārīgi vai iesniedziet vēlreiz, lai tomēr turpinātu."
     }
   },
   "selector": {
@@ -385,6 +387,12 @@
     "replan": {
       "name": "Pārplānot",
       "description": "Nekavējoties pārrēķināt uzlādes plānu."
+    }
+  },
+  "issues": {
+    "currency_mismatch": {
+      "title": "Cenu sensors izmanto citu valūtu",
+      "description": "**{entity}** norāda cenas valūtā **{sensor_currency}**, bet Home Assistant valūta ir **{ha_currency}**.\n\nSmart Battery Pilot nekonvertē cenas. Plāns ir pareizs, bet cenas un ietaupījumi tiek apzīmēti kā {ha_currency}, un noklusējuma vērtības un ticamības robežas ir mērogotas valūtai {ha_currency}.\n\nSadaļā **Iestatījumi → Sistēma → Vispārīgi** iestatiet valūtu, kurā tiek izrakstīti jūsu elektrības rēķini, pārlādējiet integrāciju un vienreiz pārbaudiet cenas uzcenojumu, atlīdzību par pārdoto elektrību un starpību. Šis ziņojums pazūd, tiklīdz abas valūtas sakrīt."
     }
   }
 }

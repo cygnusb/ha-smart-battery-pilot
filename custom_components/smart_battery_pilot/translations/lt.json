@@ -92,7 +92,8 @@
       "no_future_prices": "Objekte nėra būsimų kainų.",
       "soc_range_invalid": "Mažiausias SOC turi būti mažesnis už didžiausią SOC.",
       "export_spread_unreachable": "Pardavimo režimas su šiomis reikšmėmis nieko negali padaryti: atlygis yra lygus mažiausiam kainų skirtumui arba už jį mažesnis, todėl nė viena valanda niekada netiks. Padidink atlygį, sumažink skirtumą arba nustatyk atlygį į 0, kad parduotum rinkos kaina.",
-      "export_script_missing": "Eksporto režimui reikia priverstinio iškrovimo scenarijaus. Pridėkite jį prie valdymo scenarijų arba grąžinkite iškrovimo režimą į savo suvartojimą."
+      "export_script_missing": "Eksporto režimui reikia priverstinio iškrovimo scenarijaus. Pridėkite jį prie valdymo scenarijų arba grąžinkite iškrovimo režimą į savo suvartojimą.",
+      "currency_mismatch": "Šis jutiklis pateikia kainas valiuta {sensor_currency}, tačiau Home Assistant valiuta yra {ha_currency}. Kainos nekonvertuojamos, todėl viskas būtų pažymėta ir pritaikyta kaip {ha_currency}. Pirmiausia pakeiskite valiutą skiltyje Nustatymai → Sistema → Bendra arba pateikite dar kartą, kad vis tiek tęstumėte."
     },
     "abort": {
       "already_configured": "Jau sukonfigūruota."
@@ -187,7 +188,7 @@
           "training_days": "Istorijos dienos suvartojimo mokymui"
         },
         "data_description": {
-          "spread_threshold": "Mažiausias kainų skirtumas tarp įkrovimo ir iškrovimo, EUR/kWh. Žemiau jo arbitražas nepadengia konversijos nuostolių. Rekomenduojama: 0,10-0,25 EUR/kWh.",
+          "spread_threshold": "Mažiausias kainų skirtumas tarp įkrovimo ir iškrovimo, už kWh kainos jutiklio valiuta. Žemiau jo arbitražas nepadengia konversijos nuostolių. Rekomenduojama: 0,10-0,25 EUR/kWh arba atitinkamai.",
           "discharge_mode": "Tik savo suvartojimas: akumuliatorius padengia tavo paties poreikį. Savo suvartojimas + pardavimas: esant labai aukštoms kainoms parduoda ir į tinklą (reikia pardavimo scenarijaus).",
           "training_days": "Istorijos dienų skaičius suvartojimo profiliui apmokyti. Daugiau = stabiliau, bet lėčiau seka įpročių pokyčius. Rekomenduojama: 30-60 dienų."
         }
@@ -278,7 +279,8 @@
       "ev_block_needs_power": "Politikai 'Blokuoti' reikia bent vieno stotelės galios jutiklio.",
       "ev_external_needs_entity": "Politikai 'Išorinis' reikia išorinio valdymo objekto.",
       "evcc_url_required": "Įveskite evcc adresą.",
-      "evcc_unreachable": "evcc neatsakė šiuo adresu. Patikrinkite adresą ir ar evcc veikia."
+      "evcc_unreachable": "evcc neatsakė šiuo adresu. Patikrinkite adresą ir ar evcc veikia.",
+      "currency_mismatch": "Šis jutiklis pateikia kainas valiuta {sensor_currency}, tačiau Home Assistant valiuta yra {ha_currency}. Kainos nekonvertuojamos, todėl viskas būtų pažymėta ir pritaikyta kaip {ha_currency}. Pirmiausia pakeiskite valiutą skiltyje Nustatymai → Sistema → Bendra arba pateikite dar kartą, kad vis tiek tęstumėte."
     }
   },
   "selector": {
@@ -385,6 +387,12 @@
     "replan": {
       "name": "Perplanuoti",
       "description": "Nedelsiant perskaičiuoti įkrovimo planą."
+    }
+  },
+  "issues": {
+    "currency_mismatch": {
+      "title": "Kainų jutiklis naudoja kitą valiutą",
+      "description": "**{entity}** pateikia kainas valiuta **{sensor_currency}**, tačiau Home Assistant valiuta yra **{ha_currency}**.\n\nSmart Battery Pilot nekonvertuoja kainų. Planas teisingas, tačiau kainos ir sutaupymai žymimi kaip {ha_currency}, o numatytosios reikšmės ir patikimumo ribos pritaikytos valiutai {ha_currency}.\n\nSkiltyje **Nustatymai → Sistema → Bendra** nustatykite valiutą, kuria išrašomos jūsų elektros sąskaitos, iš naujo įkelkite integraciją ir vieną kartą patikrinkite kainos antkainį, atlygį už parduotą elektrą ir skirtumą. Šis pranešimas dingsta, kai tik abi valiutos sutampa."
     }
   }
 }

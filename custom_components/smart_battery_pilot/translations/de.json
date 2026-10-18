@@ -92,7 +92,8 @@
       "no_future_prices": "Die Entity enthält keine zukünftigen Preise.",
       "soc_range_invalid": "Minimaler SOC muss unter dem maximalen SOC liegen.",
       "export_spread_unreachable": "Der Einspeise-Modus kann mit diesen Werten nichts tun: Die Einspeisevergütung liegt auf oder unter dem minimalen Preisspread, damit qualifiziert sich kein Slot. Vergütung erhöhen, Spread senken oder die Vergütung auf 0 setzen, um zum Marktpreis einzuspeisen.",
-      "export_script_missing": "Der Export-Modus braucht ein Script zum erzwungenen Entladen. Hinterlege eines bei den Steuerungs-Scripts, oder stelle den Entlademodus zurück auf Eigenverbrauch."
+      "export_script_missing": "Der Export-Modus braucht ein Script zum erzwungenen Entladen. Hinterlege eines bei den Steuerungs-Scripts, oder stelle den Entlademodus zurück auf Eigenverbrauch.",
+      "currency_mismatch": "Dieser Sensor liefert Preise in {sensor_currency}, Home Assistant ist aber auf {ha_currency} eingestellt. Preise werden nicht umgerechnet, daher wäre alles als {ha_currency} beschriftet und bemessen. Ändere zuerst die Währung unter Einstellungen → System → Allgemein oder sende das Formular erneut ab, um trotzdem fortzufahren."
     },
     "abort": {
       "already_configured": "Bereits konfiguriert."
@@ -187,7 +188,7 @@
           "training_days": "Historien-Tage für das Verbrauchs-Training"
         },
         "data_description": {
-          "spread_threshold": "Mindestpreisunterschied zwischen Lade- und Entladepreis in EUR/kWh. Unter diesem Wert lohnt Arbitrage nicht nach Wirkungsgradverlust. Empfehlung: 0.10-0.25 EUR/kWh.",
+          "spread_threshold": "Mindestpreisunterschied zwischen Lade- und Entladepreis pro kWh, in der Währung des Preissensors. Unter diesem Wert lohnt Arbitrage nicht nach Wirkungsgradverlust. Empfehlung: 0.10-0.25 EUR/kWh oder entsprechend.",
           "discharge_mode": "Nur Eigenverbrauch: Entladung deckt nur eigenen Bedarf. Eigenverbrauch + Einspeisung: Bei sehr hohen Preisen auch Netzeinspeisung (erfordert Export-Script).",
           "training_days": "Historien-Tage fuer das Verbrauchsprofil-Training. Mehr = robuster, langsamer bei Lebensstilaenderungen. Empfehlung: 30-60 Tage."
         }
@@ -278,7 +279,8 @@
       "ev_block_needs_power": "Die Richtlinie 'Sperren' braucht mindestens einen Wallbox-Leistungssensor.",
       "ev_external_needs_entity": "Die Richtlinie 'Extern' braucht eine Entität für die Fremdsteuerung.",
       "evcc_url_required": "Gib die evcc-Adresse ein.",
-      "evcc_unreachable": "evcc hat unter dieser Adresse nicht geantwortet. Prüfe die Adresse und ob evcc läuft."
+      "evcc_unreachable": "evcc hat unter dieser Adresse nicht geantwortet. Prüfe die Adresse und ob evcc läuft.",
+      "currency_mismatch": "Dieser Sensor liefert Preise in {sensor_currency}, Home Assistant ist aber auf {ha_currency} eingestellt. Preise werden nicht umgerechnet, daher wäre alles als {ha_currency} beschriftet und bemessen. Ändere zuerst die Währung unter Einstellungen → System → Allgemein oder sende das Formular erneut ab, um trotzdem fortzufahren."
     }
   },
   "selector": {
@@ -385,6 +387,12 @@
     "replan": {
       "name": "Neu planen",
       "description": "Ladeplan sofort neu berechnen."
+    }
+  },
+  "issues": {
+    "currency_mismatch": {
+      "title": "Preissensor rechnet in einer anderen Währung",
+      "description": "**{entity}** liefert Preise in **{sensor_currency}**, Home Assistant ist aber auf **{ha_currency}** eingestellt.\n\nSmart Battery Pilot rechnet Preise nicht um. Die Planung stimmt, aber Preise und Ersparnisse werden als {ha_currency} beschriftet, und Standardwerte sowie Plausibilitätsgrenzen sind auf {ha_currency} bemessen.\n\nStelle unter **Einstellungen → System → Allgemein** die Währung ein, in der dein Tarif abgerechnet wird, lade die Integration neu und prüfe einmal Preisaufschlag, Einspeisevergütung und Spread. Diese Meldung verschwindet, sobald beide Währungen übereinstimmen."
     }
   }
 }

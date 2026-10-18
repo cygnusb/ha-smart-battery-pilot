@@ -3,6 +3,7 @@
 from types import SimpleNamespace
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+import pytest
 
 from smart_battery_pilot.const import (
     ACTION_AUTO,
@@ -14,9 +15,12 @@ from smart_battery_pilot.const import (
 from smart_battery_pilot.sensor import (
     ActualSavingsEurSensor,
     ActualSavingsKwhSensor,
+    BatteryGrossSensor,
     ChargePlanSensor,
     CurrentActionSensor,
+    CurrentPriceSensor,
     NextActionSensor,
+    PilotSavingsSensor,
     PlanStatusSensor,
     SavingsSensor,
 )
@@ -27,16 +31,37 @@ def test_estimated_savings_is_not_an_accumulating_total():
     assert SavingsSensor._attr_state_class == SensorStateClass.MEASUREMENT
 
 
+def _coordinator(currency: str = "EUR") -> SimpleNamespace:
+    return SimpleNamespace(currency=currency, entry=SimpleNamespace(entry_id="entry"), data=None)
+
+
 def test_estimated_savings_has_no_monetary_device_class():
     """HA only accepts MONETARY together with TOTAL and logs an error otherwise."""
     assert getattr(SavingsSensor, "_attr_device_class", None) is None
-    assert SavingsSensor._attr_native_unit_of_measurement == "EUR"
+    assert SavingsSensor(_coordinator())._attr_native_unit_of_measurement == "EUR"
 
 
 def test_accumulated_savings_pairs_monetary_with_total():
     assert ActualSavingsEurSensor._attr_device_class == SensorDeviceClass.MONETARY
     assert ActualSavingsEurSensor._attr_state_class == SensorStateClass.TOTAL
     assert ActualSavingsKwhSensor._attr_state_class == SensorStateClass.TOTAL
+
+
+@pytest.mark.parametrize("currency", ["EUR", "SEK"])
+def test_money_sensors_count_in_the_coordinators_currency(currency):
+    """Nothing is converted, so a SEK curve must not be labelled EUR."""
+    coordinator = _coordinator(currency)
+    money = (SavingsSensor, ActualSavingsEurSensor, BatteryGrossSensor, PilotSavingsSensor)
+    for sensor_class in money:
+        assert sensor_class(coordinator)._attr_native_unit_of_measurement == currency
+    assert CurrentPriceSensor(coordinator)._attr_native_unit_of_measurement == f"{currency}/kWh"
+
+
+def test_money_sensors_keep_their_unique_ids():
+    """Renaming them would cut every existing history and statistic in two."""
+    coordinator = _coordinator("SEK")
+    assert ActualSavingsEurSensor(coordinator)._attr_unique_id == "entry_actual_savings_eur"
+    assert PilotSavingsSensor(coordinator)._attr_unique_id == "entry_pilot_savings_eur"
 
 
 def test_plan_slots_are_kept_out_of_the_recorder():

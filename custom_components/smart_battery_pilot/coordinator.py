@@ -12,6 +12,7 @@ from homeassistant.components.recorder import get_instance
 from homeassistant.components.recorder.statistics import statistics_during_period
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.event import (
     async_track_state_change_event,
     async_track_time_interval,
@@ -60,6 +61,7 @@ from .const import (
     CONF_SPREAD_THRESHOLD,
     CONF_TEMPERATURE_ENTITY,
     CONF_TRAINING_DAYS,
+    CURRENCY_DOCS_URL,
     DEFAULT_BACKUP_RESERVE,
     DEFAULT_CHARGE_DERATING,
     DEFAULT_DERATING_CURVE,
@@ -87,7 +89,15 @@ from .const import (
     STORE_SAVE_DELAY_SECONDS,
     UPDATE_INTERVAL_MINUTES,
 )
-from .ev_sessions import MIN_SESSION_KWH, EvForecast, derive, limit_on_price_basis, per_slot
+from .currency import currency_from_attrs, currency_issue_id, hass_currency, price_scale
+from .ev_sessions import (
+    LIMIT_OFFSET_TOLERANCE,
+    MIN_SESSION_KWH,
+    EvForecast,
+    derive,
+    limit_on_price_basis,
+    per_slot,
+)
 from .evcc import EvccError, async_fetch_plans, async_fetch_state, normalize_url
 from .forecast.charge_rate import (
     SOURCE_OFF,
@@ -125,6 +135,7 @@ EVCC_MAX_AGE = timedelta(minutes=5)
 # anything past this is two orders of magnitude out. Planning on such a curve
 # would make every hour look like a huge arbitrage opportunity and force-charge
 # the battery from the grid around the clock, so the plan is refused instead.
+# In euros; other currencies scale it by currency.price_scale.
 MAX_PLAUSIBLE_PRICE_EUR_KWH = 10.0
 
 # Fallback daylight window when sun.sun is unavailable.
@@ -278,6 +289,21 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         self._last_attempt: datetime | None = None
         self._unsub_price = None
         self._adapter_name: str | None = None
+        # Read once: Home Assistant's currency changing under a running entry
+        # would relabel totals that were counted in the old one. A reload
+        # picks up a new setting.
+        self.currency = hass_currency(hass)
+        if price_scale(self.currency) is None:
+            _LOGGER.warning(
+                "Currency %s has no known price scale: prices are used as they "
+                "come, but the check for implausible prices is off and "
+                "defaults are euro-sized - review the spread and feed-in.",
+                self.currency,
+            )
+        # What the price entity itself declares, for diagnostics, and the
+        # mismatch already warned about.
+        self._price_currency: str | None = None
+        self._warned_currency_mismatch: str | None = None
         self._unsub_reserve = None
         # Reserve entity already warned about as unreadable; reset once it reads.
         self._warned_reserve_entity = False
@@ -573,10 +599,12 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         if "export_spread_unreachable" in plan.warnings:
             _LOGGER.warning(
                 "Export mode is on but no slot's sell price beats the spread "
-                "(feed-in %.3f EUR/kWh, spread %.3f EUR/kWh). Set feed-in to 0 "
+                "(feed-in %.3f %s/kWh, spread %.3f %s/kWh). Set feed-in to 0 "
                 "for market-price export, or lower the spread.",
                 config.feed_in_tariff,
+                self.currency,
                 config.spread_threshold,
+                self.currency,
             )
         if "reserve_refill_incomplete" in plan.warnings:
             # Once per episode: it stays true for every refresh until the
@@ -612,6 +640,8 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             "slots": len(slots),
             "horizon_start": slots[0].start.isoformat(),
             "horizon_end": slots[-1].end.isoformat(),
+            "currency": self.currency,
+            "price_currency": self._price_currency,
             "price_min": round(min(prices), 4),
             "price_max": round(max(prices), 4),
             "battery": asdict(battery),
@@ -702,38 +732,85 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         offset = float(self.conf(CONF_PRICE_OFFSET, DEFAULT_PRICE_OFFSET))
         slots = adapter.parse(attrs, now)
         _LOGGER.debug(
-            "Adapter '%s' parsed %d slots from %s (attributes: %s), offset %.4f EUR/kWh",
+            "Adapter '%s' parsed %d slots from %s (attributes: %s), offset %.4f %s/kWh",
             adapter.name,
             len(slots),
             entity_id,
             sorted(attrs),
             offset,
+            self.currency,
         )
+        self._check_price_currency(attrs, entity_id)
         if offset:
             slots = [PriceSlot(start=s.start, end=s.end, price=s.price + offset) for s in slots]
         self._reject_implausible_prices(slots, entity_id, adapter.name)
         return slots
 
-    @staticmethod
+    def _check_price_currency(self, attrs: dict[str, Any], entity_id: str) -> None:
+        """Raise a repair when the price entity counts in another currency.
+
+        Nothing is converted, so a curve in SEK under a Home Assistant set to
+        EUR plans correctly but is labelled - and sized by every default and
+        bound - as euros. Planning goes on; a log line alone went unseen, so
+        the mismatch also sits under Settings > Repairs until it is resolved.
+        """
+        declared = currency_from_attrs(attrs)
+        self._price_currency = declared
+        if declared is None or declared == self.currency:
+            self._warned_currency_mismatch = None
+            # Unconditionally: an issue raised before a restart outlives the
+            # flag that remembered it.
+            ir.async_delete_issue(self.hass, DOMAIN, currency_issue_id(self.entry.entry_id))
+            return
+        if declared == self._warned_currency_mismatch:
+            return
+        self._warned_currency_mismatch = declared
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            currency_issue_id(self.entry.entry_id),
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="currency_mismatch",
+            translation_placeholders={
+                "entity": entity_id,
+                "sensor_currency": declared,
+                "ha_currency": self.currency,
+            },
+            learn_more_url=CURRENCY_DOCS_URL,
+        )
+        _LOGGER.warning(
+            "%s delivers prices in %s, but Home Assistant's currency is %s. Prices "
+            "are not converted: set the currency under Settings > System > General "
+            "to the one your tariff is billed in, then reload the integration.",
+            entity_id,
+            declared,
+            self.currency,
+        )
+
     def _reject_implausible_prices(
-        slots: list[PriceSlot], entity_id: str, adapter_name: str
+        self, slots: list[PriceSlot], entity_id: str, adapter_name: str
     ) -> None:
-        """Refuse a price curve that cannot be EUR/kWh.
+        """Refuse a price curve that cannot be a price per kWh.
 
         The adapters convert cents and öre where the entity says so, but a
         source that labels its unit wrongly - or a generic one the catch-all
         adapter picked up - still lands here. Better no plan than a plan built
-        on prices a hundred times too large.
+        on prices a hundred times too large. A currency without a known scale
+        has no bound to check against.
         """
-        if not slots:
+        scale = price_scale(self.currency)
+        if not slots or scale is None:
             return
         worst = max(abs(slot.price) for slot in slots)
-        if worst <= MAX_PLAUSIBLE_PRICE_EUR_KWH:
+        limit = MAX_PLAUSIBLE_PRICE_EUR_KWH * scale
+        if worst <= limit:
             return
         raise PriceImplausible(
-            f"{entity_id} yields prices up to {worst:.2f} EUR/kWh via the "
-            f"'{adapter_name}' adapter; expected EUR/kWh. Check the entity's "
-            "unit_of_measurement (cents/öre are converted only when declared)."
+            f"{entity_id} yields prices up to {worst:.2f} {self.currency}/kWh via the "
+            f"'{adapter_name}' adapter; more than {limit:.0f} {self.currency}/kWh is "
+            "not a real tariff. Check the entity's unit_of_measurement (cents/öre are "
+            "converted only when declared) and Home Assistant's currency setting."
         )
 
     def _daylight_window(self) -> tuple[float, float]:
@@ -985,6 +1062,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 forecast.price_limit,
                 forecast.rates,
                 [(s.start, s.end, s.price) for s in slots],
+                tolerance=LIMIT_OFFSET_TOLERANCE * (price_scale(self.currency) or 1.0),
             )
         self._ev_signature = self._signature(slots)
         return {

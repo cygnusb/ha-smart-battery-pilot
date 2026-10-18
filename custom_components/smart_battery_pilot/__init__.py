@@ -11,6 +11,7 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 
@@ -23,6 +24,7 @@ from .const import (
     STORAGE_VERSION,
 )
 from .coordinator import SBPCoordinator
+from .currency import currency_issue_id
 from .executor import PlanExecutor
 
 _LOGGER = logging.getLogger(__name__)
@@ -185,6 +187,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: SBPConfigEntry) -> bool
     await runtime.coordinator.async_shutdown()
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if not runtime.reloading:
+        # A disabled or removed entry has no price check left to clear it.
+        ir.async_delete_issue(hass, DOMAIN, currency_issue_id(entry.entry_id))
         remaining = [
             loaded
             for loaded in hass.config_entries.async_entries(DOMAIN)

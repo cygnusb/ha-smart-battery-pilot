@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import event as event_helper
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_capture_events
@@ -102,6 +103,43 @@ async def test_a_plan_is_computed_from_the_price_entity(
     assert coordinator.data.adapter_name == "epex_spot"
     assert coordinator.data.plan.slots
     assert all(isinstance(slot.start, datetime) for slot in coordinator.data.plan.slots)
+
+
+async def test_prices_and_savings_carry_home_assistants_currency(
+    sbp_hass: HomeAssistant,
+) -> None:
+    """A real core validates monetary units; SEK has to pass that too."""
+    sbp_hass.config.currency = "SEK"
+    entry = await _setup(sbp_hass)
+
+    assert entry.runtime_data.coordinator.currency == "SEK"
+    units = {
+        state.entity_id: state.attributes.get("unit_of_measurement")
+        for state in sbp_hass.states.async_all("sensor")
+        if "smart_battery_pilot" in state.entity_id
+    }
+    assert "SEK/kWh" in units.values(), units
+    assert "EUR" not in units.values() and "EUR/kWh" not in units.values(), units
+
+
+async def test_a_currency_mismatch_shows_up_under_repairs(sbp_hass: HomeAssistant) -> None:
+    """Raised while the price entity counts in another currency, gone on unload."""
+    entry = await _setup(sbp_hass)
+    issue_id = f"currency_mismatch_{entry.entry_id}"
+    registry = ir.async_get(sbp_hass)
+    assert registry.async_get_issue(DOMAIN, issue_id) is None
+
+    state = sbp_hass.states.get("sensor.electricity_price")
+    sbp_hass.states.async_set(state.entity_id, state.state, {**state.attributes, "currency": "SEK"})
+    await sbp_hass.async_block_till_done()
+    await entry.runtime_data.coordinator.async_refresh()
+    issue = registry.async_get_issue(DOMAIN, issue_id)
+    assert issue is not None
+    assert issue.translation_key == "currency_mismatch"
+
+    assert await sbp_hass.config_entries.async_unload(entry.entry_id)
+    await sbp_hass.async_block_till_done()
+    assert registry.async_get_issue(DOMAIN, issue_id) is None
 
 
 async def test_the_integration_ships_disabled_and_in_dry_run(

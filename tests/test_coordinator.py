@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timedelta, timezone
+import logging
 from types import SimpleNamespace
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers import issue_registry
 from homeassistant.helpers.update_coordinator import UpdateFailed
 import pytest
 
@@ -29,6 +31,7 @@ from smart_battery_pilot.coordinator import (
     SBPCoordinator,
     SBPData,
 )
+from smart_battery_pilot.currency import currency_issue_id
 from smart_battery_pilot.optimizer import Plan, PlanSlot
 
 TZ = timezone(timedelta(hours=2))
@@ -78,7 +81,8 @@ class _ConfigEntries:
 
 
 class _FakeHass:
-    def __init__(self) -> None:
+    def __init__(self, currency: str = "EUR") -> None:
+        self.config = SimpleNamespace(currency=currency)
         self.states = _States()
         self.services = _Services()
         self.config_entries = _ConfigEntries()
@@ -626,6 +630,88 @@ def test_a_record_price_spike_is_still_planned():
     hass.states.set("sensor.soc", 50.0)
 
     assert _run(coord._async_update_data()).valid is True
+
+
+def test_a_krona_price_spike_is_not_mistaken_for_a_unit_error():
+    """15 SEK/kWh is a bad winter evening, not cents read as euros."""
+    hass = _FakeHass(currency="SEK")
+    coord = _coordinator(hass)
+    prices = [1.5] * 24
+    prices[18] = 15.0
+    hass.states.set("sensor.price", 15.0, {"today": prices})
+    hass.states.set("sensor.soc", 50.0)
+
+    assert _run(coord._async_update_data()).valid is True
+
+
+def test_ore_read_as_kronor_is_still_refused():
+    hass = _FakeHass(currency="SEK")
+    coord = _coordinator(hass)
+    hass.states.set("sensor.price", 150.0, {"today": [150.0] * 24})
+    hass.states.set("sensor.soc", 50.0)
+
+    assert _run(coord._async_update_data()).error == "implausible_prices"
+
+
+def test_a_currency_without_a_known_scale_is_planned_unchecked():
+    hass = _FakeHass(currency="JPY")
+    coord = _coordinator(hass)
+    hass.states.set("sensor.price", 40.0, {"today": [40.0] * 24})
+    hass.states.set("sensor.soc", 50.0)
+
+    assert _run(coord._async_update_data()).valid is True
+
+
+def test_a_price_entity_in_another_currency_is_warned_about_once(caplog):
+    """Nothing is converted; the user has to know the labels are off."""
+    hass = _FakeHass(currency="EUR")
+    coord = _coordinator(hass)
+    attrs = {"today": [1.2] * 24, "unit_of_measurement": "SEK/kWh"}
+    hass.states.set("sensor.price", 1.2, attrs)
+    hass.states.set("sensor.soc", 50.0)
+
+    with caplog.at_level(logging.WARNING):
+        result = _run(coord._async_update_data())
+        _run(coord._async_update_data())
+
+    assert result.valid is True
+    assert result.inputs["price_currency"] == "SEK"
+    assert result.inputs["currency"] == "EUR"
+    assert sum("delivers prices in SEK" in r.message for r in caplog.records) == 1
+
+
+def test_a_currency_mismatch_is_raised_as_a_repair_until_it_is_resolved():
+    """The log alone goes unseen; Settings > Repairs does not."""
+    hass = _FakeHass(currency="EUR")
+    coord = _coordinator(hass)
+    key = (DOMAIN, currency_issue_id(coord.entry.entry_id))
+    hass.states.set("sensor.price", 1.2, {"today": [1.2] * 24, "currency": "SEK"})
+    hass.states.set("sensor.soc", 50.0)
+
+    _run(coord._async_update_data())
+    issue = issue_registry.issues[key]
+    assert issue["translation_key"] == "currency_mismatch"
+    assert issue["translation_placeholders"] == {
+        "entity": "sensor.price",
+        "sensor_currency": "SEK",
+        "ha_currency": "EUR",
+    }
+
+    hass.states.set("sensor.price", 0.12, {"today": [0.12] * 24, "currency": "EUR"})
+    _run(coord._async_update_data())
+    assert key not in issue_registry.issues
+
+
+def test_a_price_entity_in_the_same_currency_is_not_warned_about(caplog):
+    hass = _FakeHass(currency="SEK")
+    coord = _coordinator(hass)
+    hass.states.set("sensor.price", 1.2, {"today": [1.2] * 24, "currency": "SEK"})
+    hass.states.set("sensor.soc", 50.0)
+
+    with caplog.at_level(logging.WARNING):
+        _run(coord._async_update_data())
+
+    assert not any("delivers prices in" in r.message for r in caplog.records)
 
 
 # --- the battery benefit counts whether or not the pilot steers ---------------
