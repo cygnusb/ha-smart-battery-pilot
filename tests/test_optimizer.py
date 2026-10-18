@@ -243,6 +243,70 @@ def test_export_does_not_treat_import_offset_as_revenue():
     assert all(s.action != ACTION_EXPORT for s in plan.slots)
 
 
+EXPORT_BATTERY = BatteryState(
+    capacity_kwh=25.6,
+    soc=89.0,
+    min_soc=20.0,
+    max_soc=97.0,
+    max_charge_power_w=5000,
+    max_discharge_power_w=5000,
+    efficiency=90,
+)
+
+
+def _evening_peak_day(evening_price: float) -> list[InputSlot]:
+    """06:00 onwards: morning demand, PV fills the battery at midday, an
+    evening peak, then a long night of moderate prices and steady demand."""
+    profile = (
+        [(0.15, 2.0)] * 4
+        + [(0.13, -3.0)] * 5
+        + [(0.20, 1.0)] * 2
+        + [(evening_price, 1.5)] * 4
+        + [(0.18, 1.2)] * 9
+    )
+    t0 = T0 + timedelta(hours=6)
+    return [
+        InputSlot(
+            price_slot=PriceSlot(
+                start=t0 + timedelta(hours=i), end=t0 + timedelta(hours=i + 1), price=price
+            ),
+            net_demand_kwh=demand,
+        )
+        for i, (price, demand) in enumerate(profile)
+    ]
+
+
+def test_export_peak_outranks_cheaper_self_consumption():
+    """Stored energy goes to the evening export, not to the cheap night: the
+    peak sells at 0.339 net, the night only saves its 0.18 import price."""
+    config = OptimizerConfig(
+        spread_threshold=0.10,
+        discharge_mode=DISCHARGE_MODE_EXPORT,
+        price_offset=0.081,
+    )
+    plan = build_plan(_evening_peak_day(0.42), EXPORT_BATTERY, config)
+    actions = [s.action for s in plan.slots]
+    assert actions[11:15] == [ACTION_EXPORT] * 4
+    # The two slots before the peak hold the energy for it.
+    assert actions[9:11] == [ACTION_IDLE] * 2
+    # The night buys from the grid instead of spending the battery.
+    assert all(s.discharge_kwh == 0 for s in plan.slots[15:])
+    assert plan.estimated_savings_eur > 1.5
+
+
+def test_marginal_export_leaves_energy_to_self_consumption():
+    """Selling at 0.219 net beats the night's 0.18 by less than the spread:
+    the battery keeps covering the house and nothing is exported."""
+    config = OptimizerConfig(
+        spread_threshold=0.10,
+        discharge_mode=DISCHARGE_MODE_EXPORT,
+        price_offset=0.081,
+    )
+    plan = build_plan(_evening_peak_day(0.30), EXPORT_BATTERY, config)
+    assert all(s.action != ACTION_EXPORT for s in plan.slots)
+    assert all(s.discharge_kwh > 0 for s in plan.slots[15:])
+
+
 def test_self_consumption_never_exports():
     prices = [0.05] * 6 + [0.60] * 4 + [0.20] * 14
     plan = build_plan(make_slots(prices, demand_kwh=0.2), BATTERY, CONFIG)
