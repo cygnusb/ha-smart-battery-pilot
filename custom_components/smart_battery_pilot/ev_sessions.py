@@ -40,7 +40,7 @@ MIN_SESSION_KWH = 0.05
 # evcc's limit is only moved onto the planner's prices when both series are
 # known for this many slots and stay this close to a constant offset.
 MIN_LIMIT_OVERLAP = 4
-LIMIT_OFFSET_TOLERANCE = 0.02  # EUR/kWh
+LIMIT_OFFSET_TOLERANCE = 0.02  # EUR/kWh; the caller scales it to its currency
 
 
 @dataclass(frozen=True, slots=True)
@@ -322,6 +322,7 @@ def limit_on_price_basis(
     limit: float | None,
     rates: list[tuple[datetime, datetime, float]],
     slots: list[tuple[datetime, datetime, float]],
+    tolerance: float = LIMIT_OFFSET_TOLERANCE,
 ) -> float | None:
     """evcc's price limit moved onto the planner's own price basis, or None.
 
@@ -341,6 +342,6 @@ def limit_on_price_basis(
             if r_start <= middle < r_end:
                 gaps.append(price - value)
                 break
-    if len(gaps) < MIN_LIMIT_OVERLAP or max(gaps) - min(gaps) > LIMIT_OFFSET_TOLERANCE:
+    if len(gaps) < MIN_LIMIT_OVERLAP or max(gaps) - min(gaps) > tolerance:
         return None
     return round(limit + statistics.median(gaps), 4)

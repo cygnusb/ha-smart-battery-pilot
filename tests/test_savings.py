@@ -105,6 +105,7 @@ class _States:
 
 class _Hass:
     def __init__(self):
+        self.config = SimpleNamespace(currency="EUR")
         self.states = _States()
 
     def async_create_task(self, coro):

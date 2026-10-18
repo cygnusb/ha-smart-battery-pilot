@@ -187,7 +187,7 @@
           "training_days": "Vēstures dienas patēriņa apmācībai"
         },
         "data_description": {
-          "spread_threshold": "Minimālā cenu starpība starp uzlādi un izlādi, EUR/kWh. Zem tās arbitrāža nesedz pārveidošanas zudumus. Ieteicams: 0,10-0,25 EUR/kWh.",
+          "spread_threshold": "Minimālā cenu starpība starp uzlādi un izlādi, par kWh cenu sensora valūtā. Zem tās arbitrāža nesedz pārveidošanas zudumus. Ieteicams: 0,10-0,25 EUR/kWh vai līdzvērtīgi.",
           "discharge_mode": "Tikai pašpatēriņš: akumulators sedz tavu paša pieprasījumu. Pašpatēriņš + pārdošana: ļoti augstu cenu laikā pārdod arī tīklā (nepieciešams pārdošanas skripts).",
           "training_days": "Vēstures dienu skaits patēriņa profila apmācībai. Vairāk = stabilāk, bet lēnāk seko paradumu maiņai. Ieteicams: 30-60 dienas."
         }

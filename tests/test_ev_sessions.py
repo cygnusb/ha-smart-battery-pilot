@@ -206,6 +206,14 @@ def test_no_line_when_the_tariffs_are_not_a_constant_offset_apart():
     assert limit_on_price_basis(0.20, rates, _slots([0.12, 0.24, 0.36, 0.48])) is None
 
 
+def test_the_offset_tolerance_follows_the_currency():
+    """Rounding noise of a few öre is not a percentage VAT."""
+    rates = parse_rates(_rates([1.0, 1.2, 3.0, 2.0]))
+    slots = _slots([2.9, 3.15, 4.9, 4.0])
+    assert limit_on_price_basis(2.0, rates, slots) is None
+    assert limit_on_price_basis(2.0, rates, slots, tolerance=0.22) == pytest.approx(3.925)
+
+
 def test_no_line_on_too_little_overlap():
     rates = parse_rates(_rates([0.10, 0.12, 0.30]))
     assert limit_on_price_basis(0.20, rates, _slots([0.29, 0.31, 0.49])) is None

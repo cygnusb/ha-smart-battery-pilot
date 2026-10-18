@@ -187,7 +187,7 @@
           "training_days": "Dagen historie voor de verbruikstraining"
         },
         "data_description": {
-          "spread_threshold": "Minimaal prijsverschil tussen laden en ontladen, in EUR/kWh. Daaronder weegt de handel niet op tegen de omzettingsverliezen. Aanbevolen: 0,10-0,25 EUR/kWh.",
+          "spread_threshold": "Minimaal prijsverschil tussen laden en ontladen, per kWh in de valuta van de prijssensor. Daaronder weegt de handel niet op tegen de omzettingsverliezen. Aanbevolen: 0,10-0,25 EUR/kWh of het equivalent.",
           "discharge_mode": "Alleen eigen verbruik: de accu dekt je eigen vraag. Eigen verbruik + teruglevering: verkoopt bij zeer hoge prijzen ook aan het net (vereist een terugleverscript).",
           "training_days": "Dagen historie om het verbruiksprofiel te trainen. Meer = stabieler, maar volgt een verandering in gewoonten trager. Aanbevolen: 30-60 dagen."
         }

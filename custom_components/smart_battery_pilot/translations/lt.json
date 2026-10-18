@@ -187,7 +187,7 @@
           "training_days": "Istorijos dienos suvartojimo mokymui"
         },
         "data_description": {
-          "spread_threshold": "Mažiausias kainų skirtumas tarp įkrovimo ir iškrovimo, EUR/kWh. Žemiau jo arbitražas nepadengia konversijos nuostolių. Rekomenduojama: 0,10-0,25 EUR/kWh.",
+          "spread_threshold": "Mažiausias kainų skirtumas tarp įkrovimo ir iškrovimo, už kWh kainos jutiklio valiuta. Žemiau jo arbitražas nepadengia konversijos nuostolių. Rekomenduojama: 0,10-0,25 EUR/kWh arba atitinkamai.",
           "discharge_mode": "Tik savo suvartojimas: akumuliatorius padengia tavo paties poreikį. Savo suvartojimas + pardavimas: esant labai aukštoms kainoms parduoda ir į tinklą (reikia pardavimo scenarijaus).",
           "training_days": "Istorijos dienų skaičius suvartojimo profiliui apmokyti. Daugiau = stabiliau, bet lėčiau seka įpročių pokyčius. Rekomenduojama: 30-60 dienų."
         }

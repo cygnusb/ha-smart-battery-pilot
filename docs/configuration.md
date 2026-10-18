@@ -6,12 +6,33 @@
 
 | Field | Description |
 |---|---|
-| Price forecast entity | Entity of your tariff integration holding the price forecast in its attributes. Supported formats are detected automatically: **Nordpool** (`raw_today`/`raw_tomorrow`; `price_in_cents` or ct/öre/cEUR units are scaled to EUR/kWh), **EPEX Spot** (`data` with `price_eur_per_mwh`/`price_ct_per_kwh`), **ENTSO-E** (`prices` with `time`/`price`; the declared unit decides the scale, so a sensor configured for cents is converted too), **aWATTar** (`marketprice` entries) and plain **hourly arrays** (`today`/`tomorrow` float lists). Arrays may hold 23, 24 or 25 values (96 / 92 / 100 at quarter-hour resolution) — on the two clock-change days a local day is not 24 hours long, and the grid follows the real day. |
+| Price forecast entity | Entity of your tariff integration holding the price forecast in its attributes. Supported formats are detected automatically: **Nordpool** (`raw_today`/`raw_tomorrow`; `price_in_cents` or ct/öre/cEUR units are scaled to whole currency units per kWh), **EPEX Spot** (`data` with `price_eur_per_mwh`/`price_ct_per_kwh`), **ENTSO-E** (`prices` with `time`/`price`; the declared unit decides the scale, so a sensor configured for cents is converted too), **aWATTar** (`marketprice` entries) and plain **hourly arrays** (`today`/`tomorrow` float lists). Arrays may hold 23, 24 or 25 values (96 / 92 / 100 at quarter-hour resolution) — on the two clock-change days a local day is not 24 hours long, and the grid follows the real day. |
 | Price offset | Fixed surcharge added to every market price: grid fees, taxes, levies (e.g. `0.187` EUR/kWh in Germany). Self-consumption decisions use the *total* import price you actually pay. Grid export is valued at the feed-in tariff, or at the raw market price when the tariff is `0` — the import surcharge is not treated as export revenue. |
 | Feed-in tariff | What you earn per exported kWh. `0` means the market price is used (dynamic feed-in). Only relevant for the export discharge mode. |
 
 If your integration is not recognized, create a template sensor with `today`/
 `tomorrow` attributes as plain price arrays — that format is always accepted.
+
+#### Currency
+
+Prices are **never converted** between currencies. The planner works in
+whatever currency the price entity delivers — only sub-units such as cents or
+öre are scaled to whole units — and takes that to be the currency set in Home
+Assistant (*Settings → System → General*). Everything is labelled with it: the
+price fields in the config flow, the current-price and savings sensors, and
+the card.
+
+Set Home Assistant's currency to the one your tariff is billed in *before*
+adding the integration: a new entry then starts with defaults sized to that
+currency (a spread of 2.2 SEK/kWh instead of 0.20, for example), and the
+check that refuses implausibly large prices scales with it. An entry created
+earlier keeps the values it has — review the price offset, feed-in tariff and
+spread once. A changed currency setting takes effect after reloading the
+integration.
+
+When the price entity declares a currency of its own (a `currency` attribute,
+or a unit such as `SEK/kWh`) that differs from Home Assistant's, a warning is
+logged; planning carries on unchanged.
 
 ### 2. Battery parameters
 
@@ -250,7 +271,7 @@ grid_options:
 
 ### Views
 
-One scale per drawing surface. Price in €/kWh, energy in kWh and SOC in
+One scale per drawing surface. Price per kWh, energy in kWh and SOC in
 percent are three different units, and stacking them on a single plot means
 two of them have to be squeezed into whatever space the third leaves — which
 is how a correct consumption forecast ends up drawn along the baseline on a

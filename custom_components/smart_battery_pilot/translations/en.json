@@ -187,7 +187,7 @@
           "training_days": "History days used for consumption training"
         },
         "data_description": {
-          "spread_threshold": "Minimum price difference between charging and discharging, in EUR/kWh. Below this, arbitrage does not pay for the conversion losses. Recommended: 0.10-0.25 EUR/kWh.",
+          "spread_threshold": "Minimum price difference between charging and discharging, per kWh in the price sensor's currency. Below this, arbitrage does not pay for the conversion losses. Recommended: 0.10-0.25 EUR/kWh or equivalent.",
           "discharge_mode": "Self-consumption only: the battery covers your own demand. Self-consumption + export: also sells to the grid at very high prices (needs an export script).",
           "training_days": "Days of history used to train the consumption profile. More = steadier, but slower to follow a change in habits. Recommended: 30-60 days."
         }

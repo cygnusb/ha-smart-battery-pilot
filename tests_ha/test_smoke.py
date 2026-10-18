@@ -104,6 +104,23 @@ async def test_a_plan_is_computed_from_the_price_entity(
     assert all(isinstance(slot.start, datetime) for slot in coordinator.data.plan.slots)
 
 
+async def test_prices_and_savings_carry_home_assistants_currency(
+    sbp_hass: HomeAssistant,
+) -> None:
+    """A real core validates monetary units; SEK has to pass that too."""
+    sbp_hass.config.currency = "SEK"
+    entry = await _setup(sbp_hass)
+
+    assert entry.runtime_data.coordinator.currency == "SEK"
+    units = {
+        state.entity_id: state.attributes.get("unit_of_measurement")
+        for state in sbp_hass.states.async_all("sensor")
+        if "smart_battery_pilot" in state.entity_id
+    }
+    assert "SEK/kWh" in units.values(), units
+    assert "EUR" not in units.values() and "EUR/kWh" not in units.values(), units
+
+
 async def test_the_integration_ships_disabled_and_in_dry_run(
     sbp_hass: HomeAssistant,
 ) -> None:

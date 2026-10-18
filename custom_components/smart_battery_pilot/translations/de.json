@@ -187,7 +187,7 @@
           "training_days": "Historien-Tage für das Verbrauchs-Training"
         },
         "data_description": {
-          "spread_threshold": "Mindestpreisunterschied zwischen Lade- und Entladepreis in EUR/kWh. Unter diesem Wert lohnt Arbitrage nicht nach Wirkungsgradverlust. Empfehlung: 0.10-0.25 EUR/kWh.",
+          "spread_threshold": "Mindestpreisunterschied zwischen Lade- und Entladepreis pro kWh, in der Währung des Preissensors. Unter diesem Wert lohnt Arbitrage nicht nach Wirkungsgradverlust. Empfehlung: 0.10-0.25 EUR/kWh oder entsprechend.",
           "discharge_mode": "Nur Eigenverbrauch: Entladung deckt nur eigenen Bedarf. Eigenverbrauch + Einspeisung: Bei sehr hohen Preisen auch Netzeinspeisung (erfordert Export-Script).",
           "training_days": "Historien-Tage fuer das Verbrauchsprofil-Training. Mehr = robuster, langsamer bei Lebensstilaenderungen. Empfehlung: 30-60 Tage."
         }

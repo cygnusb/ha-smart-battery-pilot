@@ -187,7 +187,7 @@
           "training_days": "Kulutuksen opetukseen käytettävät historiapäivät"
         },
         "data_description": {
-          "spread_threshold": "Pienin hintaero latauksen ja purun välillä, EUR/kWh. Tämän alle arbitraasi ei kata muunnoshäviöitä. Suositus: 0,10-0,25 EUR/kWh.",
+          "spread_threshold": "Pienin hintaero latauksen ja purun välillä, kWh:lta hintasensorin valuutassa. Tämän alle arbitraasi ei kata muunnoshäviöitä. Suositus: 0,10-0,25 EUR/kWh tai vastaava.",
           "discharge_mode": "Vain oma käyttö: akku kattaa oman tarpeesi. Oma käyttö + myynti: myy myös verkkoon erittäin korkeilla hinnoilla (vaatii myyntiskriptin).",
           "training_days": "Historiapäivien määrä kulutusprofiilin kouluttamiseen. Enemmän = tasaisempi, mutta seuraa tottumusten muutosta hitaammin. Suositus: 30-60 päivää."
         }

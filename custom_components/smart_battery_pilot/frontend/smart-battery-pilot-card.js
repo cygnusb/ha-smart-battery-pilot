@@ -392,6 +392,16 @@ const LANGUAGE_ALIASES = { no: "nb", nn: "nb" };
 // every state change in the whole system, so scanning every call is wasteful.
 const ENTITY_RESCAN_MS = 5000;
 
+// Prices are never converted: they come in the currency the plan reports
+// (Home Assistant's own, as a fallback). The euro keeps its sign, any other
+// currency shows its ISO code - "SEK/kWh". Plans from before the attribute
+// existed were always in euros.
+function priceUnit(attrs, hass) {
+  const code = (attrs && attrs.currency) || (hass && hass.config && hass.config.currency);
+  if (typeof code !== "string" || !/^[A-Z]{3}$/.test(code) || code === "EUR") return "€/kWh";
+  return `${code}/kWh`;
+}
+
 // Home Assistant's timezone, not the browser's: a phone roaming abroad would
 // otherwise label the day separators and slot times an hour or more off.
 function resolveTimeZone(hass) {
@@ -921,6 +931,7 @@ class SmartBatteryPilotCard extends HTMLElement {
       endMs: Date.parse(s.end),
     }));
     this._slots = slots;
+    this._priceUnit = priceUnit(state.attributes, this._hass);
 
     const view = this._view();
     const spec = LAYOUTS[view];
@@ -1076,7 +1087,7 @@ class SmartBatteryPilotCard extends HTMLElement {
           y: (v) => panel.y + (1 - (v - bot) / (top - bot)) * panel.h,
           ticks,
           fmt: (v) => v.toFixed(2),
-          label: `${this._tr("price")} €/kWh`,
+          label: `${this._tr("price")} ${this._priceUnit}`,
           limit,
         };
       } else if (panel.key === "energy") {
@@ -1644,7 +1655,7 @@ class SmartBatteryPilotCard extends HTMLElement {
   _tipRows(slot) {
     const ev = this._ev;
     const evKwh = ev ? slotEv(slot) : 0;
-    let price = `${this._tr("price")}: <b>${slot.price.toFixed(4)} €/kWh</b>`;
+    let price = `${this._tr("price")}: <b>${slot.price.toFixed(4)} ${this._priceUnit}</b>`;
     if (evKwh > EV_MIN_KWH && ev.limitEvcc !== undefined) {
       // evcc picked a smart_cost slot because its own price was at or below
       // its own limit. That price is not the one on this row (the plan's may

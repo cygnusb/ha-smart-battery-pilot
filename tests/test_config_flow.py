@@ -90,9 +90,10 @@ class _ConfigEntries:
 
 
 class _FakeHass:
-    def __init__(self, entries=None) -> None:
+    def __init__(self, entries=None, currency="EUR") -> None:
         self.states = _States()
         self.config_entries = _ConfigEntries(entries)
+        self.config = SimpleNamespace(currency=currency)
 
 
 def _hourly_price_attrs() -> dict:
@@ -820,3 +821,48 @@ def test_a_grid_import_limit_is_saved_and_can_be_cleared():
     flow = _options_flow(_FakeHass(), _entry(**{CONF_GRID_IMPORT_LIMIT_W: 11000}))
     _run(flow.async_step_ev(_ev_input()))
     assert _run(flow.async_step_apply())["data"][CONF_GRID_IMPORT_LIMIT_W] is None
+
+
+# --- currency ------------------------------------------------------------------
+
+
+def _price_fields(result) -> dict:
+    return {str(marker): selector for marker, selector in result["data_schema"].schema.items()}
+
+
+def test_euro_installations_see_the_fields_they_always_had():
+    result = _run(_flow(_FakeHass()).async_step_user())
+    fields = _price_fields(result)
+    assert fields[CONF_FEED_IN_TARIFF].config["unit_of_measurement"] == "EUR/kWh"
+    assert fields[CONF_FEED_IN_TARIFF].config["max"] == 1
+    assert fields[CONF_PRICE_OFFSET].config["min"] == -1
+    assert _suggested(result)[CONF_FEED_IN_TARIFF] == 0.08
+
+
+def test_price_fields_are_labelled_and_sized_in_home_assistants_currency():
+    """0.08 SEK would be a feed-in tariff ten times too small."""
+    result = _run(_flow(_FakeHass(currency="SEK")).async_step_user())
+    fields = _price_fields(result)
+    assert fields[CONF_FEED_IN_TARIFF].config["unit_of_measurement"] == "SEK/kWh"
+    assert fields[CONF_FEED_IN_TARIFF].config["max"] == 11
+    assert fields[CONF_PRICE_OFFSET].config["min"] == -11
+    assert _suggested(result)[CONF_FEED_IN_TARIFF] == 0.88
+
+
+def test_a_new_entry_starts_with_a_spread_sized_to_its_currency():
+    hass = _FakeHass(currency="SEK")
+    hass.states.set("sensor.price", _hourly_price_attrs())
+    flow = _flow(hass)
+    _run(flow.async_step_user({CONF_PRICE_ENTITY: "sensor.price", CONF_FEED_IN_TARIFF: 0.9}))
+    _run(flow.async_step_battery(dict(BATTERY_INPUT)))
+    _run(flow.async_step_control(dict(CONTROL_INPUT)))
+    _run(flow.async_step_consumption({CONF_CONSUMPTION_ENTITY: "sensor.load"}))
+    entry = _run(flow.async_step_pv({}))
+    assert entry["options"][CONF_SPREAD_THRESHOLD] == 2.2
+
+
+def test_the_tuning_step_uses_the_currency_too():
+    result = _run(_options_flow(_FakeHass(currency="HUF"), _entry()).async_step_tuning())
+    spread = _price_fields(result)[CONF_SPREAD_THRESHOLD]
+    assert spread.config["unit_of_measurement"] == "HUF/kWh"
+    assert spread.config["max"] == 400

@@ -44,6 +44,7 @@ async def async_get_config_entry_diagnostics(
         "runtime": {
             "enabled": coordinator.enabled,
             "dry_run": coordinator.dry_run,
+            "currency": coordinator.currency,
             "last_applied": coordinator.last_applied,
             "last_update_success": coordinator.last_update_success,
             "charge_rate_bands": coordinator.charge_model.bands(),

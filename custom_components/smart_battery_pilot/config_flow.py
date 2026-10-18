@@ -82,6 +82,7 @@ from .const import (
     EV_SOURCE_EVCC,
     EV_SOURCE_NONE,
 )
+from .currency import DEFAULT_CURRENCY, hass_currency, price_field_max, scaled
 from .evcc import EvccError, async_fetch_state, normalize_url
 from .forecast.charge_rate import is_non_decreasing
 from .price_adapters import detect_adapter
@@ -120,10 +121,16 @@ def _percent_slider() -> selector.NumberSelector:
     )
 
 
-def _price_number(minimum: float = -1) -> selector.NumberSelector:
+def _price_number(currency: str, *, signed: bool = False) -> selector.NumberSelector:
+    """A per-kWh field in `currency`, sized to it: 1 EUR is about 11 SEK."""
+    limit = price_field_max(currency)
     return selector.NumberSelector(
         selector.NumberSelectorConfig(
-            min=minimum, max=1, step=0.001, unit_of_measurement="EUR/kWh", mode="box"
+            min=-limit if signed else 0,
+            max=limit,
+            step=0.001,
+            unit_of_measurement=f"{currency}/kWh",
+            mode="box",
         )
     )
 
@@ -135,18 +142,18 @@ def _sugg(value: Any) -> dict[str, Any]:
 # --- step schemas (shared between config flow and options flow) -------------
 
 
-def schema_prices(d: dict[str, Any]) -> vol.Schema:
+def schema_prices(d: dict[str, Any], currency: str = DEFAULT_CURRENCY) -> vol.Schema:
     return vol.Schema(
         {
             vol.Required(CONF_PRICE_ENTITY, description=_sugg(d.get(CONF_PRICE_ENTITY))): _ENTITY,
             vol.Required(
                 CONF_PRICE_OFFSET,
-                default=d.get(CONF_PRICE_OFFSET, DEFAULT_PRICE_OFFSET),
-            ): _price_number(),
+                default=d.get(CONF_PRICE_OFFSET, scaled(DEFAULT_PRICE_OFFSET, currency)),
+            ): _price_number(currency, signed=True),
             vol.Required(
                 CONF_FEED_IN_TARIFF,
-                default=d.get(CONF_FEED_IN_TARIFF, DEFAULT_FEED_IN_TARIFF),
-            ): _price_number(0),
+                default=d.get(CONF_FEED_IN_TARIFF, scaled(DEFAULT_FEED_IN_TARIFF, currency)),
+            ): _price_number(currency),
         }
     )
 
@@ -237,13 +244,13 @@ def schema_pv(d: dict[str, Any]) -> vol.Schema:
     )
 
 
-def schema_tuning(d: dict[str, Any]) -> vol.Schema:
+def schema_tuning(d: dict[str, Any], currency: str = DEFAULT_CURRENCY) -> vol.Schema:
     return vol.Schema(
         {
             vol.Required(
                 CONF_SPREAD_THRESHOLD,
-                default=d.get(CONF_SPREAD_THRESHOLD, DEFAULT_SPREAD_THRESHOLD),
-            ): _price_number(0),
+                default=d.get(CONF_SPREAD_THRESHOLD, scaled(DEFAULT_SPREAD_THRESHOLD, currency)),
+            ): _price_number(currency),
             vol.Required(
                 CONF_DISCHARGE_MODE,
                 default=d.get(CONF_DISCHARGE_MODE, DEFAULT_DISCHARGE_MODE),
@@ -512,7 +519,9 @@ class SBPConfigFlow(ConfigFlow, domain=DOMAIN):
                 self._data.update(user_input)
                 return await self.async_step_battery()
         return self.async_show_form(
-            step_id="user", data_schema=schema_prices(self._data), errors=errors
+            step_id="user",
+            data_schema=schema_prices(self._data, hass_currency(self.hass)),
+            errors=errors,
         )
 
     async def async_step_battery(
@@ -558,7 +567,9 @@ class SBPConfigFlow(ConfigFlow, domain=DOMAIN):
                 title="Smart Battery Pilot",
                 data=self._data,
                 options={
-                    CONF_SPREAD_THRESHOLD: DEFAULT_SPREAD_THRESHOLD,
+                    CONF_SPREAD_THRESHOLD: scaled(
+                        DEFAULT_SPREAD_THRESHOLD, hass_currency(self.hass)
+                    ),
                     CONF_DISCHARGE_MODE: DEFAULT_DISCHARGE_MODE,
                     CONF_DRY_RUN: DEFAULT_DRY_RUN,
                     CONF_TRAINING_DAYS: DEFAULT_TRAINING_DAYS,
@@ -641,7 +652,9 @@ class SBPOptionsFlow(OptionsFlow):
             else:
                 return await self._save_step("prices", user_input)
         return self.async_show_form(
-            step_id="prices", data_schema=schema_prices(self._merged), errors=errors
+            step_id="prices",
+            data_schema=schema_prices(self._merged, hass_currency(self.hass)),
+            errors=errors,
         )
 
     async def async_step_battery(
@@ -716,7 +729,9 @@ class SBPOptionsFlow(OptionsFlow):
             else:
                 return await self._save_step("tuning", user_input)
         return self.async_show_form(
-            step_id="tuning", data_schema=schema_tuning(self._merged), errors=errors
+            step_id="tuning",
+            data_schema=schema_tuning(self._merged, hass_currency(self.hass)),
+            errors=errors,
         )
 
     async def async_step_ev(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:

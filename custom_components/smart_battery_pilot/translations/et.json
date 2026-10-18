@@ -187,7 +187,7 @@
           "training_days": "Tarbimise treenimiseks kasutatavad ajaloopäevad"
         },
         "data_description": {
-          "spread_threshold": "Minimaalne hinnavahe laadimise ja tühjendamise vahel, EUR/kWh. Sellest allpool ei kata arbitraaž muundamiskadusid. Soovitatav: 0,10-0,25 EUR/kWh.",
+          "spread_threshold": "Minimaalne hinnavahe laadimise ja tühjendamise vahel, kWh kohta hinnaanduri valuutas. Sellest allpool ei kata arbitraaž muundamiskadusid. Soovitatav: 0,10-0,25 EUR/kWh või samaväärne.",
           "discharge_mode": "Ainult omatarbimine: aku katab sinu enda vajaduse. Omatarbimine + müük: müüb väga kõrgete hindadega ka võrku (vajab müügiskripti).",
           "training_days": "Tarbimisprofiili treenimiseks kasutatavate ajaloopäevade arv. Rohkem = stabiilsem, kuid järgib harjumuste muutust aeglasemalt. Soovitatav: 30-60 päeva."
         }

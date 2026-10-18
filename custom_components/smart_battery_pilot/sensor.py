@@ -161,12 +161,12 @@ class NextActionSensor(SBPEntity, SensorEntity):
 class CurrentPriceSensor(SBPEntity, SensorEntity):
     """Current electricity price from the active plan slot."""
 
-    _attr_native_unit_of_measurement = "EUR/kWh"
     _attr_suggested_display_precision = 4
     _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, coordinator: SBPCoordinator) -> None:
         super().__init__(coordinator, "current_price")
+        self._attr_native_unit_of_measurement = f"{coordinator.currency}/kWh"
 
     @property
     def native_value(self) -> float | None:
@@ -245,6 +245,8 @@ class ChargePlanSensor(SBPEntity, SensorEntity):
             "min_soc": self.coordinator.conf(CONF_MIN_SOC, DEFAULT_MIN_SOC),
             "max_soc": self.coordinator.conf(CONF_MAX_SOC, DEFAULT_MAX_SOC),
             "price_adapter": data.adapter_name,
+            # The card labels prices with it; every money figure here is in it.
+            "currency": self.coordinator.currency,
             "updated_at": data.updated_at.isoformat() if data.updated_at else None,
             "error": data.error,
             "warnings": list(data.plan.warnings),
@@ -308,12 +310,12 @@ class SavingsSensor(SBPEntity, SensorEntity):
     # No MONETARY device class on purpose: HA only accepts it together with
     # state class TOTAL, and this is a horizon re-estimate that jumps at every
     # replan, not a running total. Unit plus MEASUREMENT says exactly that.
-    _attr_native_unit_of_measurement = "EUR"
     _attr_suggested_display_precision = 2
     _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, coordinator: SBPCoordinator) -> None:
         super().__init__(coordinator, "estimated_savings")
+        self._attr_native_unit_of_measurement = coordinator.currency
 
     @property
     def native_value(self) -> float | None:
@@ -374,6 +376,9 @@ class ConfigSensor(SBPEntity, SensorEntity):
             "discharge_mode": c(CONF_DISCHARGE_MODE, DEFAULT_DISCHARGE_MODE),
             "price_offset_eur_kwh": c(CONF_PRICE_OFFSET, DEFAULT_PRICE_OFFSET),
             "feed_in_tariff_eur_kwh": c(CONF_FEED_IN_TARIFF, DEFAULT_FEED_IN_TARIFF),
+            # The *_eur keys above predate other currencies and stay for
+            # templates that read them; their values are in this currency.
+            "currency": self.coordinator.currency,
             "training_days": c(CONF_TRAINING_DAYS, DEFAULT_TRAINING_DAYS),
             "charge_derating": self.coordinator.derating_enabled(),
             "charge_factor": self._derating().get("factor"),
@@ -421,12 +426,12 @@ class ActualSavingsEurSensor(SBPEntity, SensorEntity):
     """
 
     _attr_device_class = SensorDeviceClass.MONETARY
-    _attr_native_unit_of_measurement = "EUR"
     _attr_suggested_display_precision = 2
     _attr_state_class = SensorStateClass.TOTAL
 
     def __init__(self, coordinator: SBPCoordinator) -> None:
         super().__init__(coordinator, "actual_savings_eur")
+        self._attr_native_unit_of_measurement = coordinator.currency
 
     @property
     def native_value(self) -> float | None:
@@ -448,12 +453,12 @@ class BatteryGrossSensor(SBPEntity, SensorEntity):
     """Battery benefit (gross): discharge at the grid price, no PV cost deducted."""
 
     _attr_device_class = SensorDeviceClass.MONETARY
-    _attr_native_unit_of_measurement = "EUR"
     _attr_suggested_display_precision = 2
     _attr_state_class = SensorStateClass.TOTAL
 
     def __init__(self, coordinator: SBPCoordinator) -> None:
         super().__init__(coordinator, "battery_gross_eur")
+        self._attr_native_unit_of_measurement = coordinator.currency
 
     @property
     def native_value(self) -> float | None:
@@ -466,12 +471,12 @@ class PilotSavingsSensor(SBPEntity, SensorEntity):
     that energy was worth when it was used. Can go down after a bad trade."""
 
     _attr_device_class = SensorDeviceClass.MONETARY
-    _attr_native_unit_of_measurement = "EUR"
     _attr_suggested_display_precision = 2
     _attr_state_class = SensorStateClass.TOTAL
 
     def __init__(self, coordinator: SBPCoordinator) -> None:
         super().__init__(coordinator, "pilot_savings_eur")
+        self._attr_native_unit_of_measurement = coordinator.currency
 
     @property
     def native_value(self) -> float | None:

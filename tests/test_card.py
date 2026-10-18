@@ -208,6 +208,16 @@ for (const view of ["tracks", "balance", "compact", "nonsense", null]) {
   card.hass = hass;
   out[String(view)] = { html: card.innerHTML, size: card.getCardSize() };
 }
+// The same plan from an installation counting in kronor.
+const sek = new Card();
+sek.setConfig({ entity: "sensor.plan" });
+sek.hass = {
+  ...hass,
+  states: {
+    "sensor.plan": { ...planState, attributes: { ...planState.attributes, currency: "SEK" } },
+  },
+};
+out.sek = { html: sek.innerHTML, tip: sek._tipRows(sek._slots[0]) };
 console.log(JSON.stringify(out));
 """
 
@@ -244,6 +254,13 @@ def test_every_unit_gets_its_own_panel(views):
     assert 'class="pvarea"' in html
     assert 'class="consline"' in html
     assert 'class="socline"' in html
+
+
+def test_prices_carry_the_plans_currency(views):
+    """Nothing is converted, so kronor must not be drawn as euros."""
+    assert 'class="ax pl">Price SEK/kWh<' in views["sek"]["html"]
+    assert "€" not in views["sek"]["html"]
+    assert "0.1000 SEK/kWh" in views["sek"]["tip"][1]
 
 
 def test_the_soc_track_uses_the_configured_window(views):
