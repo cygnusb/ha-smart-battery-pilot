@@ -32,11 +32,8 @@ Sungrow, E3DC, …). See [docs/examples](docs/examples/) for ready-to-use
 vendor configurations.
 
 <p align="center">
-  <a href="assets/screenshots/card_dunkelflaute_light.png">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/card_dunkelflaute_dark.png">
-      <img src="assets/screenshots/card_dunkelflaute_light.png" width="100%" alt="The Smart Battery Pilot dashboard card on a winter day without wind or sun: a band of planned actions across the top, the price curve with its evening peak of 0.68 EUR/kWh, household consumption, and the battery SOC forecast. The battery charges from the grid in the cheap night hours and is held back for the expensive evening.">
-    </picture>
+  <a href="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/screenshots/card_dunkelflaute_light.png">
+    <img src="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/screenshots/card_dunkelflaute_light.png" width="100%" alt="The Smart Battery Pilot dashboard card on a winter day without wind or sun: a band of planned actions across the top, the price curve with its evening peak of 0.68 EUR/kWh, household consumption, and the battery SOC forecast. The battery charges from the grid in the cheap night hours and is held back for the expensive evening.">
   </a>
   <br>
   <em>The bundled dashboard card on a Dunkelflaute day: charge in the cheap night, hold the battery for the evening peak.</em>
@@ -233,31 +230,31 @@ the legend.
 <table>
 <tr>
 <td align="center" valign="top" width="50%">
-<a href="assets/screenshots/card_winter_arbitrage_light.png"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/card_winter_arbitrage_dark.png"><img src="assets/screenshots/card_winter_arbitrage_light.png" width="400" alt="Winter arbitrage: the battery charges through the cheap night and is blocked from discharging until the evening price peak"></picture></a><br>
+<a href="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/screenshots/card_winter_arbitrage_light.png"><img src="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/screenshots/card_winter_arbitrage_light.png" width="400" alt="Winter arbitrage: the battery charges through the cheap night and is blocked from discharging until the evening price peak"></a><br>
 <sub><b>Winter arbitrage</b> — charge through the cheap night, hold the battery for the evening peak.</sub>
 </td>
 <td align="center" valign="top" width="50%">
-<a href="assets/screenshots/card_summer_export_light.png"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/card_summer_export_dark.png"><img src="assets/screenshots/card_summer_export_light.png" width="400" alt="Summer PV export: PV fills the battery at midday, the evening price peak is sold to the grid in export slots"></picture></a><br>
+<a href="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/screenshots/card_summer_export_light.png"><img src="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/screenshots/card_summer_export_light.png" width="400" alt="Summer PV export: PV fills the battery at midday, the evening price peak is sold to the grid in export slots"></a><br>
 <sub><b>Summer PV export</b> — PV fills the battery, the evening peak is sold to the grid.</sub>
 </td>
 </tr>
 <tr>
 <td align="center" valign="top" width="50%">
-<a href="assets/screenshots/card_ev_overnight_light.png"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/card_ev_overnight_dark.png"><img src="assets/screenshots/card_ev_overnight_light.png" width="400" alt="EV charging planned by evcc: a shaded overnight window with 25 kWh below the evcc price limit line; the house battery charges just before the session and is held at 95 percent while the car charges"></picture></a><br>
+<a href="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/screenshots/card_ev_overnight_light.png"><img src="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/screenshots/card_ev_overnight_light.png" width="400" alt="EV charging planned by evcc: a shaded overnight window with 25 kWh below the evcc price limit line; the house battery charges just before the session and is held at 95 percent while the car charges"></a><br>
 <sub><b>EV charging with evcc</b> — the planned overnight session, evcc's price limit, and the house battery charged beforehand and held while the car charges.</sub>
 </td>
 <td align="center" valign="top" width="50%">
-<a href="assets/screenshots/card_ev_compact_light.png"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/card_ev_compact_dark.png"><img src="assets/screenshots/card_ev_compact_light.png" width="400" alt="Compact view with an EV tile: status, SOC, next change, energy from the battery and the planned 25 kWh car session as figures above a smaller SOC and price chart"></picture></a><br>
+<a href="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/screenshots/card_ev_compact_light.png"><img src="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/screenshots/card_ev_compact_light.png" width="400" alt="Compact view with an EV tile: status, SOC, next change, energy from the battery and the planned 25 kWh car session as figures above a smaller SOC and price chart"></a><br>
 <sub><b>Compact view with EV</b> — the planned car session gets its own tile next to SOC, next change and battery energy.</sub>
 </td>
 </tr>
 <tr>
 <td align="center" valign="top" width="50%">
-<a href="assets/screenshots/card_view_balance_light.png"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/card_view_balance_dark.png"><img src="assets/screenshots/card_view_balance_light.png" width="400" alt="Balance view: PV minus household consumption as a diverging area around zero, surplus above and deficit below"></picture></a><br>
+<a href="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/screenshots/card_view_balance_light.png"><img src="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/screenshots/card_view_balance_light.png" width="400" alt="Balance view: PV minus household consumption as a diverging area around zero, surplus above and deficit below"></a><br>
 <sub><code>view: balance</code> — PV <b>minus</b> consumption, the quantity the optimizer plans against.</sub>
 </td>
 <td align="center" valign="top" width="50%">
-<a href="assets/screenshots/card_view_compact_light.png"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/card_view_compact_dark.png"><img src="assets/screenshots/card_view_compact_light.png" width="400" alt="Compact view: status line, three figures and a smaller SOC and price chart"></picture></a><br>
+<a href="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/screenshots/card_view_compact_light.png"><img src="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/screenshots/card_view_compact_light.png" width="400" alt="Compact view: status line, three figures and a smaller SOC and price chart"></a><br>
 <sub><code>view: compact</code> — status, next change and planned discharge as figures, curves underneath. For overview dashboards and phones.</sub>
 </td>
 </tr>
