@@ -138,9 +138,9 @@ while it discharges into the grid. A script that switches the inverter to a
 pure "sell at `power_w`" mode and leaves the house on the grid meter still
 runs safely, but the household demand of those slots is then bought at the
 import price without the model knowing, and the realised saving comes out
-below `estimated_savings`. Only genuine price peaks qualify for export, so
-the gap stays small — but if your inverter cannot do both, prefer
-self-consumption mode.
+below `estimated_savings` by that demand times the import price. A peak can
+span several consecutive export slots, so if your inverter cannot do both,
+prefer self-consumption mode.
 
 ## What curtailed PV is worth
 
