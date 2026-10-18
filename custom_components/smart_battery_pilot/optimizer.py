@@ -10,7 +10,8 @@ and produces an action per slot:
 * ``export``  – force-discharge into the grid (export mode only)
 
 Algorithm: greedy pairing with a stored-energy timeline simulation.
-Discharge candidates are visited from the most expensive slot down;
+Discharge candidates - covering a slot's demand, and in export mode
+selling into the grid - are visited from the most valuable use down;
 each first consumes already-stored (PV/initial) energy, then is paired
 with the cheapest earlier grid-charge slots whose price plus efficiency
 losses and the configured spread still undercut the discharge price.
@@ -425,43 +426,54 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
                 )
         return assigned
 
-    # --- self-consumption: cover demand in the most expensive slots first ---
-    order = sorted(range(n), key=lambda i: prices[i], reverse=True)
-    for d in order:
-        if prices[d] <= 0:
-            # Import is paid (or free). Hold the energy for a later positive hour.
-            continue
+    # --- discharge: the most valuable use of the battery first ----------------
+    # Covering a slot's demand is worth its import price; in export mode,
+    # selling into the grid is worth the sell price. Both kinds of use compete
+    # for the same stored energy in one value-ordered list - visited one kind
+    # after the other, cheap self-consumption would drain the battery before
+    # an export peak worth far more is even looked at. An export ranks at its
+    # sell price minus the spread: a slot whose demand the battery can cover
+    # keeps that energy unless selling it elsewhere clearly pays more.
+    export_mode = config.discharge_mode == DISCHARGE_MODE_EXPORT
+    uses = [(prices[d], False, d) for d in range(n)]
+    if export_mode:
+        uses += [
+            (_export_sell_price(d) - config.spread_threshold, True, d)
+            for d in range(n)
+            if _export_sell_price(d) > config.spread_threshold
+        ]
+    # Most valuable first; on a tie, covering demand before selling.
+    uses.sort(key=lambda u: (-u[0], u[1]))
+    for _, export, d in uses:
         if charge_stored[d] > 1e-9:
             # A slot already paired as a cheap charge slot for a pricier hour
             # will be force-charged. The inverter cannot serve the house from
-            # the battery at the same time, so that demand comes from the grid.
-            if debug:
+            # the battery or export at the same time, so that demand comes
+            # from the grid.
+            if debug and not export:
                 _LOGGER.debug("%s: not discharged - already a charge slot", label(d))
             continue
-        # Energy delivered to the load is limited by demand and power.
-        deliverable = min(demand[d], discharge_cap[d])
-        want_stored = deliverable / eta_one_way
-        if want_stored <= 1e-9:
-            continue
-        assign_discharge(d, want_stored, discharge_stored)
-
-    export_spread_unreachable = False
-    # --- export mode: sell remaining/cheaply-chargeable energy at peaks ---
-    if config.discharge_mode == DISCHARGE_MODE_EXPORT:
-        export_spread_unreachable = all(
-            _export_sell_price(i) <= config.spread_threshold for i in range(n)
-        )
-        for d in order:
-            sell_price = _export_sell_price(d)
-            if sell_price <= config.spread_threshold:
-                continue
-            if charge_stored[d] > 1e-9:
-                continue  # force-charging; the battery cannot export as well
-            room = discharge_cap[d] - discharge_stored[d] * eta_one_way
+        if export:
+            room = discharge_cap[d] - (discharge_stored[d] + export_stored[d]) * eta_one_way
             want_stored = max(0.0, room) / eta_one_way
             if want_stored <= 1e-9:
                 continue
             assign_discharge(d, want_stored, export_stored)
+            continue
+        if prices[d] <= 0:
+            # Import is paid (or free). Hold the energy for a later positive hour.
+            continue
+        # Energy delivered to the load is limited by demand and by the power an
+        # export in this slot has not already taken.
+        deliverable = min(demand[d], discharge_cap[d] - export_stored[d] * eta_one_way)
+        want_stored = max(0.0, deliverable) / eta_one_way
+        if want_stored <= 1e-9:
+            continue
+        assign_discharge(d, want_stored, discharge_stored)
+
+    export_spread_unreachable = export_mode and all(
+        _export_sell_price(i) <= config.spread_threshold for i in range(n)
+    )
 
     # --- build plan slots ----------------------------------------------------
     def charge_request_w(i: int, stored: float) -> float:
