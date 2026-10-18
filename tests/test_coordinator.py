@@ -8,6 +8,7 @@ import logging
 from types import SimpleNamespace
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers import issue_registry
 from homeassistant.helpers.update_coordinator import UpdateFailed
 import pytest
 
@@ -30,6 +31,7 @@ from smart_battery_pilot.coordinator import (
     SBPCoordinator,
     SBPData,
 )
+from smart_battery_pilot.currency import currency_issue_id
 from smart_battery_pilot.optimizer import Plan, PlanSlot
 
 TZ = timezone(timedelta(hours=2))
@@ -676,6 +678,28 @@ def test_a_price_entity_in_another_currency_is_warned_about_once(caplog):
     assert result.inputs["price_currency"] == "SEK"
     assert result.inputs["currency"] == "EUR"
     assert sum("delivers prices in SEK" in r.message for r in caplog.records) == 1
+
+
+def test_a_currency_mismatch_is_raised_as_a_repair_until_it_is_resolved():
+    """The log alone goes unseen; Settings > Repairs does not."""
+    hass = _FakeHass(currency="EUR")
+    coord = _coordinator(hass)
+    key = (DOMAIN, currency_issue_id(coord.entry.entry_id))
+    hass.states.set("sensor.price", 1.2, {"today": [1.2] * 24, "currency": "SEK"})
+    hass.states.set("sensor.soc", 50.0)
+
+    _run(coord._async_update_data())
+    issue = issue_registry.issues[key]
+    assert issue["translation_key"] == "currency_mismatch"
+    assert issue["translation_placeholders"] == {
+        "entity": "sensor.price",
+        "sensor_currency": "SEK",
+        "ha_currency": "EUR",
+    }
+
+    hass.states.set("sensor.price", 0.12, {"today": [0.12] * 24, "currency": "EUR"})
+    _run(coord._async_update_data())
+    assert key not in issue_registry.issues
 
 
 def test_a_price_entity_in_the_same_currency_is_not_warned_about(caplog):

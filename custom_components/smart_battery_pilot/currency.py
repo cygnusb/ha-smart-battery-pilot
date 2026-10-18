@@ -48,6 +48,11 @@ _CODE = re.compile(r"[A-Z]{3}")
 _EURO_CENT_PREFIXES = ("ct", "c€", "ceur")
 
 
+def currency_issue_id(entry_id: str) -> str:
+    """Repair issue raised while an entry's price entity counts in another currency."""
+    return f"currency_mismatch_{entry_id}"
+
+
 def hass_currency(hass: Any) -> str:
     """The ISO code Home Assistant is set to, upper case."""
     return str(hass.config.currency or DEFAULT_CURRENCY).upper()

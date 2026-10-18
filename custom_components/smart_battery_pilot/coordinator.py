@@ -12,6 +12,7 @@ from homeassistant.components.recorder import get_instance
 from homeassistant.components.recorder.statistics import statistics_during_period
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.event import (
     async_track_state_change_event,
     async_track_time_interval,
@@ -60,6 +61,7 @@ from .const import (
     CONF_SPREAD_THRESHOLD,
     CONF_TEMPERATURE_ENTITY,
     CONF_TRAINING_DAYS,
+    CURRENCY_DOCS_URL,
     DEFAULT_BACKUP_RESERVE,
     DEFAULT_CHARGE_DERATING,
     DEFAULT_DERATING_CURVE,
@@ -87,7 +89,7 @@ from .const import (
     STORE_SAVE_DELAY_SECONDS,
     UPDATE_INTERVAL_MINUTES,
 )
-from .currency import currency_from_attrs, hass_currency, price_scale
+from .currency import currency_from_attrs, currency_issue_id, hass_currency, price_scale
 from .ev_sessions import (
     LIMIT_OFFSET_TOLERANCE,
     MIN_SESSION_KWH,
@@ -745,20 +747,38 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         return slots
 
     def _check_price_currency(self, attrs: dict[str, Any], entity_id: str) -> None:
-        """Warn once when the price entity counts in another currency.
+        """Raise a repair when the price entity counts in another currency.
 
         Nothing is converted, so a curve in SEK under a Home Assistant set to
         EUR plans correctly but is labelled - and sized by every default and
-        bound - as euros. Planning goes on; the log says what to fix.
+        bound - as euros. Planning goes on; a log line alone went unseen, so
+        the mismatch also sits under Settings > Repairs until it is resolved.
         """
         declared = currency_from_attrs(attrs)
         self._price_currency = declared
         if declared is None or declared == self.currency:
             self._warned_currency_mismatch = None
+            # Unconditionally: an issue raised before a restart outlives the
+            # flag that remembered it.
+            ir.async_delete_issue(self.hass, DOMAIN, currency_issue_id(self.entry.entry_id))
             return
         if declared == self._warned_currency_mismatch:
             return
         self._warned_currency_mismatch = declared
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            currency_issue_id(self.entry.entry_id),
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="currency_mismatch",
+            translation_placeholders={
+                "entity": entity_id,
+                "sensor_currency": declared,
+                "ha_currency": self.currency,
+            },
+            learn_more_url=CURRENCY_DOCS_URL,
+        )
         _LOGGER.warning(
             "%s delivers prices in %s, but Home Assistant's currency is %s. Prices "
             "are not converted: set the currency under Settings > System > General "

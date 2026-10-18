@@ -92,7 +92,8 @@
       "no_future_prices": "Entiteetti ei sisällä tulevia hintoja.",
       "soc_range_invalid": "Pienimmän SOC:n on oltava suurinta SOC:ia pienempi.",
       "export_spread_unreachable": "Myyntitila ei voi tehdä näillä arvoilla mitään: syöttötariffi on pienimmän hintaspreadin tasolla tai sen alle, joten yksikään tunti ei voi koskaan täyttää ehtoa. Nosta tariffia, laske spreadia, tai aseta tariffi arvoon 0 myydäksesi markkinahintaan.",
-      "export_script_missing": "Vientitila vaatii pakotetun purun skriptin. Lisää sellainen ohjausskripteihin tai vaihda purkutila takaisin omaan käyttöön."
+      "export_script_missing": "Vientitila vaatii pakotetun purun skriptin. Lisää sellainen ohjausskripteihin tai vaihda purkutila takaisin omaan käyttöön.",
+      "currency_mismatch": "Tämä sensori ilmoittaa hinnat valuutassa {sensor_currency}, mutta Home Assistantin valuutta on {ha_currency}. Hintoja ei muunneta, joten kaikki merkittäisiin ja mitoitettaisiin valuutassa {ha_currency}. Vaihda ensin valuutta kohdassa Asetukset → Järjestelmä → Yleiset tai lähetä uudelleen jatkaaksesi silti."
     },
     "abort": {
       "already_configured": "Jo määritetty."
@@ -278,7 +279,8 @@
       "ev_block_needs_power": "'Estä'-käytäntö tarvitsee vähintään yhden latausaseman tehoanturin.",
       "ev_external_needs_entity": "'Ulkoinen'-käytäntö tarvitsee ulkoisen ohjauksen entiteetin.",
       "evcc_url_required": "Anna evcc-osoite.",
-      "evcc_unreachable": "evcc ei vastannut tässä osoitteessa. Tarkista osoite ja että evcc on käynnissä."
+      "evcc_unreachable": "evcc ei vastannut tässä osoitteessa. Tarkista osoite ja että evcc on käynnissä.",
+      "currency_mismatch": "Tämä sensori ilmoittaa hinnat valuutassa {sensor_currency}, mutta Home Assistantin valuutta on {ha_currency}. Hintoja ei muunneta, joten kaikki merkittäisiin ja mitoitettaisiin valuutassa {ha_currency}. Vaihda ensin valuutta kohdassa Asetukset → Järjestelmä → Yleiset tai lähetä uudelleen jatkaaksesi silti."
     }
   },
   "selector": {
@@ -385,6 +387,12 @@
     "replan": {
       "name": "Suunnittele uudelleen",
       "description": "Laske lataussuunnitelma heti uudelleen."
+    }
+  },
+  "issues": {
+    "currency_mismatch": {
+      "title": "Hintasensori käyttää eri valuuttaa",
+      "description": "**{entity}** ilmoittaa hinnat valuutassa **{sensor_currency}**, mutta Home Assistantin valuutta on **{ha_currency}**.\n\nSmart Battery Pilot ei muunna hintoja. Suunnitelma on oikein, mutta hinnat ja säästöt merkitään valuutassa {ha_currency}, ja oletusarvot sekä uskottavuusrajat on mitoitettu valuutalle {ha_currency}.\n\nAseta kohdassa **Asetukset → Järjestelmä → Yleiset** valuutta, jossa sähkösopimuksesi laskutetaan, lataa integraatio uudelleen ja tarkista hintalisä, syöttötariffi ja spread kerran. Viesti katoaa heti, kun valuutat täsmäävät."
     }
   }
 }

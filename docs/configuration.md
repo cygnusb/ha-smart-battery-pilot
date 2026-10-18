@@ -31,8 +31,11 @@ spread once. A changed currency setting takes effect after reloading the
 integration.
 
 When the price entity declares a currency of its own (a `currency` attribute,
-or a unit such as `SEK/kWh`) that differs from Home Assistant's, a warning is
-logged; planning carries on unchanged.
+or a unit such as `SEK/kWh`) that differs from Home Assistant's, you are told
+in three places: the price step of the config and options flow points it out
+once (submitting again goes on anyway), a repair appears under *Settings →
+Repairs* until both currencies match, and the log gets a warning. Planning
+carries on unchanged in the meantime.
 
 ### 2. Battery parameters
 

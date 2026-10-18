@@ -92,7 +92,8 @@
       "no_future_prices": "Olem ei sisalda tulevasi hindu.",
       "soc_range_invalid": "Minimaalne SOC peab olema väiksem kui maksimaalne SOC.",
       "export_spread_unreachable": "Müügirežiim ei saa nende väärtustega midagi teha: müügihind on minimaalse hinnavahemiku tasemel või allpool, seega ei kvalifitseeru ükski tund kunagi. Tõsta müügihinda, langeta vahemikku või määra müügihinnaks 0, et müüa turuhinnaga.",
-      "export_script_missing": "Ekspordirežiim vajab sunnitud tühjendamise skripti. Lisa see juhtimisskriptide sammus või määra tühjendusrežiim tagasi omatarbeks."
+      "export_script_missing": "Ekspordirežiim vajab sunnitud tühjendamise skripti. Lisa see juhtimisskriptide sammus või määra tühjendusrežiim tagasi omatarbeks.",
+      "currency_mismatch": "See andur esitab hinnad valuutas {sensor_currency}, kuid Home Assistanti valuuta on {ha_currency}. Hindu ei teisendata, seega märgistataks ja mõõdetaks kõike valuutas {ha_currency}. Muuda esmalt valuutat jaotises Seaded → Süsteem → Üldine või saada vorm uuesti, et siiski jätkata."
     },
     "abort": {
       "already_configured": "Juba seadistatud."
@@ -278,7 +279,8 @@
       "ev_block_needs_power": "Poliitika 'Blokeeri' vajab vähemalt üht laadija võimsusandurit.",
       "ev_external_needs_entity": "Poliitika 'Väline' vajab välise juhtimise olemit.",
       "evcc_url_required": "Sisesta evcc aadress.",
-      "evcc_unreachable": "evcc ei vastanud sellel aadressil. Kontrolli aadressi ja et evcc töötab."
+      "evcc_unreachable": "evcc ei vastanud sellel aadressil. Kontrolli aadressi ja et evcc töötab.",
+      "currency_mismatch": "See andur esitab hinnad valuutas {sensor_currency}, kuid Home Assistanti valuuta on {ha_currency}. Hindu ei teisendata, seega märgistataks ja mõõdetaks kõike valuutas {ha_currency}. Muuda esmalt valuutat jaotises Seaded → Süsteem → Üldine või saada vorm uuesti, et siiski jätkata."
     }
   },
   "selector": {
@@ -385,6 +387,12 @@
     "replan": {
       "name": "Planeeri uuesti",
       "description": "Arvuta laadimisplaan kohe uuesti."
+    }
+  },
+  "issues": {
+    "currency_mismatch": {
+      "title": "Hinnaandur kasutab teist valuutat",
+      "description": "**{entity}** esitab hinnad valuutas **{sensor_currency}**, kuid Home Assistanti valuuta on **{ha_currency}**.\n\nSmart Battery Pilot ei teisenda hindu. Plaan on õige, kuid hinnad ja säästud märgistatakse valuutas {ha_currency} ning vaikeväärtused ja usutavuspiirid on mõõdetud valuutale {ha_currency}.\n\nMäära jaotises **Seaded → Süsteem → Üldine** valuuta, milles sinu elektrileping arveldatakse, laadi integratsioon uuesti ja kontrolli üks kord hinnalisa, müügihinda ja hinnavahet. Teade kaob, kui mõlemad valuutad ühtivad."
     }
   }
 }

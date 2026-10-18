@@ -92,7 +92,8 @@
       "no_future_prices": "Entiteten indeholder ingen fremtidige priser.",
       "soc_range_invalid": "Mindste SOC skal være under største SOC.",
       "export_spread_unreachable": "Salgstilstanden kan ikke gøre noget med disse værdier: afregningsprisen ligger på eller under det mindste prisspread, så ingen time kan nogensinde kvalificere sig. Hæv afregningsprisen, sænk spreadet, eller sæt afregningsprisen til 0 for at sælge til markedspris.",
-      "export_script_missing": "Eksporttilstand kræver et script til tvungen afladning. Tilføj et under styringsscripts, eller sæt afladningstilstanden tilbage til eget forbrug."
+      "export_script_missing": "Eksporttilstand kræver et script til tvungen afladning. Tilføj et under styringsscripts, eller sæt afladningstilstanden tilbage til eget forbrug.",
+      "currency_mismatch": "Denne sensor rapporterer priser i {sensor_currency}, men Home Assistants valuta er {ha_currency}. Priser omregnes ikke, så alt ville blive mærket og dimensioneret som {ha_currency}. Skift først valutaen under Indstillinger → System → Generelt, eller indsend igen for at fortsætte alligevel."
     },
     "abort": {
       "already_configured": "Allerede konfigureret."
@@ -278,7 +279,8 @@
       "ev_block_needs_power": "Politikken 'Bloker' kræver mindst én effektsensor for en ladeboks.",
       "ev_external_needs_entity": "Politikken 'Ekstern' kræver en entitet for ekstern styring.",
       "evcc_url_required": "Indtast evcc-adressen.",
-      "evcc_unreachable": "evcc svarede ikke på denne adresse. Kontrollér adressen, og at evcc kører."
+      "evcc_unreachable": "evcc svarede ikke på denne adresse. Kontrollér adressen, og at evcc kører.",
+      "currency_mismatch": "Denne sensor rapporterer priser i {sensor_currency}, men Home Assistants valuta er {ha_currency}. Priser omregnes ikke, så alt ville blive mærket og dimensioneret som {ha_currency}. Skift først valutaen under Indstillinger → System → Generelt, eller indsend igen for at fortsætte alligevel."
     }
   },
   "selector": {
@@ -385,6 +387,12 @@
     "replan": {
       "name": "Planlæg igen",
       "description": "Genberegn ladeplanen med det samme."
+    }
+  },
+  "issues": {
+    "currency_mismatch": {
+      "title": "Prissensoren regner i en anden valuta",
+      "description": "**{entity}** rapporterer priser i **{sensor_currency}**, men Home Assistants valuta er **{ha_currency}**.\n\nSmart Battery Pilot omregner ikke priser. Planlægningen bliver korrekt, men priser og besparelser mærkes som {ha_currency}, og standardværdier og plausibilitetsgrænser er tilpasset {ha_currency}.\n\nIndstil den valuta, din elaftale afregnes i, under **Indstillinger → System → Generelt**, genindlæs integrationen og kontrollér pristillæg, afregningspris og spread én gang. Meddelelsen forsvinder, så snart begge valutaer stemmer overens."
     }
   }
 }
