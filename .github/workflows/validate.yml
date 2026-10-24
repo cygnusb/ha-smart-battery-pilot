@@ -1,14 +1,26 @@
 name: Validate
 
 on:
+  # Only main: a branch is validated by its pull request, and a release tag
+  # points at a commit main has already validated. Running on both push and
+  # pull_request ran every branch commit twice.
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
   schedule:
-    # Daily, not weekly: the `latest` matrix entry below resolves to whatever
-    # core pytest-homeassistant-custom-component currently pins, so this is
-    # what picks up a new Home Assistant release without anyone pushing a
-    # commit. A failing scheduled run notifies the repository owner.
-    - cron: "0 4 * * *"
+    # The `latest` matrix entry below resolves to whatever core
+    # pytest-homeassistant-custom-component currently pins, so this is what
+    # picks up a new Home Assistant release without anyone pushing a commit.
+    # Weekly is soon enough: PHCC itself lags a Home Assistant release by a
+    # few days. A failing scheduled run notifies the repository owner.
+    - cron: "0 4 * * 1"
+
+# A new push to a pull request makes the run for the previous one pointless.
+# Runs on main are never cancelled, so every merged commit gets a full result.
+concurrency:
+  group: validate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -155,6 +167,9 @@ jobs:
     # The pages the site builds from docs/ and the release notes. Strict, so
     # a link to a missing page or anchor fails here, before it reaches the site.
     # The project page first: a text missing from a translation fails it.
+    # Not on the schedule: the Pages workflow builds the same thing whenever a
+    # release changes the release notes.
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -169,6 +184,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
   lint:
+    # Not on the schedule: with ruff pinned, the result changes only with a commit.
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
