@@ -2373,7 +2373,7 @@ class SmartBatteryPilotCard extends HTMLElement {
           .pv-i { background: linear-gradient(rgba(237, 161, 0, 0.55), rgba(237, 161, 0, 0.12));
                   box-shadow: inset 0 1.5px 0 #e09a00; }
           .pbar-i { background: rgba(235, 104, 52, 0.3); box-shadow: inset 0 0 0 1.2px #eb6834; }
-          .strip-i { width: 26px !important;
+          .lg .strip-i { width: 26px;
                      background: linear-gradient(90deg, rgba(235, 104, 52, 0.12), #eb6834); }
           .viewtog { margin-left: auto; font: inherit; font-size: 11px; cursor: pointer;
                      color: var(--primary-color, #03a9f4); background: none;
