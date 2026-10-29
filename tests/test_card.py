@@ -308,8 +308,8 @@ def test_compact_view_leads_with_figures(views):
 
 def test_an_unknown_view_draws_the_default(views):
     """A typo in a dashboard must not cost the user their plan."""
-    assert views["nonsense"]["html"] == views["tracks"]["html"]
-    assert views["null"]["html"] == views["tracks"]["html"]
+    assert unnumbered(views["nonsense"]["html"]) == unnumbered(views["tracks"]["html"])
+    assert unnumbered(views["null"]["html"]) == unnumbered(views["tracks"]["html"])
 
 
 # A third harness: the same plan drawn into cards of very different sizes.
@@ -732,12 +732,12 @@ def ev_views() -> dict:
 
 
 def unnumbered(html: str) -> str:
-    """clipPath ids are numbered across every card on the page.
+    """clipPath and gradient ids are numbered across every card on the page.
 
     Two cards therefore never share one, and that is the only difference two
     renders of the same plan may have.
     """
-    return re.sub(r"sbp-clip-\d+", "sbp-clip-N", html)
+    return re.sub(r"sbp-(clip|g)-\d+", r"sbp-\1-N", html)
 
 
 EV_MARKERS = ("evwin", "evedge", "evlimit", "evheld", "dirlbl ev", "next ev", "ev-i", "evlim-i")

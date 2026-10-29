@@ -321,9 +321,9 @@ it resets to the configured view whenever the card config is re-applied.
 
 Common to every view: planned actions as a labeled band across the top
 (charge/blocked/export/auto), local-midnight day separators with the date,
-a "now" marker, the most expensive slot labeled on the price curve, the SOC
-endpoint labeled, and a hover tooltip showing time slot, action, price, SOC
-forecast, PV and net demand.
+a "now" marker, the most expensive and the cheapest slot labeled on the price
+curve, the SOC endpoint labeled, and a hover marker on every curve with a
+tooltip showing time slot, action, price, SOC forecast, PV and net demand.
 
 With planned EV sessions (evcc), every view adds the charging windows as a
 band through all panels, the slots where the battery is held for the car as a
