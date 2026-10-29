@@ -73,7 +73,7 @@
       },
       "pv": {
         "title": "PV-Prognose (optional)",
-        "description": "Mit PV-Anlage: Wähle die Tagesprognose-Sensoren (kWh). Die erwartete PV-Produktion wird von der Verbrauchsprognose abgezogen.",
+        "description": "Mit PV-Anlage: Wähle die Tagesprognose-Sensoren (kWh). Die erwartete PV-Produktion wird von der Verbrauchsprognose abgezogen. Oder Prognose-Integrationen wählen, die auch das Energie-Dashboard versorgen: Ihre Stundenkurve folgt dem echten Tagesverlauf.",
         "data": {
           "pv_forecast_entries": "Stündliche Prognose (Energie-Dashboard)",
           "pv_forecast_today": "PV-Prognose heute (kWh)",

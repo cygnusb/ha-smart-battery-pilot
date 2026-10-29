@@ -130,7 +130,9 @@ hourly curves are added up and replace the daylight curve slot by slot.
   says so once. Slots beyond the end of the shortest curve use the daily
   sensors too, so keep them configured.
 * Forecast.Solar stamps each value with the end of its hour; other
-  integrations with the start. Both are read correctly.
+  integrations with the start. Both are read correctly. Forecast.Solar's
+  curve ends at tomorrow's sunset, so the slot around that sunset and
+  everything after it come from the daily sensors.
 * The diagnostics download shows under `inputs.pv_hourly` which entries were
   used, which failed, and how many slots came from the curve.
 

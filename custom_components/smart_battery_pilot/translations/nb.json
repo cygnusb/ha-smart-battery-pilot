@@ -73,7 +73,7 @@
       },
       "pv": {
         "title": "Solstrømprognose (valgfritt)",
-        "description": "Har du solceller, velg sensorer med daglig produksjonsprognose (kWh). Forventet solstrøm trekkes fra forbruksprognosen.",
+        "description": "Har du solceller, velg sensorer med daglig produksjonsprognose (kWh). Forventet solstrøm trekkes fra forbruksprognosen. Eller velg prognose-integrasjoner som også forsyner Energi-dashbordet: timekurven deres følger dagens faktiske forløp.",
         "data": {
           "pv_forecast_entries": "Timeprognose (Energi-dashbord)",
           "pv_forecast_today": "Solstrømprognose i dag (kWh)",

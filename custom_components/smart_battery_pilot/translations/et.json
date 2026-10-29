@@ -73,7 +73,7 @@
       },
       "pv": {
         "title": "Päikeseenergia prognoos (valikuline)",
-        "description": "Kui sul on päikesepaneelid, vali päevase toodangu prognoosi andurid (kWh). Oodatav päikeseenergia lahutatakse tarbimisprognoosist.",
+        "description": "Kui sul on päikesepaneelid, vali päevase toodangu prognoosi andurid (kWh). Oodatav päikeseenergia lahutatakse tarbimisprognoosist. Või vali prognoosi integratsioonid, mis toidavad ka energia töölauda: nende tunnikõver järgib päeva tegelikku kulgu.",
         "data": {
           "pv_forecast_entries": "Tunnipõhine prognoos (energia töölaud)",
           "pv_forecast_today": "Päikeseprognoos täna (kWh)",

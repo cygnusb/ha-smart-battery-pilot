@@ -73,7 +73,7 @@
       },
       "pv": {
         "title": "PV forecast (optional)",
-        "description": "If you have solar, select daily production forecast sensors (kWh). Expected PV is subtracted from the consumption forecast.",
+        "description": "If you have solar, select daily production forecast sensors (kWh). Expected PV is subtracted from the consumption forecast. Or pick forecast integrations that also feed the Energy dashboard: their hourly curve follows the real shape of the day.",
         "data": {
           "pv_forecast_entries": "Hourly forecast (Energy dashboard)",
           "pv_forecast_today": "PV forecast today (kWh)",

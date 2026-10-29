@@ -73,7 +73,7 @@
       },
       "pv": {
         "title": "Saulės energijos prognozė (nebūtina)",
-        "description": "Jei turi saulės elektrinę, pasirink dienos gamybos prognozės jutiklius (kWh). Numatoma saulės gamyba atimama iš suvartojimo prognozės.",
+        "description": "Jei turi saulės elektrinę, pasirink dienos gamybos prognozės jutiklius (kWh). Numatoma saulės gamyba atimama iš suvartojimo prognozės. Arba pasirinkite prognozės integracijas, kurios taip pat teikia duomenis energijos skydeliui: jų valandinė kreivė atitinka tikrąją dienos eigą.",
         "data": {
           "pv_forecast_entries": "Valandinė prognozė (energijos skydelis)",
           "pv_forecast_today": "Saulės prognozė šiandien (kWh)",

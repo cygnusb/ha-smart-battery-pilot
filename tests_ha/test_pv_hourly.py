@@ -10,6 +10,7 @@ from __future__ import annotations
 from datetime import timedelta
 from types import SimpleNamespace
 
+from homeassistant.components.energy.data import async_get_manager
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
@@ -22,6 +23,7 @@ from pytest_homeassistant_custom_component.common import (
 )
 from test_smoke import _setup
 
+from custom_components.smart_battery_pilot.config_flow import SBPConfigFlow
 from custom_components.smart_battery_pilot.pv_sources import (
     async_fetch_hourly_pv,
     async_solar_forecast_entries,
@@ -96,3 +98,28 @@ async def test_the_pv_options_step_picks_entries_and_the_plan_uses_them(
     coordinator = entry.runtime_data.coordinator
     assert coordinator.data.inputs["pv_hourly"]["slots"] > 0
     assert coordinator.data.pv_forecast_24h_kwh > 0
+
+
+async def test_a_new_setup_preselects_the_energy_dashboards_forecast(
+    sbp_hass: HomeAssistant,
+) -> None:
+    roof = _forecast_integration(sbp_hass)
+    manager = await async_get_manager(sbp_hass)
+    await manager.async_update(
+        {
+            "energy_sources": [
+                {
+                    "type": "solar",
+                    "stat_energy_from": "sensor.pv_energy",
+                    "config_entry_solar_forecast": [roof.entry_id],
+                }
+            ]
+        }
+    )
+
+    flow = SBPConfigFlow()
+    flow.hass = sbp_hass
+    form = await flow.async_step_pv()
+
+    marker = next(m for m in form["data_schema"].schema if str(m) == "pv_forecast_entries")
+    assert marker.description == {"suggested_value": [roof.entry_id]}

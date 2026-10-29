@@ -73,7 +73,7 @@
       },
       "pv": {
         "title": "Aurinkoennuste (valinnainen)",
-        "description": "Jos sinulla on aurinkopaneelit, valitse päivittäisen tuotantoennusteen anturit (kWh). Odotettu aurinkotuotanto vähennetään kulutusennusteesta.",
+        "description": "Jos sinulla on aurinkopaneelit, valitse päivittäisen tuotantoennusteen anturit (kWh). Odotettu aurinkotuotanto vähennetään kulutusennusteesta. Tai valitse ennusteintegraatiot, jotka syöttävät myös Energia-kojelautaa: niiden tuntikäyrä seuraa päivän todellista kulkua.",
         "data": {
           "pv_forecast_entries": "Tuntiennuste (Energia-kojelauta)",
           "pv_forecast_today": "Aurinkoennuste tänään (kWh)",

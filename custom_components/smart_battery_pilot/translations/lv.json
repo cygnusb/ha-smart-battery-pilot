@@ -73,7 +73,7 @@
       },
       "pv": {
         "title": "Saules enerģijas prognoze (neobligāti)",
-        "description": "Ja tev ir saules paneļi, izvēlies dienas ražošanas prognozes sensorus (kWh). Sagaidāmā saules enerģija tiek atskaitīta no patēriņa prognozes.",
+        "description": "Ja tev ir saules paneļi, izvēlies dienas ražošanas prognozes sensorus (kWh). Sagaidāmā saules enerģija tiek atskaitīta no patēriņa prognozes. Vai izvēlieties prognozes integrācijas, kas nodrošina arī enerģijas paneli: to stundu līkne seko dienas patiesajai gaitai.",
         "data": {
           "pv_forecast_entries": "Stundu prognoze (enerģijas panelis)",
           "pv_forecast_today": "Saules prognoze šodien (kWh)",

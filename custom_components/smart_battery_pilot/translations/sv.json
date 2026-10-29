@@ -73,7 +73,7 @@
       },
       "pv": {
         "title": "Solelprognos (valfritt)",
-        "description": "Har du solceller, välj sensorer med daglig produktionsprognos (kWh). Förväntad solel dras av från förbrukningsprognosen.",
+        "description": "Har du solceller, välj sensorer med daglig produktionsprognos (kWh). Förväntad solel dras av från förbrukningsprognosen. Eller välj prognosintegrationer som även försörjer Energipanelen: deras timkurva följer dagens verkliga förlopp.",
         "data": {
           "pv_forecast_entries": "Timprognos (Energipanelen)",
           "pv_forecast_today": "Solelprognos idag (kWh)",

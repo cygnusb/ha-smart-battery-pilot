@@ -73,7 +73,7 @@
       },
       "pv": {
         "title": "PV-prognose (optioneel)",
-        "description": "Heb je zonnepanelen, selecteer dan sensoren met de dagelijkse opbrengstprognose (kWh). De verwachte PV wordt van de verbruiksprognose afgetrokken.",
+        "description": "Heb je zonnepanelen, selecteer dan sensoren met de dagelijkse opbrengstprognose (kWh). De verwachte PV wordt van de verbruiksprognose afgetrokken. Of kies prognose-integraties die ook het Energiedashboard voeden: hun uurcurve volgt het werkelijke verloop van de dag.",
         "data": {
           "pv_forecast_entries": "Uurprognose (Energiedashboard)",
           "pv_forecast_today": "PV-prognose vandaag (kWh)",
