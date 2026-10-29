@@ -73,13 +73,15 @@
       },
       "pv": {
         "title": "Solelprognos (valfritt)",
-        "description": "Har du solceller, välj sensorer med daglig produktionsprognos (kWh). Förväntad solel dras av från förbrukningsprognosen.",
+        "description": "Har du solceller, välj sensorer med daglig produktionsprognos (kWh). Förväntad solel dras av från förbrukningsprognosen. Eller välj prognosintegrationer som även försörjer Energipanelen: deras timkurva följer dagens verkliga förlopp.",
         "data": {
+          "pv_forecast_entries": "Timprognos (Energipanelen)",
           "pv_forecast_today": "Solelprognos idag (kWh)",
           "pv_forecast_tomorrow": "Solelprognos imorgon (kWh)",
           "pv_power_entity": "Aktuell soleleffekt (valfritt)"
         },
         "data_description": {
+          "pv_forecast_entries": "Valfritt. Solprognosintegrationer som även försörjer Energipanelen (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios ...). Deras timkurva ersätter den jämna dagsljuskurva som dagssensorerna fördelas över, så att ett östtak får sin förmiddag och en molnig morgon sin soliga eftermiddag. Välj en post per takyta; de valda posterna läggs ihop. Dagssensorerna gäller fortfarande så länge en kurva saknas.",
           "pv_forecast_today": "Prognos för solelproduktionen idag i kWh (t.ex. Open-Meteo Solar Forecast eller Solcast).",
           "pv_forecast_tomorrow": "Prognos för solelproduktionen imorgon i kWh - förbättrar nattplaneringen avsevärt.",
           "pv_power_entity": "Aktuell soleleffekt. Visas som ett livevärde på Lovelace-kortet."
@@ -170,11 +172,13 @@
       "pv": {
         "title": "Solelprognos (valfritt)",
         "data": {
+          "pv_forecast_entries": "Timprognos (Energipanelen)",
           "pv_forecast_today": "Solelprognos idag (kWh)",
           "pv_forecast_tomorrow": "Solelprognos imorgon (kWh)",
           "pv_power_entity": "Aktuell soleleffekt (valfritt)"
         },
         "data_description": {
+          "pv_forecast_entries": "Valfritt. Solprognosintegrationer som även försörjer Energipanelen (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios ...). Deras timkurva ersätter den jämna dagsljuskurva som dagssensorerna fördelas över, så att ett östtak får sin förmiddag och en molnig morgon sin soliga eftermiddag. Välj en post per takyta; de valda posterna läggs ihop. Dagssensorerna gäller fortfarande så länge en kurva saknas.",
           "pv_forecast_today": "Prognos för solelproduktionen idag i kWh (t.ex. Open-Meteo Solar Forecast eller Solcast).",
           "pv_forecast_tomorrow": "Prognos för solelproduktionen imorgon i kWh - förbättrar nattplaneringen avsevärt.",
           "pv_power_entity": "Aktuell soleleffekt. Visas som ett livevärde på Lovelace-kortet."

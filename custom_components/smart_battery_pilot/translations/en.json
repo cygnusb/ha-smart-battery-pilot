@@ -73,13 +73,15 @@
       },
       "pv": {
         "title": "PV forecast (optional)",
-        "description": "If you have solar, select daily production forecast sensors (kWh). Expected PV is subtracted from the consumption forecast.",
+        "description": "If you have solar, select daily production forecast sensors (kWh). Expected PV is subtracted from the consumption forecast. Or pick forecast integrations that also feed the Energy dashboard: their hourly curve follows the real shape of the day.",
         "data": {
+          "pv_forecast_entries": "Hourly forecast (Energy dashboard)",
           "pv_forecast_today": "PV forecast today (kWh)",
           "pv_forecast_tomorrow": "PV forecast tomorrow (kWh)",
           "pv_power_entity": "Current PV power (optional)"
         },
         "data_description": {
+          "pv_forecast_entries": "Optional. Solar forecast integrations that also feed the Energy dashboard (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios ...). Their hourly curve replaces the even daylight curve the daily sensors are spread over, so an east roof gets its morning and a cloudy morning its sunny afternoon. Select one entry per roof face; the selected entries are added up. The daily sensors remain the fallback while a curve is unavailable.",
           "pv_forecast_today": "PV production forecast for today in kWh (e.g. Open-Meteo Solar Forecast or Solcast).",
           "pv_forecast_tomorrow": "PV production forecast for tomorrow in kWh - improves overnight planning considerably.",
           "pv_power_entity": "Current PV power. Shown as a live value on the Lovelace card."
@@ -170,11 +172,13 @@
       "pv": {
         "title": "PV forecast (optional)",
         "data": {
+          "pv_forecast_entries": "Hourly forecast (Energy dashboard)",
           "pv_forecast_today": "PV forecast today (kWh)",
           "pv_forecast_tomorrow": "PV forecast tomorrow (kWh)",
           "pv_power_entity": "Current PV power (optional)"
         },
         "data_description": {
+          "pv_forecast_entries": "Optional. Solar forecast integrations that also feed the Energy dashboard (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios ...). Their hourly curve replaces the even daylight curve the daily sensors are spread over, so an east roof gets its morning and a cloudy morning its sunny afternoon. Select one entry per roof face; the selected entries are added up. The daily sensors remain the fallback while a curve is unavailable.",
           "pv_forecast_today": "PV production forecast for today in kWh (e.g. Open-Meteo Solar Forecast or Solcast).",
           "pv_forecast_tomorrow": "PV production forecast for tomorrow in kWh - improves overnight planning considerably.",
           "pv_power_entity": "Current PV power. Shown as a live value on the Lovelace card."

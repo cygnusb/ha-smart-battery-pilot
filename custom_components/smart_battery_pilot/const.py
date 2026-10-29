@@ -35,6 +35,8 @@ CONF_HAS_HEAT_PUMP = "has_heat_pump"
 # Step: PV (optional)
 CONF_PV_FORECAST_TODAY = "pv_forecast_today"
 CONF_PV_FORECAST_TOMORROW = "pv_forecast_tomorrow"
+# Config entries whose hourly Energy-dashboard forecast replaces the daily sine.
+CONF_PV_FORECAST_ENTRIES = "pv_forecast_entries"
 CONF_PV_POWER_ENTITY = "pv_power_entity"
 
 # Options section: cold-weather charging (not part of the initial setup)

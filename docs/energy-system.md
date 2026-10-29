@@ -190,6 +190,11 @@ Any forecast integration with a "today" and a "tomorrow" energy sensor works,
 e.g. Forecast.Solar or Open-Meteo Solar Forecast. With several roof faces,
 add them up in a template sensor first.
 
+If the integration also provides the Energy dashboard's solar forecast, select
+its config entries (one per roof face) as the hourly forecast as well: the
+planner then follows the real shape of each day instead of an even curve. See
+[PV forecast](configuration.md#5-pv-forecast-optional).
+
 | Entity | Description |
 |--------|-------------|
 | `sensor.pv_forecast_today` | Forecasted PV today (kWh) |

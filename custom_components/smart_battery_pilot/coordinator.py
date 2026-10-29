@@ -17,6 +17,7 @@ from homeassistant.helpers.event import (
     async_track_state_change_event,
     async_track_time_interval,
 )
+from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -52,6 +53,7 @@ from .const import (
     CONF_MIN_SOC,
     CONF_PRICE_ENTITY,
     CONF_PRICE_OFFSET,
+    CONF_PV_FORECAST_ENTRIES,
     CONF_PV_FORECAST_TODAY,
     CONF_PV_FORECAST_TOMORROW,
     CONF_PV_POWER_ENTITY,
@@ -107,10 +109,11 @@ from .forecast.charge_rate import (
     curve_from_percentages,
 )
 from .forecast.consumption import ConsumptionForecaster, TrainingSample
-from .forecast.pv import pv_kwh_for_slot
+from .forecast.pv import HourlyPv, pv_kwh_for_slot
 from .optimizer import BatteryState, InputSlot, OptimizerConfig, Plan, build_plan
 from .price_adapters import detect_adapter
 from .price_adapters.base import PriceSlot
+from .pv_sources import async_fetch_hourly_pv
 from .savings_ledger import PilotLedger
 
 _LOGGER = logging.getLogger(__name__)
@@ -289,6 +292,9 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         self._last_attempt: datetime | None = None
         self._unsub_price = None
         self._adapter_name: str | None = None
+        # Hourly PV entries that delivered nothing last cycle, so a lasting
+        # outage is reported once rather than every refresh.
+        self._pv_hourly_failed: list[str] = []
         # Read once: Home Assistant's currency changing under a running entry
         # would relabel totals that were counted in the old one. A reload
         # picks up a new setting.
@@ -350,6 +356,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         self._evcc_error: str | None = None
         self._ev_signature: tuple | None = None
         self._unsub_evcc_poll = None
+        self._unsub_started = None
         self._unsub_soc = None
         # Set by the executor while the battery is held for a car.
         self._ev_hold_active = False
@@ -427,6 +434,10 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             self._unsub_evcc_poll = async_track_time_interval(
                 self.hass, self._async_poll_evcc, EVCC_POLL_INTERVAL
             )
+        if self._pv_forecast_entries() and not self.hass.is_running:
+            # Forecast integrations often finish loading after us; the first
+            # plan then runs on the daily sensors. Plan again once they are up.
+            self._unsub_started = async_at_started(self.hass, self._handle_started)
 
     async def async_shutdown(self) -> None:
         if self._unsub_price:
@@ -441,6 +452,9 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         if self._unsub_evcc_poll:
             self._unsub_evcc_poll()
             self._unsub_evcc_poll = None
+        if self._unsub_started:
+            self._unsub_started()
+            self._unsub_started = None
         await super().async_shutdown()
 
     @callback
@@ -465,6 +479,10 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         """The reserve floor moved: re-plan, and the executor re-sends it."""
         _LOGGER.debug("Reserve entity changed - requesting a re-plan")
         self.hass.async_create_task(self.async_request_refresh())
+
+    async def _handle_started(self, _hass) -> None:
+        self._unsub_started = None
+        await self.async_request_refresh()
 
     @callback
     def _handle_price_update(self, _event) -> None:
@@ -511,6 +529,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         temperature = self._read_float_state(self.conf(CONF_TEMPERATURE_ENTITY))
         pv_today = self._read_float_state(self.conf(CONF_PV_FORECAST_TODAY))
         pv_tomorrow = self._read_float_state(self.conf(CONF_PV_FORECAST_TOMORROW))
+        pv_hourly = await self._hourly_pv()
 
         sunrise_hour, sunset_hour = self._daylight_window()
         factor, factor_source, battery_temperature = self.charge_factor()
@@ -549,17 +568,26 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         input_slots: list[InputSlot] = []
         consumption_24h = 0.0
         pv_24h = 0.0
+        hourly_slots = 0
         for index, slot in enumerate(slots):
-            consumption = self.forecaster.predict_kwh(slot.start, slot.hours, temperature)
-            pv = pv_kwh_for_slot(
-                slot.start,
-                slot.hours,
-                pv_today,
-                pv_tomorrow,
-                now,
-                sunrise_hour=sunrise_hour,
-                sunset_hour=sunset_hour,
-            )
+            # Hour of day and weekday are read in local time: a price source
+            # that stamps its slots in UTC would otherwise shift the
+            # consumption profile and the PV curve by the UTC offset.
+            local_start = slot.start.astimezone(now.tzinfo)
+            consumption = self.forecaster.predict_kwh(local_start, slot.hours, temperature)
+            if pv_hourly is not None and pv_hourly.covers(slot.start, slot.end):
+                pv = pv_hourly.kwh(slot.start, slot.end)
+                hourly_slots += 1
+            else:
+                pv = pv_kwh_for_slot(
+                    local_start,
+                    slot.hours,
+                    pv_today,
+                    pv_tomorrow,
+                    now,
+                    sunrise_hour=sunrise_hour,
+                    sunset_hour=sunset_hour,
+                )
             if slot.start < now + timedelta(hours=24):
                 consumption_24h += consumption
                 pv_24h += pv
@@ -636,6 +664,11 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             "temperature": temperature,
             "pv_forecast_today_kwh": pv_today,
             "pv_forecast_tomorrow_kwh": pv_tomorrow,
+            "pv_hourly": {
+                "entries": self._pv_forecast_entries(),
+                "failed": list(self._pv_hourly_failed),
+                "slots": hourly_slots,
+            },
             "daylight_hours": [round(sunrise_hour, 2), round(sunset_hour, 2)],
             "slots": len(slots),
             "horizon_start": slots[0].start.isoformat(),
@@ -812,6 +845,37 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             "not a real tariff. Check the entity's unit_of_measurement (cents/öre are "
             "converted only when declared) and Home Assistant's currency setting."
         )
+
+    def _pv_forecast_entries(self) -> list[str]:
+        return [e for e in self.conf(CONF_PV_FORECAST_ENTRIES) or [] if isinstance(e, str)]
+
+    async def _hourly_pv(self) -> HourlyPv | None:
+        """The hourly PV curve of the configured forecast entries, if usable.
+
+        None means "plan with the daily sensors": nothing is configured, or
+        one of the entries delivered no curve this cycle.
+        """
+        entry_ids = self._pv_forecast_entries()
+        if not entry_ids:
+            self._pv_hourly_failed = []
+            return None
+        fetch = await async_fetch_hourly_pv(self.hass, entry_ids)
+        if fetch.failed and not self.hass.is_running:
+            # Still starting: the forecast integration may simply not be
+            # loaded yet. _handle_started plans again once it is.
+            _LOGGER.debug("Hourly solar forecast not ready yet: %s", ", ".join(fetch.failed))
+            return None
+        if fetch.failed and fetch.failed != self._pv_hourly_failed:
+            _LOGGER.warning(
+                "No hourly solar forecast from config entr%s %s - planning with "
+                "the daily PV forecast sensors until it is back",
+                "y" if len(fetch.failed) == 1 else "ies",
+                ", ".join(fetch.failed),
+            )
+        elif not fetch.failed and self._pv_hourly_failed:
+            _LOGGER.info("Hourly solar forecast is back")
+        self._pv_hourly_failed = fetch.failed
+        return fetch.pv
 
     def _daylight_window(self) -> tuple[float, float]:
         """Local sunrise/sunset hour from `sun.sun`, else a fixed 06-21 window.

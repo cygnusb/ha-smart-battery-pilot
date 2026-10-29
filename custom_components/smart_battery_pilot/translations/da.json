@@ -73,13 +73,15 @@
       },
       "pv": {
         "title": "Solcelleprognose (valgfri)",
-        "description": "Har du solceller, så vælg sensorer med daglig produktionsprognose (kWh). Forventet solproduktion trækkes fra forbrugsprognosen.",
+        "description": "Har du solceller, så vælg sensorer med daglig produktionsprognose (kWh). Forventet solproduktion trækkes fra forbrugsprognosen. Eller vælg prognose-integrationer, der også forsyner Energi-dashboardet: deres timekurve følger dagens faktiske forløb.",
         "data": {
+          "pv_forecast_entries": "Prognose pr. time (Energi-dashboard)",
           "pv_forecast_today": "Solcelleprognose i dag (kWh)",
           "pv_forecast_tomorrow": "Solcelleprognose i morgen (kWh)",
           "pv_power_entity": "Aktuel solcelleeffekt (valgfri)"
         },
         "data_description": {
+          "pv_forecast_entries": "Valgfrit. Solprognose-integrationer, der også forsyner Energi-dashboardet (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios ...). Deres timekurve erstatter den jævne dagslyskurve, som dagssensorerne fordeles over, så et østvendt tag får sin formiddag og en overskyet morgen sin solrige eftermiddag. Vælg én post pr. tagflade; de valgte poster lægges sammen. Dagssensorerne bruges fortsat, så længe en kurve mangler.",
           "pv_forecast_today": "Prognose for solcelleproduktionen i dag i kWh (f.eks. Open-Meteo Solar Forecast eller Solcast).",
           "pv_forecast_tomorrow": "Prognose for solcelleproduktionen i morgen i kWh - forbedrer natplanlægningen betydeligt.",
           "pv_power_entity": "Aktuel solcelleeffekt. Vises som en liveværdi på Lovelace-kortet."
@@ -170,11 +172,13 @@
       "pv": {
         "title": "Solcelleprognose (valgfri)",
         "data": {
+          "pv_forecast_entries": "Prognose pr. time (Energi-dashboard)",
           "pv_forecast_today": "Solcelleprognose i dag (kWh)",
           "pv_forecast_tomorrow": "Solcelleprognose i morgen (kWh)",
           "pv_power_entity": "Aktuel solcelleeffekt (valgfri)"
         },
         "data_description": {
+          "pv_forecast_entries": "Valgfrit. Solprognose-integrationer, der også forsyner Energi-dashboardet (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios ...). Deres timekurve erstatter den jævne dagslyskurve, som dagssensorerne fordeles over, så et østvendt tag får sin formiddag og en overskyet morgen sin solrige eftermiddag. Vælg én post pr. tagflade; de valgte poster lægges sammen. Dagssensorerne bruges fortsat, så længe en kurve mangler.",
           "pv_forecast_today": "Prognose for solcelleproduktionen i dag i kWh (f.eks. Open-Meteo Solar Forecast eller Solcast).",
           "pv_forecast_tomorrow": "Prognose for solcelleproduktionen i morgen i kWh - forbedrer natplanlægningen betydeligt.",
           "pv_power_entity": "Aktuel solcelleeffekt. Vises som en liveværdi på Lovelace-kortet."

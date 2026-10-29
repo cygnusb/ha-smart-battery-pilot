@@ -26,20 +26,26 @@ CARD = Path(config_flow.__file__).parent / "frontend" / "smart-battery-pilot-car
 REFERENCE_LANGUAGE = "en"
 LANGUAGES = sorted(p.stem for p in TRANSLATIONS.glob("*.json"))
 
+
+def _schema_pv_with_forecast(d):
+    """The PV step as a user with a forecast integration sees it (every field)."""
+    return config_flow.schema_pv(d, {"entry": "Roof (forecast_solar)"})
+
+
 # Translation step id -> the schema builder the flow uses for that step.
 CONFIG_STEPS = {
     "user": config_flow.schema_prices,
     "battery": config_flow.schema_battery,
     "control": config_flow.schema_control,
     "consumption": config_flow.schema_consumption,
-    "pv": config_flow.schema_pv,
+    "pv": _schema_pv_with_forecast,
 }
 OPTIONS_STEPS = {
     "prices": config_flow.schema_prices,
     "battery": config_flow.schema_battery,
     "control": config_flow.schema_control,
     "consumption": config_flow.schema_consumption,
-    "pv": config_flow.schema_pv,
+    "pv": _schema_pv_with_forecast,
     "tuning": config_flow.schema_tuning,
     "derating": config_flow.schema_derating,
     "reserve": config_flow.schema_reserve,

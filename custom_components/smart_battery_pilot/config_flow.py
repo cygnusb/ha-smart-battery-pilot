@@ -42,6 +42,7 @@ from .const import (
     CONF_MIN_SOC,
     CONF_PRICE_ENTITY,
     CONF_PRICE_OFFSET,
+    CONF_PV_FORECAST_ENTRIES,
     CONF_PV_FORECAST_TODAY,
     CONF_PV_FORECAST_TOMORROW,
     CONF_PV_POWER_ENTITY,
@@ -92,6 +93,7 @@ from .currency import (
 from .evcc import EvccError, async_fetch_state, normalize_url
 from .forecast.charge_rate import is_non_decreasing
 from .price_adapters import detect_adapter
+from .pv_sources import async_energy_dashboard_forecast_entries, async_solar_forecast_entries
 
 _ENTITY = selector.EntitySelector(
     selector.EntitySelectorConfig(domain=["sensor", "input_number", "number"])
@@ -233,9 +235,33 @@ def schema_consumption(d: dict[str, Any]) -> vol.Schema:
     )
 
 
-def schema_pv(d: dict[str, Any]) -> vol.Schema:
+def schema_pv(d: dict[str, Any], forecast_entries: dict[str, str] | None = None) -> vol.Schema:
+    """The PV step; `forecast_entries` are the hourly-capable entries (id -> label).
+
+    The hourly field only shows when there is something to pick, so an
+    installation without a forecast integration sees the step it always saw.
+    An entry that was picked once stays selectable after it disappeared -
+    otherwise the stored value would fail validation and block the step.
+    """
+    choices = dict(forecast_entries or {})
+    for entry_id in d.get(CONF_PV_FORECAST_ENTRIES) or []:
+        choices.setdefault(entry_id, entry_id)
+    hourly: dict[Any, Any] = {}
+    if choices:
+        hourly[
+            vol.Optional(
+                CONF_PV_FORECAST_ENTRIES, description=_sugg(d.get(CONF_PV_FORECAST_ENTRIES))
+            )
+        ] = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=[{"value": k, "label": v} for k, v in choices.items()],
+                multiple=True,
+                mode="dropdown",
+            )
+        )
     return vol.Schema(
         {
+            **hourly,
             vol.Optional(
                 CONF_PV_FORECAST_TODAY, description=_sugg(d.get(CONF_PV_FORECAST_TODAY))
             ): _ENTITY,
@@ -380,7 +406,12 @@ STEP_FIELDS: dict[str, list[str]] = {
     ],
     "control": [CONF_SCRIPT_CHARGE, CONF_SCRIPT_IDLE, CONF_SCRIPT_AUTO, CONF_SCRIPT_EXPORT],
     "consumption": [CONF_CONSUMPTION_ENTITY, CONF_TEMPERATURE_ENTITY, CONF_HAS_HEAT_PUMP],
-    "pv": [CONF_PV_FORECAST_TODAY, CONF_PV_FORECAST_TOMORROW, CONF_PV_POWER_ENTITY],
+    "pv": [
+        CONF_PV_FORECAST_ENTRIES,
+        CONF_PV_FORECAST_TODAY,
+        CONF_PV_FORECAST_TOMORROW,
+        CONF_PV_POWER_ENTITY,
+    ],
     "tuning": [CONF_SPREAD_THRESHOLD, CONF_DISCHARGE_MODE, CONF_TRAINING_DAYS],
     "derating": [CONF_CHARGE_DERATING, CONF_BATTERY_TEMPERATURE_ENTITY, *DERATING_CURVE_KEYS],
     "reserve": [
@@ -608,7 +639,18 @@ class SBPConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_TRAINING_DAYS: DEFAULT_TRAINING_DAYS,
                 },
             )
-        return self.async_show_form(step_id="pv", data_schema=schema_pv(self._data))
+        entries = await async_solar_forecast_entries(self.hass)
+        # A new setup starts from what the Energy dashboard already uses; the
+        # user sees the selection and can clear it. Never done for existing
+        # entries: their planning must not change behind their back.
+        suggested = {
+            **self._data,
+            CONF_PV_FORECAST_ENTRIES: [
+                e for e in await async_energy_dashboard_forecast_entries(self.hass) if e in entries
+            ]
+            or None,
+        }
+        return self.async_show_form(step_id="pv", data_schema=schema_pv(suggested, entries))
 
     @staticmethod
     @callback
@@ -740,7 +782,8 @@ class SBPOptionsFlow(OptionsFlow):
     async def async_step_pv(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             return await self._save_step("pv", user_input)
-        return self.async_show_form(step_id="pv", data_schema=schema_pv(self._merged))
+        entries = await async_solar_forecast_entries(self.hass)
+        return self.async_show_form(step_id="pv", data_schema=schema_pv(self._merged, entries))
 
     async def async_step_derating(
         self, user_input: dict[str, Any] | None = None

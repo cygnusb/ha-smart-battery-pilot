@@ -51,7 +51,10 @@ vendor configurations.
 3. **PV forecast** — optional; expected solar production is subtracted so the
    plan only covers the *net* grid demand, and forecasted PV surplus is
    modeled as battery charging in the SOC simulation — so on sunny days the
-   planner doesn't lock the battery needlessly.
+   planner doesn't lock the battery needlessly. Daily forecast sensors are
+   spread over the daylight hours; integrations that feed the Energy
+   dashboard (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios …)
+   can supply their hourly curve instead, so an east roof gets its morning.
 4. **Optimization** — a deterministic planner pairs the cheapest charge slots
    with the most expensive consumption slots, respecting battery capacity,
    power limits, SOC limits and roundtrip efficiency. Charging only happens if

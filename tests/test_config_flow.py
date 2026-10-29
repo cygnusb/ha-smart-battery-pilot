@@ -41,6 +41,7 @@ from smart_battery_pilot.const import (
     CONF_MIN_SOC,
     CONF_PRICE_ENTITY,
     CONF_PRICE_OFFSET,
+    CONF_PV_FORECAST_ENTRIES,
     CONF_PV_FORECAST_TODAY,
     CONF_RESERVE_BLOCK_DISCHARGE,
     CONF_RESERVE_REFILL_HOURS,
@@ -85,7 +86,7 @@ class _ConfigEntries:
     def __init__(self, entries=None) -> None:
         self._entries = list(entries or [])
 
-    def async_entries(self, domain):
+    def async_entries(self, domain=None):
         return list(self._entries)
 
 
@@ -731,7 +732,7 @@ def test_a_configured_ev_section_is_not_overwritten_by_evcc():
 
 
 def _evcc_entry(host="192.0.2.5:7070"):
-    return SimpleNamespace(data={"host": host})
+    return SimpleNamespace(domain="evcc_intg", data={"host": host})
 
 
 class _EvccProbe:
@@ -904,3 +905,64 @@ def test_the_tuning_step_uses_the_currency_too():
     spread = _price_fields(result)[CONF_SPREAD_THRESHOLD]
     assert spread.config["unit_of_measurement"] == "HUF/kWh"
     assert spread.config["max"] == 400
+
+
+# --- hourly PV forecast entries --------------------------------------------------
+
+
+def _forecast_integrations(monkeypatch, available: dict[str, str], dashboard: list[str]):
+    async def entries(hass):
+        return dict(available)
+
+    async def from_dashboard(hass):
+        return list(dashboard)
+
+    monkeypatch.setattr(cf, "async_solar_forecast_entries", entries)
+    monkeypatch.setattr(cf, "async_energy_dashboard_forecast_entries", from_dashboard)
+
+
+def _pv_fields(result) -> dict:
+    return {str(m): m for m in result["data_schema"].schema}
+
+
+def test_without_a_forecast_integration_the_pv_step_is_unchanged(monkeypatch):
+    _forecast_integrations(monkeypatch, {}, [])
+    result = _run(_options_flow(_FakeHass(), _entry()).async_step_pv())
+    assert set(_pv_fields(result)) == {
+        CONF_PV_FORECAST_TODAY,
+        "pv_forecast_tomorrow",
+        "pv_power_entity",
+    }
+
+
+def test_existing_entries_are_not_switched_to_the_dashboard_forecast(monkeypatch):
+    _forecast_integrations(monkeypatch, {"east": "East (helios_forecast)"}, ["east"])
+    result = _run(_options_flow(_FakeHass(), _entry()).async_step_pv())
+    marker = _pv_fields(result)[CONF_PV_FORECAST_ENTRIES]
+    assert marker.description == {"suggested_value": None}
+
+
+def test_a_new_setup_suggests_the_dashboard_forecast(monkeypatch):
+    _forecast_integrations(
+        monkeypatch,
+        {"east": "East (forecast_solar)", "west": "West (forecast_solar)"},
+        ["west", "gone"],
+    )
+    result = _run(_flow(_FakeHass()).async_step_pv())
+    marker = _pv_fields(result)[CONF_PV_FORECAST_ENTRIES]
+    assert marker.description == {"suggested_value": ["west"]}
+
+
+def test_a_picked_entry_that_disappeared_stays_selectable(monkeypatch):
+    _forecast_integrations(monkeypatch, {}, [])
+    flow = _options_flow(_FakeHass(), _entry(**{CONF_PV_FORECAST_ENTRIES: ["gone"]}))
+    result = _run(flow.async_step_pv())
+    selector = result["data_schema"].schema[_pv_fields(result)[CONF_PV_FORECAST_ENTRIES]]
+    assert [o["value"] for o in selector.config["options"]] == ["gone"]
+
+
+def test_clearing_the_hourly_entries_turns_them_off(monkeypatch):
+    _forecast_integrations(monkeypatch, {"east": "East (helios_forecast)"}, [])
+    flow = _options_flow(_FakeHass(), _entry(**{CONF_PV_FORECAST_ENTRIES: ["east"]}))
+    _run(flow.async_step_pv({CONF_PV_FORECAST_TODAY: "sensor.pv"}))
+    assert _run(flow.async_step_apply())["data"][CONF_PV_FORECAST_ENTRIES] is None

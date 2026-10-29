@@ -73,13 +73,15 @@
       },
       "pv": {
         "title": "Saulės energijos prognozė (nebūtina)",
-        "description": "Jei turi saulės elektrinę, pasirink dienos gamybos prognozės jutiklius (kWh). Numatoma saulės gamyba atimama iš suvartojimo prognozės.",
+        "description": "Jei turi saulės elektrinę, pasirink dienos gamybos prognozės jutiklius (kWh). Numatoma saulės gamyba atimama iš suvartojimo prognozės. Arba pasirinkite prognozės integracijas, kurios taip pat teikia duomenis energijos skydeliui: jų valandinė kreivė atitinka tikrąją dienos eigą.",
         "data": {
+          "pv_forecast_entries": "Valandinė prognozė (energijos skydelis)",
           "pv_forecast_today": "Saulės prognozė šiandien (kWh)",
           "pv_forecast_tomorrow": "Saulės prognozė rytoj (kWh)",
           "pv_power_entity": "Dabartinė saulės galia (nebūtina)"
         },
         "data_description": {
+          "pv_forecast_entries": "Neprivaloma. Saulės prognozės integracijos, kurios taip pat teikia duomenis energijos skydeliui (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios ...). Jų valandinė kreivė pakeičia tolygią dienos šviesos kreivę, pagal kurią paskirstomos dienos jutiklių vertės – rytinis stogas taip gauna savo priešpietį, o debesuotas rytas – saulėtą popietę. Kiekvienai stogo plokštumai pasirinkite po vieną įrašą; pasirinkti įrašai sudedami. Kol kreivės nėra, naudojami dienos jutikliai.",
           "pv_forecast_today": "Šiandienos saulės gamybos prognozė kWh (pvz., Open-Meteo Solar Forecast arba Solcast).",
           "pv_forecast_tomorrow": "Rytdienos saulės gamybos prognozė kWh - gerokai pagerina nakties planavimą.",
           "pv_power_entity": "Dabartinė saulės galia. Rodoma kaip tiesioginė reikšmė Lovelace kortelėje."
@@ -170,11 +172,13 @@
       "pv": {
         "title": "Saulės energijos prognozė (nebūtina)",
         "data": {
+          "pv_forecast_entries": "Valandinė prognozė (energijos skydelis)",
           "pv_forecast_today": "Saulės prognozė šiandien (kWh)",
           "pv_forecast_tomorrow": "Saulės prognozė rytoj (kWh)",
           "pv_power_entity": "Dabartinė saulės galia (nebūtina)"
         },
         "data_description": {
+          "pv_forecast_entries": "Neprivaloma. Saulės prognozės integracijos, kurios taip pat teikia duomenis energijos skydeliui (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios ...). Jų valandinė kreivė pakeičia tolygią dienos šviesos kreivę, pagal kurią paskirstomos dienos jutiklių vertės – rytinis stogas taip gauna savo priešpietį, o debesuotas rytas – saulėtą popietę. Kiekvienai stogo plokštumai pasirinkite po vieną įrašą; pasirinkti įrašai sudedami. Kol kreivės nėra, naudojami dienos jutikliai.",
           "pv_forecast_today": "Šiandienos saulės gamybos prognozė kWh (pvz., Open-Meteo Solar Forecast arba Solcast).",
           "pv_forecast_tomorrow": "Rytdienos saulės gamybos prognozė kWh - gerokai pagerina nakties planavimą.",
           "pv_power_entity": "Dabartinė saulės galia. Rodoma kaip tiesioginė reikšmė Lovelace kortelėje."
