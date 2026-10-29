@@ -75,11 +75,13 @@
         "title": "Solstrømprognose (valgfritt)",
         "description": "Har du solceller, velg sensorer med daglig produksjonsprognose (kWh). Forventet solstrøm trekkes fra forbruksprognosen.",
         "data": {
+          "pv_forecast_entries": "Timeprognose (Energi-dashbord)",
           "pv_forecast_today": "Solstrømprognose i dag (kWh)",
           "pv_forecast_tomorrow": "Solstrømprognose i morgen (kWh)",
           "pv_power_entity": "Nåværende soleffekt (valgfritt)"
         },
         "data_description": {
+          "pv_forecast_entries": "Valgfritt. Solprognose-integrasjoner som også forsyner Energi-dashbordet (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios ...). Timekurven deres erstatter den jevne dagslyskurven som dagssensorene fordeles over, slik at et østvendt tak får formiddagen sin og en overskyet morgen den solrike ettermiddagen sin. Velg én oppføring per takflate; de valgte oppføringene legges sammen. Dagssensorene brukes fortsatt så lenge en kurve mangler.",
           "pv_forecast_today": "Prognose for solstrømproduksjonen i dag i kWh (f.eks. Open-Meteo Solar Forecast eller Solcast).",
           "pv_forecast_tomorrow": "Prognose for solstrømproduksjonen i morgen i kWh - forbedrer nattplanleggingen betydelig.",
           "pv_power_entity": "Nåværende soleffekt. Vises som en sanntidsverdi på Lovelace-kortet."
@@ -170,11 +172,13 @@
       "pv": {
         "title": "Solstrømprognose (valgfritt)",
         "data": {
+          "pv_forecast_entries": "Timeprognose (Energi-dashbord)",
           "pv_forecast_today": "Solstrømprognose i dag (kWh)",
           "pv_forecast_tomorrow": "Solstrømprognose i morgen (kWh)",
           "pv_power_entity": "Nåværende soleffekt (valgfritt)"
         },
         "data_description": {
+          "pv_forecast_entries": "Valgfritt. Solprognose-integrasjoner som også forsyner Energi-dashbordet (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios ...). Timekurven deres erstatter den jevne dagslyskurven som dagssensorene fordeles over, slik at et østvendt tak får formiddagen sin og en overskyet morgen den solrike ettermiddagen sin. Velg én oppføring per takflate; de valgte oppføringene legges sammen. Dagssensorene brukes fortsatt så lenge en kurve mangler.",
           "pv_forecast_today": "Prognose for solstrømproduksjonen i dag i kWh (f.eks. Open-Meteo Solar Forecast eller Solcast).",
           "pv_forecast_tomorrow": "Prognose for solstrømproduksjonen i morgen i kWh - forbedrer nattplanleggingen betydelig.",
           "pv_power_entity": "Nåværende soleffekt. Vises som en sanntidsverdi på Lovelace-kortet."

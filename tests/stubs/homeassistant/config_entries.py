@@ -13,7 +13,10 @@ class ConfigEntry:
     def __class_getitem__(cls, item):
         return cls
 
-    def __init__(self, data=None, options=None, entry_id="test", unique_id=None):
+    def __init__(
+        self, data=None, options=None, entry_id="test", unique_id=None, domain="smart_battery_pilot"
+    ):
+        self.domain = domain
         self.unique_id = unique_id
         self.data = data or {}
         self.options = options or {}
@@ -71,3 +74,8 @@ class ConfigFlow(_FlowBase):
 
 class OptionsFlow(_FlowBase):
     config_entry = None
+
+
+class ConfigEntryState:
+    LOADED = "loaded"
+    NOT_LOADED = "not_loaded"

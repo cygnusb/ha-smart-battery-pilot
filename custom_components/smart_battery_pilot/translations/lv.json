@@ -75,11 +75,13 @@
         "title": "Saules enerģijas prognoze (neobligāti)",
         "description": "Ja tev ir saules paneļi, izvēlies dienas ražošanas prognozes sensorus (kWh). Sagaidāmā saules enerģija tiek atskaitīta no patēriņa prognozes.",
         "data": {
+          "pv_forecast_entries": "Stundu prognoze (enerģijas panelis)",
           "pv_forecast_today": "Saules prognoze šodien (kWh)",
           "pv_forecast_tomorrow": "Saules prognoze rīt (kWh)",
           "pv_power_entity": "Pašreizējā saules jauda (neobligāti)"
         },
         "data_description": {
+          "pv_forecast_entries": "Neobligāti. Saules prognozes integrācijas, kas nodrošina arī enerģijas paneli (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios ...). To stundu līkne aizstāj vienmērīgo dienasgaismas līkni, pa kuru tiek sadalītas dienas sensoru vērtības – austrumu jumts tā iegūst savu priekšpusdienu, bet mākoņains rīts – saulainu pēcpusdienu. Katrai jumta plaknei izvēlieties vienu ierakstu; izvēlētie ieraksti tiek saskaitīti. Kamēr līknes nav, joprojām tiek izmantoti dienas sensori.",
           "pv_forecast_today": "Šodienas saules ražošanas prognoze kWh (piem., Open-Meteo Solar Forecast vai Solcast).",
           "pv_forecast_tomorrow": "Rītdienas saules ražošanas prognoze kWh - būtiski uzlabo nakts plānošanu.",
           "pv_power_entity": "Pašreizējā saules jauda. Tiek rādīta kā tiešsaistes vērtība Lovelace kartē."
@@ -170,11 +172,13 @@
       "pv": {
         "title": "Saules enerģijas prognoze (neobligāti)",
         "data": {
+          "pv_forecast_entries": "Stundu prognoze (enerģijas panelis)",
           "pv_forecast_today": "Saules prognoze šodien (kWh)",
           "pv_forecast_tomorrow": "Saules prognoze rīt (kWh)",
           "pv_power_entity": "Pašreizējā saules jauda (neobligāti)"
         },
         "data_description": {
+          "pv_forecast_entries": "Neobligāti. Saules prognozes integrācijas, kas nodrošina arī enerģijas paneli (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios ...). To stundu līkne aizstāj vienmērīgo dienasgaismas līkni, pa kuru tiek sadalītas dienas sensoru vērtības – austrumu jumts tā iegūst savu priekšpusdienu, bet mākoņains rīts – saulainu pēcpusdienu. Katrai jumta plaknei izvēlieties vienu ierakstu; izvēlētie ieraksti tiek saskaitīti. Kamēr līknes nav, joprojām tiek izmantoti dienas sensori.",
           "pv_forecast_today": "Šodienas saules ražošanas prognoze kWh (piem., Open-Meteo Solar Forecast vai Solcast).",
           "pv_forecast_tomorrow": "Rītdienas saules ražošanas prognoze kWh - būtiski uzlabo nakts plānošanu.",
           "pv_power_entity": "Pašreizējā saules jauda. Tiek rādīta kā tiešsaistes vērtība Lovelace kartē."

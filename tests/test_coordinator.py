@@ -82,6 +82,7 @@ class _ConfigEntries:
 
 class _FakeHass:
     def __init__(self, currency: str = "EUR") -> None:
+        self.is_running = True
         self.config = SimpleNamespace(currency=currency)
         self.states = _States()
         self.services = _Services()

@@ -107,6 +107,33 @@ consumption forecast.
 Optional current PV power is shown live on the Lovelace card. Without PV,
 simply leave the fields empty.
 
+Enter the forecast for the **whole** day, not "remaining today": the
+integration already drops the hours that are over, so a remaining-today
+sensor would be cut down a second time. Helios Forecast numbers its days from
+today: use `energy_day_1` for today and `energy_day_2` for tomorrow.
+
+**Hourly forecast (Energy dashboard).** The even daylight curve knows nothing
+about your roof: an east-facing array produces most of its energy before noon,
+a west-facing one after, and a cloudy morning moves the yield into the
+afternoon. If a forecast integration also feeds the
+[Energy dashboard](https://www.home-assistant.io/docs/energy/solar-panels/)
+— Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios and others do —
+pick its config entries in **Hourly forecast**, one per roof face. Their
+hourly curves are added up and replace the daylight curve slot by slot.
+
+* A new setup pre-selects the entries your Energy dashboard already uses.
+  Existing installations keep planning exactly as before until you pick
+  entries yourself.
+* The daily sensors stay the fallback. When one of the selected entries
+  delivers no curve (integration not loaded, API down), the whole cycle plans
+  with the daily sensors rather than silently leaving a roof out, and the log
+  says so once. Slots beyond the end of the shortest curve use the daily
+  sensors too, so keep them configured.
+* Forecast.Solar stamps each value with the end of its hour; other
+  integrations with the start. Both are read correctly.
+* The diagnostics download shows under `inputs.pv_hourly` which entries were
+  used, which failed, and how many slots came from the curve.
+
 ## Options (Settings → Integrations → Configure)
 
 The configure dialog opens a **menu** in which every input from the initial
@@ -118,7 +145,7 @@ configured entities/values pre-filled:
 * **Battery parameters** — SOC entity, capacity, power limits, SOC window, efficiency
 * **Control scripts** — the four action scripts
 * **Consumption & temperature** — consumption sensor, temperature, heat pump
-* **PV forecast** — daily forecast entities and optional live PV power
+* **PV forecast** — hourly forecast entries, daily forecast entities and optional live PV power
 * **Cold-weather charging** — only here, not in the initial setup; see below
 * **Backup reserve** — only here; see below
 * **EV charging & other controllers** — only here; see [EV charging, evcc and other controllers](ev-charging.md)

@@ -75,11 +75,13 @@
         "title": "PV-Prognose (optional)",
         "description": "Mit PV-Anlage: Wähle die Tagesprognose-Sensoren (kWh). Die erwartete PV-Produktion wird von der Verbrauchsprognose abgezogen.",
         "data": {
+          "pv_forecast_entries": "Stündliche Prognose (Energie-Dashboard)",
           "pv_forecast_today": "PV-Prognose heute (kWh)",
           "pv_forecast_tomorrow": "PV-Prognose morgen (kWh)",
           "pv_power_entity": "Aktuelle PV-Leistung (optional)"
         },
         "data_description": {
+          "pv_forecast_entries": "Optional. PV-Prognose-Integrationen, die auch das Energie-Dashboard versorgen (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios ...). Ihre Stundenkurve ersetzt die gleichmäßige Tageslichtkurve, auf die die Tagessensoren verteilt werden – ein Ostdach bekommt so seinen Vormittag, ein bewölkter Morgen seinen sonnigen Nachmittag. Pro Dachfläche einen Eintrag wählen; die gewählten Einträge werden addiert. Solange eine Kurve fehlt, gelten weiter die Tagessensoren.",
           "pv_forecast_today": "PV-Prognose fuer heute in kWh (z.B. Open-Meteo Solar Forecast oder Solcast).",
           "pv_forecast_tomorrow": "PV-Prognose fuer morgen in kWh - verbessert die Nacht-Planung erheblich.",
           "pv_power_entity": "Aktuelle PV-Leistung. Wird auf der Lovelace-Karte als Live-Wert angezeigt."
@@ -170,11 +172,13 @@
       "pv": {
         "title": "PV-Prognose (optional)",
         "data": {
+          "pv_forecast_entries": "Stündliche Prognose (Energie-Dashboard)",
           "pv_forecast_today": "PV-Prognose heute (kWh)",
           "pv_forecast_tomorrow": "PV-Prognose morgen (kWh)",
           "pv_power_entity": "Aktuelle PV-Leistung (optional)"
         },
         "data_description": {
+          "pv_forecast_entries": "Optional. PV-Prognose-Integrationen, die auch das Energie-Dashboard versorgen (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios ...). Ihre Stundenkurve ersetzt die gleichmäßige Tageslichtkurve, auf die die Tagessensoren verteilt werden – ein Ostdach bekommt so seinen Vormittag, ein bewölkter Morgen seinen sonnigen Nachmittag. Pro Dachfläche einen Eintrag wählen; die gewählten Einträge werden addiert. Solange eine Kurve fehlt, gelten weiter die Tagessensoren.",
           "pv_forecast_today": "PV-Prognose fuer heute in kWh (z.B. Open-Meteo Solar Forecast oder Solcast).",
           "pv_forecast_tomorrow": "PV-Prognose fuer morgen in kWh - verbessert die Nacht-Planung erheblich.",
           "pv_power_entity": "Aktuelle PV-Leistung. Wird auf der Lovelace-Karte als Live-Wert angezeigt."

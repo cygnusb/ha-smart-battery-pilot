@@ -75,11 +75,13 @@
         "title": "Päikeseenergia prognoos (valikuline)",
         "description": "Kui sul on päikesepaneelid, vali päevase toodangu prognoosi andurid (kWh). Oodatav päikeseenergia lahutatakse tarbimisprognoosist.",
         "data": {
+          "pv_forecast_entries": "Tunnipõhine prognoos (energia töölaud)",
           "pv_forecast_today": "Päikeseprognoos täna (kWh)",
           "pv_forecast_tomorrow": "Päikeseprognoos homme (kWh)",
           "pv_power_entity": "Praegune päikesevõimsus (valikuline)"
         },
         "data_description": {
+          "pv_forecast_entries": "Valikuline. Päikeseprognoosi integratsioonid, mis toidavad ka energia töölauda (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios ...). Nende tunnikõver asendab ühtlast päevavalguse kõverat, millele päevaandurite väärtused jaotatakse – idakatus saab nii oma hommikupooliku ja pilvine hommik oma päikeselise pärastlõuna. Vali iga katusepinna kohta üks kirje; valitud kirjed liidetakse. Kui kõver puudub, kasutatakse endiselt päevaandureid.",
           "pv_forecast_today": "Tänase päikesetoodangu prognoos kWh (nt Open-Meteo Solar Forecast või Solcast).",
           "pv_forecast_tomorrow": "Homse päikesetoodangu prognoos kWh - parandab öist planeerimist märgatavalt.",
           "pv_power_entity": "Praegune päikesevõimsus. Kuvatakse reaalajas väärtusena Lovelace'i kaardil."
@@ -170,11 +172,13 @@
       "pv": {
         "title": "Päikeseenergia prognoos (valikuline)",
         "data": {
+          "pv_forecast_entries": "Tunnipõhine prognoos (energia töölaud)",
           "pv_forecast_today": "Päikeseprognoos täna (kWh)",
           "pv_forecast_tomorrow": "Päikeseprognoos homme (kWh)",
           "pv_power_entity": "Praegune päikesevõimsus (valikuline)"
         },
         "data_description": {
+          "pv_forecast_entries": "Valikuline. Päikeseprognoosi integratsioonid, mis toidavad ka energia töölauda (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios ...). Nende tunnikõver asendab ühtlast päevavalguse kõverat, millele päevaandurite väärtused jaotatakse – idakatus saab nii oma hommikupooliku ja pilvine hommik oma päikeselise pärastlõuna. Vali iga katusepinna kohta üks kirje; valitud kirjed liidetakse. Kui kõver puudub, kasutatakse endiselt päevaandureid.",
           "pv_forecast_today": "Tänase päikesetoodangu prognoos kWh (nt Open-Meteo Solar Forecast või Solcast).",
           "pv_forecast_tomorrow": "Homse päikesetoodangu prognoos kWh - parandab öist planeerimist märgatavalt.",
           "pv_power_entity": "Praegune päikesevõimsus. Kuvatakse reaalajas väärtusena Lovelace'i kaardil."

@@ -75,11 +75,13 @@
         "title": "PV-prognose (optioneel)",
         "description": "Heb je zonnepanelen, selecteer dan sensoren met de dagelijkse opbrengstprognose (kWh). De verwachte PV wordt van de verbruiksprognose afgetrokken.",
         "data": {
+          "pv_forecast_entries": "Uurprognose (Energiedashboard)",
           "pv_forecast_today": "PV-prognose vandaag (kWh)",
           "pv_forecast_tomorrow": "PV-prognose morgen (kWh)",
           "pv_power_entity": "Actueel PV-vermogen (optioneel)"
         },
         "data_description": {
+          "pv_forecast_entries": "Optioneel. Zonneprognose-integraties die ook het Energiedashboard voeden (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios ...). Hun uurcurve vervangt de gelijkmatige daglichtcurve waarover de dagsensoren worden verdeeld, zodat een oostdak zijn ochtend krijgt en een bewolkte ochtend zijn zonnige middag. Kies één item per dakvlak; de gekozen items worden opgeteld. Zolang een curve ontbreekt, blijven de dagsensoren gelden.",
           "pv_forecast_today": "Prognose van de PV-opbrengst voor vandaag in kWh (bijv. Open-Meteo Solar Forecast of Solcast).",
           "pv_forecast_tomorrow": "Prognose van de PV-opbrengst voor morgen in kWh - verbetert de planning voor de nacht aanzienlijk.",
           "pv_power_entity": "Actueel PV-vermogen. Wordt als live waarde op de Lovelace-kaart getoond."
@@ -170,11 +172,13 @@
       "pv": {
         "title": "PV-prognose (optioneel)",
         "data": {
+          "pv_forecast_entries": "Uurprognose (Energiedashboard)",
           "pv_forecast_today": "PV-prognose vandaag (kWh)",
           "pv_forecast_tomorrow": "PV-prognose morgen (kWh)",
           "pv_power_entity": "Actueel PV-vermogen (optioneel)"
         },
         "data_description": {
+          "pv_forecast_entries": "Optioneel. Zonneprognose-integraties die ook het Energiedashboard voeden (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios ...). Hun uurcurve vervangt de gelijkmatige daglichtcurve waarover de dagsensoren worden verdeeld, zodat een oostdak zijn ochtend krijgt en een bewolkte ochtend zijn zonnige middag. Kies één item per dakvlak; de gekozen items worden opgeteld. Zolang een curve ontbreekt, blijven de dagsensoren gelden.",
           "pv_forecast_today": "Prognose van de PV-opbrengst voor vandaag in kWh (bijv. Open-Meteo Solar Forecast of Solcast).",
           "pv_forecast_tomorrow": "Prognose van de PV-opbrengst voor morgen in kWh - verbetert de planning voor de nacht aanzienlijk.",
           "pv_power_entity": "Actueel PV-vermogen. Wordt als live waarde op de Lovelace-kaart getoond."

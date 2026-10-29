@@ -75,11 +75,13 @@
         "title": "Aurinkoennuste (valinnainen)",
         "description": "Jos sinulla on aurinkopaneelit, valitse päivittäisen tuotantoennusteen anturit (kWh). Odotettu aurinkotuotanto vähennetään kulutusennusteesta.",
         "data": {
+          "pv_forecast_entries": "Tuntiennuste (Energia-kojelauta)",
           "pv_forecast_today": "Aurinkoennuste tänään (kWh)",
           "pv_forecast_tomorrow": "Aurinkoennuste huomenna (kWh)",
           "pv_power_entity": "Nykyinen aurinkoteho (valinnainen)"
         },
         "data_description": {
+          "pv_forecast_entries": "Valinnainen. Aurinkoennusteintegraatiot, jotka syöttävät myös Energia-kojelautaa (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios ...). Niiden tuntikäyrä korvaa tasaisen päivänvalokäyrän, jolle päiväanturien arvot jaetaan – itäkatto saa näin aamupäivänsä ja pilvinen aamu aurinkoisen iltapäivänsä. Valitse yksi merkintä kattopintaa kohden; valitut merkinnät lasketaan yhteen. Päiväantureita käytetään edelleen, kun käyrää ei ole saatavilla.",
           "pv_forecast_today": "Aurinkotuotannon ennuste tälle päivälle kWh (esim. Open-Meteo Solar Forecast tai Solcast).",
           "pv_forecast_tomorrow": "Aurinkotuotannon ennuste huomiselle kWh - parantaa yön suunnittelua huomattavasti.",
           "pv_power_entity": "Nykyinen aurinkoteho. Näytetään reaaliaikaisena arvona Lovelace-kortilla."
@@ -170,11 +172,13 @@
       "pv": {
         "title": "Aurinkoennuste (valinnainen)",
         "data": {
+          "pv_forecast_entries": "Tuntiennuste (Energia-kojelauta)",
           "pv_forecast_today": "Aurinkoennuste tänään (kWh)",
           "pv_forecast_tomorrow": "Aurinkoennuste huomenna (kWh)",
           "pv_power_entity": "Nykyinen aurinkoteho (valinnainen)"
         },
         "data_description": {
+          "pv_forecast_entries": "Valinnainen. Aurinkoennusteintegraatiot, jotka syöttävät myös Energia-kojelautaa (Forecast.Solar, Open-Meteo Solar Forecast, Solcast, Helios ...). Niiden tuntikäyrä korvaa tasaisen päivänvalokäyrän, jolle päiväanturien arvot jaetaan – itäkatto saa näin aamupäivänsä ja pilvinen aamu aurinkoisen iltapäivänsä. Valitse yksi merkintä kattopintaa kohden; valitut merkinnät lasketaan yhteen. Päiväantureita käytetään edelleen, kun käyrää ei ole saatavilla.",
           "pv_forecast_today": "Aurinkotuotannon ennuste tälle päivälle kWh (esim. Open-Meteo Solar Forecast tai Solcast).",
           "pv_forecast_tomorrow": "Aurinkotuotannon ennuste huomiselle kWh - parantaa yön suunnittelua huomattavasti.",
           "pv_power_entity": "Nykyinen aurinkoteho. Näytetään reaaliaikaisena arvona Lovelace-kortilla."
