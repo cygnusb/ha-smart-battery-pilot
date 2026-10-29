@@ -286,7 +286,7 @@ everything.
 
 | `height` | Effect |
 |---|---|
-| omitted, or `auto` *(default)* | Grows gently with width and then stops: roughly 236–440 px in `tracks` and `balance`, 158–300 px in `compact`. |
+| omitted, or `auto` *(default)* | Grows gently with width and then stops: roughly 236–440 px in `tracks`, `balance` and `flow`, 250–460 px in `bars`, 158–300 px in `compact`. |
 | a number, e.g. `height: 320` | Exactly that many pixels for the chart. Accepts `"320px"` too. Panels shrink to a 30 px floor, below which the card grows back. |
 | a percentage, e.g. `height: "100%"` | Fills the box the dashboard offers, minus the status line and legend. Only useful where that box has a height of its own — a sections-view card with `grid_options.rows` set, or a `card_mod` wrapper. Elsewhere it falls back to `auto`. |
 
@@ -313,16 +313,19 @@ strong PV day.
 |---|---|
 | `tracks` *(default)* | Three panels sharing one time axis: price, PV against consumption, SOC. |
 | `balance` | Same three panels, but the middle one shows PV **minus** consumption as an area diverging around zero — the quantity the optimizer plans against. |
+| `bars` | Price as one bar per slot in the colour of the action planned for it, which replaces the ribbon; PV against consumption; SOC. With EV charging on the plan, a lane under the price shows the car's planned kWh per slot on a scale of its own, and evcc's price limit runs across the bars. |
+| `flow` | Price as a band of one orange that darkens with the price (cheapest and dearest slot labeled above it), the action ribbon directly under it, PV drawn upwards and consumption downwards around zero, and the SOC across 0–100 % with the reserve (`min_soc`) and ceiling (`max_soc`) as dashed lines. With EV charging, the same car lane as in `bars`, and a dot on every slot cheap enough to be under evcc's limit. |
 | `compact` | Status line, three figures (SOC now → at horizon end, next change, planned discharge) and a smaller SOC + price chart. Roughly two thirds the height; below 420 px the three figures are set smaller so they stay on one line. With an EV charging session on the plan a fourth figure shows it (energy, time span, why evcc charges) in place of the status-line summary; below 420 px the four go two by two. |
 
 An unrecognised value falls back to `tracks`. The button at the right of the
 legend flips between `tracks` and `balance` without editing the dashboard;
 it resets to the configured view whenever the card config is re-applied.
 
-Common to every view: planned actions as a labeled band across the top
-(charge/blocked/export/auto), local-midnight day separators with the date,
-a "now" marker, the most expensive and the cheapest slot labeled on the price
-curve, the SOC endpoint labeled, and a hover marker on every curve with a
+Common to every view: planned actions (charge/blocked/export/auto) — as a
+labeled band across the top, as the colour of the price bars in `bars`, as a
+thin band under the price in `flow` — local-midnight day separators with the date,
+a "now" marker, the most expensive and the cheapest slot labeled on the
+price, the SOC endpoint labeled, and a hover marker on every curve with a
 tooltip showing time slot, action, price, SOC forecast, PV and net demand.
 
 With planned EV sessions (evcc), every view adds the charging windows as a
@@ -334,7 +337,7 @@ looks exactly as before, apart from one line in the status bar that says
 how the charger stands (car SOC and "no charging planned", "not plugged in" or
 "evcc not reachable"). See [EV charging](ev-charging.md#planned-sessions-evcc).
 
-The SOC panel is drawn against the battery's configured window (`min_soc` to
+Apart from `flow`, the SOC panel is drawn against the battery's configured window (`min_soc` to
 `max_soc`, published on the plan sensor) instead of 0–100 %, so the discharge
 depth uses the panel's full height rather than a sliver along the top edge.
 

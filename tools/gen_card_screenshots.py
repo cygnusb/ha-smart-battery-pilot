@@ -776,6 +776,8 @@ SHOTS = [
     (ev_overnight, "compact", "card_ev_compact"),
     (summer_export, "balance", "card_view_balance"),
     (summer_export, "compact", "card_view_compact"),
+    (ev_overnight, "bars", "card_view_bars"),
+    (summer_export, "flow", "card_view_flow"),
 ]
 
 # Widths the card is expected to survive: a phone column, the size it was
@@ -787,6 +789,8 @@ SIZE_SHOTS = [
     (winter_arbitrage, "tracks", "size_tracks"),
     (winter_arbitrage, "compact", "size_compact"),
     (ev_overnight, "compact", "size_ev_compact"),
+    (ev_overnight, "bars", "size_ev_bars"),
+    (ev_overnight, "flow", "size_ev_flow"),
 ]
 
 
