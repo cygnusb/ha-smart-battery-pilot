@@ -674,7 +674,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
 
         self._update_actual_savings(plan, now)
         self.health.plan_result(now, None)
-        self._sync_health_issues()
+        self.sync_health_issues()
 
         pv_entity = self.conf(CONF_PV_POWER_ENTITY)
         pv_power = self._read_float_state(pv_entity) if pv_entity else None
@@ -746,7 +746,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         else:
             _LOGGER.debug("Still no valid plan (%s)", error)
         self.health.plan_result(now, error)
-        self._sync_health_issues()
+        self.sync_health_issues()
         return SBPData(
             plan=Plan(), valid=False, error=error, updated_at=now, **self._savings_fields()
         )
@@ -1536,16 +1536,17 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
     def async_start_health(self) -> None:
         """The switches are restored: repairs may follow the checks from now on."""
         self._health_started = True
-        self._sync_health_issues()
+        self.sync_health_issues()
 
     @callback
     def note_script_result(self, action: str, entity_id: str | None, success: bool) -> None:
         """The executor reports every script call."""
         self.health.script_result(action, entity_id, success)
-        self._sync_health_issues()
+        self.sync_health_issues()
         self.schedule_persist()
 
-    def _sync_health_issues(self) -> None:
+    @callback
+    def sync_health_issues(self) -> None:
         """Mirror the failed checks into Settings > Repairs."""
         if not self._health_started:
             return
@@ -1617,7 +1618,8 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         """The house right now; the forecast if its sensor only counts energy."""
         entity_id = self.conf(CONF_CONSUMPTION_ENTITY)
         if entity_id and self._unit(entity_id) in ("W", "kW"):
-            return self._read_power_w(entity_id)
+            load = self._read_power_w(entity_id)
+            return None if load is None else max(0.0, load - (self.ev_power_w() or 0.0))
         if slot is None:
             return None
         hours = (slot.end - slot.start).total_seconds() / 3600.0

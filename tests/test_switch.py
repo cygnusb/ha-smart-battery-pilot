@@ -18,6 +18,9 @@ class _Coordinator:
     def async_update_listeners(self) -> None:
         self.updates += 1
 
+    def sync_health_issues(self) -> None:
+        pass
+
 
 class _Executor:
     def __init__(self) -> None:

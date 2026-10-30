@@ -20,6 +20,7 @@ from smart_battery_pilot.const import (
     CONF_BATTERY_CHARGE_ENERGY_ENTITY,
     CONF_BATTERY_DISCHARGE_ENERGY_ENTITY,
     CONF_CONSUMPTION_ENTITY,
+    CONF_EV_POWER_ENTITIES,
     CONF_FEED_IN_TARIFF,
     CONF_PRICE_ENTITY,
     CONF_PRICE_OFFSET,
@@ -859,6 +860,28 @@ def test_an_energy_only_consumption_sensor_falls_back_to_the_forecast():
     )
     assert coord._house_load_w(slot) == 1000.0
     assert coord._house_load_w(None) is None
+
+
+def test_the_car_is_taken_out_of_a_whole_house_load():
+    hass = _FakeHass()
+    hass.states.set("sensor.load", 2500.0, {"unit_of_measurement": "W"})
+    hass.states.set("sensor.wallbox", 2000.0, {"unit_of_measurement": "W"})
+    coord = _coordinator(
+        hass, **{CONF_CONSUMPTION_ENTITY: "sensor.load", CONF_EV_POWER_ENTITIES: ["sensor.wallbox"]}
+    )
+    assert coord._house_load_w(None) == 500.0
+
+
+def test_switching_the_pilot_off_hides_its_repairs_right_away():
+    hass = _FakeHass()
+    coord = _steering(hass)
+    key = (DOMAIN, health.issue_id(coord.entry.entry_id, health.CHECK_SCRIPT_FAILING))
+    for _ in range(3):
+        coord.note_script_result(ACTION_CHARGE, "script.charge", False)
+    assert key in issue_registry.issues
+    coord.dry_run = True
+    coord.sync_health_issues()
+    assert key not in issue_registry.issues
 
 
 def test_a_plan_invalid_for_12_hours_reaches_repairs():

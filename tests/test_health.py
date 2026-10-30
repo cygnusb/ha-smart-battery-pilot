@@ -347,6 +347,15 @@ def test_a_soc_that_stands_still_while_energy_moves_fires():
     assert CHECK_SOC_FROZEN not in _shown(monitor)
 
 
+def test_a_soc_that_stands_still_while_trading_around_it_is_fine():
+    monitor = HealthMonitor()
+    for i in range(12):
+        monitor.observe(
+            _obs(START + STEP * i, charge_kwh=100.0 + 0.5 * i, discharge_kwh=100.0 + 0.5 * i)
+        )
+    assert CHECK_SOC_FROZEN not in _shown(monitor)
+
+
 def test_a_soc_that_stands_still_on_a_resting_battery_is_fine():
     monitor = HealthMonitor()
     for i in range(48):

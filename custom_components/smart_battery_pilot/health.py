@@ -325,7 +325,9 @@ class HealthMonitor:
         charged = _delta(obs.charge_kwh, prev.charge_kwh)
         discharged = _delta(obs.discharge_kwh, prev.discharge_kwh)
         if charged is not None or discharged is not None:
-            self._frozen_moved += (charged or 0.0) + (discharged or 0.0)
+            # Net, like the idle check: trading around a held SOC moves both
+            # meters and rightly leaves the SOC where it is.
+            self._frozen_moved += abs((charged or 0.0) - (discharged or 0.0))
         elif prev.steering and prev.action in (ACTION_CHARGE, ACTION_EXPORT):
             hours = (obs.at - prev.at).total_seconds() / 3600.0
             self._frozen_moved += prev.power_w / 1000.0 * hours
