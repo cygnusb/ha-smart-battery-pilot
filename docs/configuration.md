@@ -318,7 +318,7 @@ The bundled card (auto-registered as a lovelace resource in storage mode; with
 type: custom:smart-battery-pilot-card
 entity: sensor.smart_battery_pilot_charge_plan  # optional - auto-discovered
 title: Smart Battery Pilot                      # optional
-view: tracks                                    # optional - tracks | balance | compact
+view: tracks                                    # optional - tracks | balance | bars | flow | compact
 height: auto                                    # optional - auto | <pixels> | <percent>
 ```
 
