@@ -73,7 +73,7 @@ vendor configurations.
 | Action   | Meaning                                                        |
 |----------|----------------------------------------------------------------|
 | `charge` | Force-charge from the grid at the planned power                |
-| `auto`   | Inverter auto mode — battery covers household consumption      |
+| `auto`   | Self-consumption — battery covers the house, PV surplus charges it |
 | `idle`   | Discharging blocked — preserve energy for more expensive hours |
 | `export` | Force-discharge into the grid (optional arbitrage mode)        |
 

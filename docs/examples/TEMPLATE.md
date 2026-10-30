@@ -55,6 +55,10 @@ the household load plus what goes to the grid. The script should keep serving
 the house from the battery while it exports — see
 [what an export slot assumes](../optimizer.md#what-an-export-slot-assumes).
 
+The auto script has to leave the battery covering the house load and charging
+from PV surplus. If the hardware does not do that by itself, describe here what
+does — see [what an auto slot assumes](../optimizer.md#what-an-auto-slot-assumes).
+
 ## Integration configuration
 
 | Config flow field | Entity / value |
