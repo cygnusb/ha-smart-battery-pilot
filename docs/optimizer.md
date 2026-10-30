@@ -64,7 +64,8 @@ cold-weather charge factor.
    sunny days the planner knows the battery refills by evening, doesn't lock
    it during the day and doesn't grid-charge needlessly. PV occupies the
    slot's charge-power headroom first; grid charging in the same slot only
-   uses what is left. The SOC projection rises with the sun accordingly.
+   uses what is left. The SOC projection rises with the sun accordingly. See
+   [what an auto slot assumes](#what-an-auto-slot-assumes).
 4. **Curtailed PV makes earlier energy free to spend.** Where the timeline
    pins the battery at max SOC, the surplus that no longer fits is thrown
    away. A kWh discharged *before* such a slot is refilled by that surplus at
@@ -124,6 +125,39 @@ same AC bus as the house:
 A held slot stays **auto** in the plan rather than turning `idle`. The wallbox
 block or evcc holds the battery exactly while the car really draws; an `idle`
 would keep it blocked for a session that ends early or never starts.
+
+## What an auto slot assumes
+
+The pilot only plans an auto slot; it does not regulate anything inside it. The
+plan assumes that something else keeps the grid meter near zero during the
+slot: the battery covers the house load, and PV surplus charges the battery.
+
+What matters is who closes that loop, not whether the PV is DC- or AC-coupled:
+
+| Installation | Who follows the grid meter in auto |
+|---|---|
+| Hybrid inverter, PV on its DC input | The inverter |
+| Hybrid inverter, more PV on the AC side | The inverter, if it has a grid meter and is allowed to charge from other generators (often a setting) |
+| AC battery in its smart-meter mode | The battery |
+| AC battery that only follows charge and discharge commands | Nobody, unless an automation does it |
+
+If nothing closes the loop, the plan and the battery drift apart without any
+error:
+
+* **The SOC forecast rises with the sun, but the battery does not.** Every
+  re-plan starts again from the real SOC and quietly shrinks what is left for
+  the evening.
+* **Grid charging is skipped.** The evening demand counts as covered by PV
+  energy that never arrives.
+* **Surplus goes to the grid** while the battery is far from full.
+
+To check an installation, watch one sunny auto slot with the battery well below
+max SOC: the grid meter should show next to no export, and the SOC should
+rise. If you close the loop with an automation, have the auto script enable it
+and the other scripts disable it before they command the battery, so that only
+one writer is active at a time. It also has to respect the pilot's limits:
+stop charging at max SOC, and stop discharging at `reserve_soc`, or switch on
+[block discharging at the reserve](configuration.md#backup-reserve).
 
 ## What an export slot assumes
 

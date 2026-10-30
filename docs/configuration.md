@@ -72,6 +72,14 @@ only answer with a warning and a fallback to auto mode. It must keep covering
 the house from the battery while it exports; see
 [what an export slot assumes](optimizer.md#what-an-export-slot-assumes).
 
+The auto script has to leave the battery in **self-consumption in both
+directions**: it covers the house load, and it charges from PV surplus. The
+plan counts on both ([what an auto slot assumes](optimizer.md#what-an-auto-slot-assumes)).
+A hybrid inverter or an AC battery in its smart-meter mode does this by itself.
+A battery that only follows charge and discharge commands does not: there, the
+auto script has to hand over to something that does, such as an automation that
+follows the grid meter.
+
 Ready-made scripts for specific hardware: see [examples](examples/README.md).
 
 > Each script is awaited (`blocking: true`) and must return within **120 s**,
