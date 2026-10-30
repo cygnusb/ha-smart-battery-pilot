@@ -252,6 +252,48 @@ the integration calls your *auto mode* script once, logs one warning naming
 the reason, and stops interfering until planning works again. Turning dry-run
 **on** after a live script was applied also restores auto.
 
+## Consistency checks
+
+The plan rests on assumptions the pilot can't enforce. When one fails, nothing
+errors: the plan and the battery just drift apart. So the pilot compares the two
+and raises a message under **Settings → Repairs** when they disagree. The checks
+only report, they never change a plan or a script call. A message disappears by
+itself once the problem is gone. If it describes something you do on purpose,
+such as limiting charging, use *Ignore* on the message.
+
+| Message | Raised when | Needs |
+|---|---|---|
+| A control script keeps failing | one script failed 3 times in a row | – |
+| No valid plan | no plan for 12 hours | – |
+| Another controller holds the battery | the external control entity is active for 24 hours | External control entity |
+| SOC sensor frozen | the SOC stands still for 2 hours while 10 % of the capacity moves | Energy meters, or a forced slot |
+| PV forecast is a "remaining today" sensor | the forecast for today falls under 15 % of its daily high by sunset, 3 days | Daily PV sensors without hourly forecast entries |
+| Battery capacity looks wrong | charging implies a capacity more than 25 % off, 3 times | Both energy meters |
+| Charge slots don't charge | under 50 % of the requested energy arrives, 3 days | SOC |
+| Battery discharges in idle slots | over 5 % of the capacity net leaves during idle slots, 3 days | SOC |
+| Export slots don't discharge | under 50 % of the planned energy leaves, 3 days | SOC |
+| Battery doesn't cover the house | under 20 % of the measured deficit is delivered in auto slots, 3 days | Consumption, and live PV power or a slot with no forecast PV |
+| PV surplus doesn't reach the battery | under 20 % of the measured surplus arrives in auto slots, 3 days | Live PV power and consumption |
+
+Good to know:
+
+* **What counts:** only slots the pilot really drives. Dry-run, external control
+  and a charging car are left out, and so is a battery within 5 SOC points of
+  its limit, since it may rightly stop there.
+* **Series:** the 3 days need not be consecutive. A day with too little at stake
+  (under 10 % of the capacity, 5 % in charge and export slots) doesn't count
+  either way. A clearly good day resets the series and clears the message.
+* **A wrong forecast doesn't fire a check.** Surplus and deficit come from the
+  live PV sensor, not from the plan. If the consumption sensor only counts energy,
+  the forecast load stands in for the live load.
+* **Meters and accuracy:** with charge and discharge meters the checks read those;
+  without them they use the SOC. A live PV sensor that misses part of the PV
+  underestimates the surplus, so the check stays quiet rather than raising a
+  false message.
+* **Partial problems stay unreported.** A battery that takes half of the surplus
+  passes. The limits are set to catch what is clearly broken.
+* The state of the checks is in the diagnostics download under `runtime.health`.
+
 ## Troubleshooting
 
 * **Download diagnostics** (device page → ⋮) first. It holds the inputs of the

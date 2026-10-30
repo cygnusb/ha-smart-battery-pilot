@@ -54,6 +54,7 @@ class _FakeCoordinator:
         self.persisted = 0
         self.listener_updates = 0
         self.charge_requests: list = []
+        self.script_results: list = []
         self.closings: list = []
         self.reserve = 10
         self.block = False
@@ -117,6 +118,9 @@ class _FakeCoordinator:
 
     def external_control_active(self):
         return self.external
+
+    def note_script_result(self, action, entity_id, success):
+        self.script_results.append((action, entity_id, success))
 
     def charge_observation(self, requested_w, now=None, closing=None):
         self.charge_requests.append(requested_w)
@@ -302,3 +306,24 @@ def test_a_hanging_script_does_not_block_unload(monkeypatch):
 
     # Would hang indefinitely without the timeout.
     asyncio.run(asyncio.wait_for(executor.async_stop(), timeout=5))
+
+
+def test_every_script_call_reports_its_result():
+    """A failed charge falls back to auto; the checks need to see both."""
+    hass = _FakeHass()
+    now = dt_util.now()
+    slot = PlanSlot(
+        start=now - timedelta(minutes=5),
+        end=now + timedelta(minutes=55),
+        action=ACTION_CHARGE,
+        price=0.1,
+        net_demand_kwh=0.5,
+    )
+    coord = _FakeCoordinator([slot], dry_run=False)
+    hass.services.fail = True
+    executor = PlanExecutor(hass, coord)
+    asyncio.run(executor.async_apply_current())
+    assert coord.script_results == [
+        (ACTION_CHARGE, "script.sbp_charge", False),
+        (ACTION_AUTO, "script.sbp_auto", False),
+    ]

@@ -432,3 +432,23 @@ async def test_the_entry_unloads_cleanly(sbp_hass: HomeAssistant) -> None:
     await sbp_hass.async_block_till_done()
 
     assert entry.state is entry.state.NOT_LOADED
+
+
+async def test_a_failed_check_shows_up_under_repairs(sbp_hass: HomeAssistant) -> None:
+    """Against the real issue registry, with its translation key in place."""
+    entry = await _setup(sbp_hass)
+    coordinator = entry.runtime_data.coordinator
+    coordinator.enabled = True
+    coordinator.dry_run = False
+    for _ in range(3):
+        coordinator.note_script_result("charge", "script.sbp_charge", False)
+    registry = ir.async_get(sbp_hass)
+    issue_id = f"script_failing_{entry.entry_id}"
+    issue = registry.async_get_issue(DOMAIN, issue_id)
+    assert issue is not None
+    assert issue.translation_key == "script_failing"
+    assert issue.translation_placeholders == {"action": "charge", "script": "script.sbp_charge"}
+
+    assert await sbp_hass.config_entries.async_unload(entry.entry_id)
+    await sbp_hass.async_block_till_done()
+    assert registry.async_get_issue(DOMAIN, issue_id) is None

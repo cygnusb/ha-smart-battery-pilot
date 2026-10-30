@@ -68,6 +68,11 @@ vendor configurations.
 6. **Accounting** — from your battery's energy meters it reports what the
    battery is worth and, separately, what the pilot itself added.
 
+The pilot also checks that what it plans really happens: if charge slots don't
+charge, an idle slot leaks, PV surplus never reaches the battery or the SOC sensor
+is frozen, it says so under *Settings → Repairs*
+([consistency checks](docs/configuration.md#consistency-checks)).
+
 ### Actions
 
 | Action   | Meaning                                                        |

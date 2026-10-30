@@ -397,6 +397,50 @@
     "currency_mismatch": {
       "title": "Hintasensori käyttää eri valuuttaa",
       "description": "**{entity}** ilmoittaa hinnat valuutassa **{sensor_currency}**, mutta Home Assistantin valuutta on **{ha_currency}**.\n\nSmart Battery Pilot ei muunna hintoja. Suunnitelma on oikein, mutta hinnat ja säästöt merkitään valuutassa {ha_currency}, ja oletusarvot sekä uskottavuusrajat on mitoitettu valuutalle {ha_currency}.\n\nAseta kohdassa **Asetukset → Järjestelmä → Yleiset** valuutta, jossa sähkösopimuksesi laskutetaan, lataa integraatio uudelleen ja tarkista hintalisä, syöttötariffi ja spread kerran. Viesti katoaa heti, kun valuutat täsmäävät."
+    },
+    "script_failing": {
+      "title": "Ohjausskripti epäonnistuu toistuvasti",
+      "description": "**{script}** (toiminto `{action}`) epäonnistui kolme kertaa peräkkäin, joten suunnitelmaa ei toteuteta.\n\nSyy löytyy lokista. Skripti lasketaan epäonnistuneeksi myös, jos se kestää yli 120 s."
+    },
+    "plan_invalid": {
+      "title": "Ei kelvollista suunnitelmaa 12 tuntiin",
+      "description": "Smart Battery Pilot ei ole pystynyt suunnittelemaan vähintään 12 tuntiin (`{error}`), joten akku on automaattitilassa.\n\nTarkista hinta- ja SOC-entiteetti. Tämä ilmoitus katoaa heti, kun suunnittelu toimii taas."
+    },
+    "external_control_stuck": {
+      "title": "Toinen ohjaus on pitänyt akkua 24 tuntia",
+      "description": "Ulkoisen ohjauksen entiteetti on ollut aktiivinen vähintään 24 tuntia, ja pilotti on tauolla niin kauan.\n\nTarkista, pitääkö ohjaus todella yhä akkua vai onko entiteetti jumissa."
+    },
+    "soc_frozen": {
+      "title": "SOC-anturi näyttää jäätyneen",
+      "description": "SOC pysyi arvossa {soc} %, vaikka noin {moved_kwh} kWh virtasi akkuun tai akusta. Jokainen suunnitelma alkaa tästä arvosta.\n\nTarkista integraatio, joka antaa SOC-arvon."
+    },
+    "pv_today_is_remaining": {
+      "title": "Tämän päivän aurinkoennuste näyttää loppupäivän anturilta",
+      "description": "Kolmena päivänä peräkkäin tämän päivän ennuste laski arvosta {high_kwh} kWh arvoon {last_kwh} kWh auringonlaskuun mennessä (viimeksi). Suunnitelma odottaa koko päivän summaa ja aliarvioi siksi iltapäivän aurinkosähkön.\n\nValitse anturi, jossa on koko päivän ennuste."
+    },
+    "capacity_mismatch": {
+      "title": "Asetettu akun kapasiteetti näyttää väärältä",
+      "description": "Lataus viittaa noin {implied_kwh} kWh:n kapasiteettiin, mutta asetettu arvo on {configured_kwh} kWh. SOC-ennuste ja suunnitellut määrät poikkeavat saman verran.\n\nTarkista käyttökelpoinen kapasiteetti, latausmittarin yksikkö ja hyötysuhde."
+    },
+    "charge_ineffective": {
+      "title": "Latausjaksot eivät lataa suunnitellusti",
+      "description": "Kolmena päivänä akku otti vain {actual_kwh} kWh pyydetystä {expected_kwh} kWh:sta (viimeksi).\n\nTarkista, että latausskripti todella lataa teholla `power_w` ja että suurin latausteho vastaa laitteistoa. Syynä voi olla myös kylmä akku; ota silloin käyttöön lataus kylmässä."
+    },
+    "idle_discharges": {
+      "title": "Akku purkautuu lepojaksoilla",
+      "description": "Kolmena päivänä akusta lähti lepojaksoilla {actual_kwh} kWh (viimeksi), vaikka suunnitelma säästää energian myöhemmäksi.\n\nTarkista, että skripti todella estää purkamisen ja korvaako jokin automaatio asetuksen."
+    },
+    "export_ineffective": {
+      "title": "Vientijaksot eivät pura suunnitellusti",
+      "description": "Kolmena päivänä akku antoi vientijaksoilla vain {actual_kwh} kWh suunnitellusta {expected_kwh} kWh:sta (viimeksi).\n\nTarkista pakotetun purkamisen skripti."
+    },
+    "auto_not_covering": {
+      "title": "Akku ei kata talon kulutusta automaattijaksoilla",
+      "description": "Kolmena päivänä se antoi vain {actual_kwh} kWh talon tarvitsemasta {expected_kwh} kWh:sta (viimeksi), vaikka siinä oli energiaa.\n\nTarkista, että automaattiskripti jättää akun omakäyttötilaan ja onko invertterin vähimmäis-SOC korkeampi kuin pilotin."
+    },
+    "auto_not_capturing": {
+      "title": "Aurinkoylijäämä ei päädy akkuun automaattijaksoilla",
+      "description": "Kolmena päivänä akku otti vain {actual_kwh} kWh mitatusta {expected_kwh} kWh:n ylijäämästä (viimeksi), vaikka tilaa oli. Suunnitelma laskee tämän energian varaan, joten sen SOC-ennuste on liian korkea.\n\nAutomaattiskriptin on annettava akun latautua ylijäämästä. Jos akku noudattaa vain komentoja, jonkin muun on seurattava sähkömittaria, esimerkiksi automaation. Jos rajoitat latausta tarkoituksella, ohita tämä ilmoitus."
     }
   }
 }

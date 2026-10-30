@@ -397,6 +397,50 @@
     "currency_mismatch": {
       "title": "Prissensoren regner i en annen valuta",
       "description": "**{entity}** rapporterer priser i **{sensor_currency}**, men Home Assistants valuta er **{ha_currency}**.\n\nSmart Battery Pilot regner ikke om priser. Planleggingen blir riktig, men priser og besparelser merkes som {ha_currency}, og standardverdier og rimelighetsgrenser er tilpasset {ha_currency}.\n\nStill inn valutaen strømavtalen din faktureres i under **Innstillinger → System → Generelt**, last inn integrasjonen på nytt og kontroller prispåslag, innmatingstariff og spread én gang. Meldingen forsvinner så snart begge valutaene stemmer overens."
+    },
+    "script_failing": {
+      "title": "Et styreskript feiler gjentatte ganger",
+      "description": "**{script}** (handling `{action}`) feilet tre ganger på rad, så planen blir ikke utført.\n\nÅrsaken står i loggen. Et skript regnes også som feilet hvis det kjører lenger enn 120 s."
+    },
+    "plan_invalid": {
+      "title": "Ingen gyldig plan på 12 timer",
+      "description": "Smart Battery Pilot har ikke kunnet planlegge på minst 12 timer (`{error}`), så batteriet står i automatisk modus.\n\nSjekk pris- og SOC-enheten. Denne meldingen forsvinner så snart planleggingen virker igjen."
+    },
+    "external_control_stuck": {
+      "title": "En annen styring har holdt batteriet i 24 timer",
+      "description": "Enheten for ekstern styring har vært aktiv i minst 24 timer, og piloten tar pause så lenge det varer.\n\nSjekk om styringen virkelig fortsatt holder batteriet, eller om enheten henger."
+    },
+    "soc_frozen": {
+      "title": "SOC-sensoren ser ut til å ha frosset",
+      "description": "SOC ble stående på {soc} % mens omtrent {moved_kwh} kWh gikk inn i eller ut av batteriet. Hver plan starter fra denne verdien.\n\nSjekk integrasjonen som leverer SOC."
+    },
+    "pv_today_is_remaining": {
+      "title": "PV-prognosen for i dag ligner en sensor for resten av dagen",
+      "description": "Tre dager på rad falt prognosen for i dag fra {high_kwh} kWh til {last_kwh} kWh innen solnedgang (siste gang). Planen forventer hele dagens sum og undervurderer dermed ettermiddagens PV.\n\nVelg en sensor med prognosen for hele dagen."
+    },
+    "capacity_mismatch": {
+      "title": "Den innstilte batterikapasiteten ser feil ut",
+      "description": "Ladingen tyder på omtrent {implied_kwh} kWh kapasitet, men {configured_kwh} kWh er innstilt. SOC-prognose og planlagte mengder avviker tilsvarende.\n\nSjekk brukbar kapasitet, enheten på lademåleren og virkningsgraden."
+    },
+    "charge_ineffective": {
+      "title": "Ladeperioder lader ikke som planlagt",
+      "description": "På tre dager tok batteriet bare imot {actual_kwh} kWh av ønskede {expected_kwh} kWh (siste gang).\n\nSjekk at ladeskriptet virkelig lader med `power_w`, og at maksimal ladeeffekt passer til maskinvaren. Et kaldt batteri kan også være årsaken; slå i så fall på lading i kulde."
+    },
+    "idle_discharges": {
+      "title": "Batteriet lades ut i hvileperioder",
+      "description": "På tre dager gikk {actual_kwh} kWh ut av batteriet i hvileperioder (siste gang), selv om planen holder energien tilbake til senere.\n\nSjekk at skriptet virkelig blokkerer utlading, og om en automatisering overskriver innstillingen."
+    },
+    "export_ineffective": {
+      "title": "Eksportperioder lader ikke ut som planlagt",
+      "description": "På tre dager leverte batteriet bare {actual_kwh} kWh av planlagte {expected_kwh} kWh i eksportperioder (siste gang).\n\nSjekk skriptet for tvungen utlading."
+    },
+    "auto_not_covering": {
+      "title": "Batteriet dekker ikke huset i automatiske perioder",
+      "description": "På tre dager leverte det bare {actual_kwh} kWh av de {expected_kwh} kWh huset trengte (siste gang), selv om det inneholdt energi.\n\nSjekk at auto-skriptet lar batteriet stå i egenforbruk, og om vekselretterens minimum-SOC er høyere enn pilotens."
+    },
+    "auto_not_capturing": {
+      "title": "PV-overskudd når ikke batteriet i automatiske perioder",
+      "description": "På tre dager tok batteriet bare imot {actual_kwh} kWh av {expected_kwh} kWh målt overskudd (siste gang), selv om det var plass. Planen regner med denne energien, så SOC-prognosen er for høy.\n\nAuto-skriptet må la batteriet lade fra overskudd. Følger det bare kommandoer, må noe annet følge strømmåleren, for eksempel en automatisering. Begrenser du ladingen med vilje, ignorer denne meldingen."
     }
   }
 }

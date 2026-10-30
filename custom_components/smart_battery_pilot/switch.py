@@ -55,6 +55,7 @@ class _ExecutorSwitch(SBPEntity, SwitchEntity, RestoreEntity):
         setattr(self.coordinator, self._flag, value)
         # Every entity, not only this one: the configuration sensor shows it too.
         self.coordinator.async_update_listeners()
+        self.coordinator.sync_health_issues()
         await self._executor.async_apply_current()
 
     async def async_turn_on(self, **kwargs: Any) -> None:

@@ -397,6 +397,50 @@
     "currency_mismatch": {
       "title": "Cenu sensors izmanto citu valūtu",
       "description": "**{entity}** norāda cenas valūtā **{sensor_currency}**, bet Home Assistant valūta ir **{ha_currency}**.\n\nSmart Battery Pilot nekonvertē cenas. Plāns ir pareizs, bet cenas un ietaupījumi tiek apzīmēti kā {ha_currency}, un noklusējuma vērtības un ticamības robežas ir mērogotas valūtai {ha_currency}.\n\nSadaļā **Iestatījumi → Sistēma → Vispārīgi** iestatiet valūtu, kurā tiek izrakstīti jūsu elektrības rēķini, pārlādējiet integrāciju un vienreiz pārbaudiet cenas uzcenojumu, atlīdzību par pārdoto elektrību un starpību. Šis ziņojums pazūd, tiklīdz abas valūtas sakrīt."
+    },
+    "script_failing": {
+      "title": "Vadības skripts atkārtoti neizdodas",
+      "description": "**{script}** (darbība `{action}`) neizdevās trīs reizes pēc kārtas, tāpēc plāns netiek izpildīts.\n\nIemesls ir žurnālā. Skripts tiek uzskatīts par neizdevušos arī tad, ja tas darbojas ilgāk par 120 s."
+    },
+    "plan_invalid": {
+      "title": "12 stundas nav derīga plāna",
+      "description": "Smart Battery Pilot vismaz 12 stundas nav varējis plānot (`{error}`), tāpēc akumulators ir automātiskajā režīmā.\n\nPārbaudi cenas un SOC entītijas. Šis paziņojums pazudīs, tiklīdz plānošana atkal darbosies."
+    },
+    "external_control_stuck": {
+      "title": "Cita vadība tur akumulatoru jau 24 stundas",
+      "description": "Ārējās vadības entītija ir aktīva vismaz 24 stundas, un tikmēr pilots ir pauzē.\n\nPārbaudi, vai šī vadība tiešām joprojām tur akumulatoru vai entītija ir iestrēgusi."
+    },
+    "soc_frozen": {
+      "title": "SOC sensors, šķiet, ir sastindzis",
+      "description": "SOC palika {soc} %, kamēr aptuveni {moved_kwh} kWh ieplūda akumulatorā vai izplūda no tā. Katrs plāns sākas no šīs vērtības.\n\nPārbaudi integrāciju, kas nodrošina SOC."
+    },
+    "pv_today_is_remaining": {
+      "title": "Šodienas saules prognoze izskatās pēc atlikušās dienas sensora",
+      "description": "Trīs dienas pēc kārtas šodienas prognoze līdz saulrietam nokritās no {high_kwh} kWh līdz {last_kwh} kWh (pēdējo reizi). Plāns sagaida visas dienas summu un tāpēc novērtē pēcpusdienas saules enerģiju par zemu.\n\nIzvēlies sensoru ar visas dienas prognozi."
+    },
+    "capacity_mismatch": {
+      "title": "Iestatītā akumulatora ietilpība šķiet nepareiza",
+      "description": "Uzlāde norāda uz aptuveni {implied_kwh} kWh ietilpību, bet iestatīts ir {configured_kwh} kWh. SOC prognoze un plānotie daudzumi atšķiras tikpat daudz.\n\nPārbaudi izmantojamo ietilpību, uzlādes skaitītāja mērvienību un lietderības koeficientu."
+    },
+    "charge_ineffective": {
+      "title": "Uzlādes periodi neuzlādē, kā plānots",
+      "description": "Trīs dienās akumulators no pieprasītajām {expected_kwh} kWh saņēma tikai {actual_kwh} kWh (pēdējo reizi).\n\nPārbaudi, vai uzlādes skripts tiešām uzlādē ar `power_w` un vai maksimālā uzlādes jauda atbilst aparatūrai. Iemesls var būt arī auksts akumulators; tad ieslēdz uzlādi aukstumā."
+    },
+    "idle_discharges": {
+      "title": "Akumulators izlādējas gaidīšanas periodos",
+      "description": "Trīs dienās gaidīšanas periodos no akumulatora izplūda {actual_kwh} kWh (pēdējo reizi), lai gan plāns šo enerģiju taupa vēlākam laikam.\n\nPārbaudi, vai skripts tiešām bloķē izlādi un vai kāda automatizācija nepārraksta iestatījumu."
+    },
+    "export_ineffective": {
+      "title": "Eksporta periodi neizlādē, kā plānots",
+      "description": "Trīs dienās akumulators eksporta periodos no plānotajām {expected_kwh} kWh atdeva tikai {actual_kwh} kWh (pēdējo reizi).\n\nPārbaudi piespiedu izlādes skriptu."
+    },
+    "auto_not_covering": {
+      "title": "Akumulators automātiskajos periodos nesedz mājas patēriņu",
+      "description": "Trīs dienās tas no mājai vajadzīgajām {expected_kwh} kWh atdeva tikai {actual_kwh} kWh (pēdējo reizi), lai gan tajā bija enerģija.\n\nPārbaudi, vai automātiskais skripts atstāj akumulatoru pašpatēriņā un vai invertora minimālais SOC nav augstāks par pilota iestatīto."
+    },
+    "auto_not_capturing": {
+      "title": "Saules enerģijas pārpalikums automātiskajos periodos nesasniedz akumulatoru",
+      "description": "Trīs dienās akumulators no izmērītā {expected_kwh} kWh pārpalikuma saņēma tikai {actual_kwh} kWh (pēdējo reizi), lai gan vietas bija. Plāns rēķinās ar šo enerģiju, tāpēc tā SOC prognoze ir pārāk augsta.\n\nAutomātiskajam skriptam jāļauj akumulatoram uzlādēties no pārpalikuma. Ja tas izpilda tikai komandas, tīkla skaitītājam jāseko kam citam, piemēram, automatizācijai. Ja uzlādi ierobežo apzināti, ignorē šo paziņojumu."
     }
   }
 }

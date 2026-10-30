@@ -26,6 +26,7 @@ from .const import (
 from .coordinator import SBPCoordinator
 from .currency import currency_issue_id
 from .executor import PlanExecutor
+from .health import ALL_CHECKS, issue_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -166,6 +167,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: SBPConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await executor.async_start()
+    coordinator.async_start_health()
 
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
@@ -189,6 +191,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: SBPConfigEntry) -> bool
     if not runtime.reloading:
         # A disabled or removed entry has no price check left to clear it.
         ir.async_delete_issue(hass, DOMAIN, currency_issue_id(entry.entry_id))
+        for check in ALL_CHECKS:
+            ir.async_delete_issue(hass, DOMAIN, issue_id(entry.entry_id, check))
         remaining = [
             loaded
             for loaded in hass.config_entries.async_entries(DOMAIN)

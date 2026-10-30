@@ -397,6 +397,50 @@
     "currency_mismatch": {
       "title": "Hinnaandur kasutab teist valuutat",
       "description": "**{entity}** esitab hinnad valuutas **{sensor_currency}**, kuid Home Assistanti valuuta on **{ha_currency}**.\n\nSmart Battery Pilot ei teisenda hindu. Plaan on õige, kuid hinnad ja säästud märgistatakse valuutas {ha_currency} ning vaikeväärtused ja usutavuspiirid on mõõdetud valuutale {ha_currency}.\n\nMäära jaotises **Seaded → Süsteem → Üldine** valuuta, milles sinu elektrileping arveldatakse, laadi integratsioon uuesti ja kontrolli üks kord hinnalisa, müügihinda ja hinnavahet. Teade kaob, kui mõlemad valuutad ühtivad."
+    },
+    "script_failing": {
+      "title": "Juhtskript ebaõnnestub korduvalt",
+      "description": "**{script}** (toiming `{action}`) ebaõnnestus kolm korda järjest, seega plaani ei täideta.\n\nPõhjus on logis. Skript loetakse ebaõnnestunuks ka siis, kui see kestab üle 120 s."
+    },
+    "plan_invalid": {
+      "title": "12 tundi pole kehtivat plaani",
+      "description": "Smart Battery Pilot ei ole saanud planeerida vähemalt 12 tundi (`{error}`), seega on aku automaatrežiimis.\n\nKontrolli hinna ja SOC-i olemeid. See teade kaob kohe, kui planeerimine taas töötab."
+    },
+    "external_control_stuck": {
+      "title": "Teine juhtimine on akut hoidnud 24 tundi",
+      "description": "Välise juhtimise olem on olnud aktiivne vähemalt 24 tundi ja seni on piloot pausil.\n\nKontrolli, kas see juhtimine tõesti ikka hoiab akut või on olem kinni jäänud."
+    },
+    "soc_frozen": {
+      "title": "SOC-andur näib olevat külmunud",
+      "description": "SOC püsis väärtusel {soc} %, kuigi umbes {moved_kwh} kWh liikus akusse või akust välja. Iga plaan algab sellest väärtusest.\n\nKontrolli integratsiooni, mis SOC-i annab."
+    },
+    "pv_today_is_remaining": {
+      "title": "Tänane päikeseprognoos näib olevat päeva lõpuosa andur",
+      "description": "Kolmel päeval järjest langes tänane prognoos päikeseloojanguks {high_kwh} kWh pealt {last_kwh} kWh peale (viimati). Plaan ootab kogu päeva summat ja alahindab seetõttu pärastlõuna päikeseenergiat.\n\nVali andur, millel on kogu päeva prognoos."
+    },
+    "capacity_mismatch": {
+      "title": "Seadistatud aku mahutavus näib vale",
+      "description": "Laadimine viitab umbes {implied_kwh} kWh mahutavusele, kuid seadistatud on {configured_kwh} kWh. SOC-i prognoos ja planeeritud kogused erinevad sama palju.\n\nKontrolli kasutatavat mahutavust, laadimisarvesti ühikut ja kasutegurit."
+    },
+    "charge_ineffective": {
+      "title": "Laadimisperioodid ei lae plaanipäraselt",
+      "description": "Kolmel päeval võttis aku soovitud {expected_kwh} kWh-st vastu ainult {actual_kwh} kWh (viimati).\n\nKontrolli, et laadimisskript tõesti laeb võimsusega `power_w` ja et suurim laadimisvõimsus sobib riistvaraga. Põhjuseks võib olla ka külm aku; lülita siis sisse külmaga laadimine."
+    },
+    "idle_discharges": {
+      "title": "Aku tühjeneb ooteperioodidel",
+      "description": "Kolmel päeval liikus ooteperioodidel akust välja {actual_kwh} kWh (viimati), kuigi plaan hoiab selle energia hilisemaks.\n\nKontrolli, et skript tõesti blokeerib tühjenemise ja kas mõni automatiseering kirjutab seade üle."
+    },
+    "export_ineffective": {
+      "title": "Ekspordiperioodid ei tühjenda plaanipäraselt",
+      "description": "Kolmel päeval andis aku ekspordiperioodidel planeeritud {expected_kwh} kWh-st ainult {actual_kwh} kWh (viimati).\n\nKontrolli sundtühjendamise skripti."
+    },
+    "auto_not_covering": {
+      "title": "Aku ei kata automaatperioodidel maja tarbimist",
+      "description": "Kolmel päeval andis see majale vajalikust {expected_kwh} kWh-st ainult {actual_kwh} kWh (viimati), kuigi selles oli energiat.\n\nKontrolli, et automaatskript jätab aku omatarbe režiimi ja kas inverteri minimaalne SOC on piloodi omast kõrgem."
+    },
+    "auto_not_capturing": {
+      "title": "Päikeseenergia ülejääk ei jõua automaatperioodidel akusse",
+      "description": "Kolmel päeval võttis aku mõõdetud {expected_kwh} kWh ülejäägist vastu ainult {actual_kwh} kWh (viimati), kuigi ruumi oli. Plaan arvestab selle energiaga, seega on selle SOC-i prognoos liiga kõrge.\n\nAutomaatskript peab laskma akul ülejäägist laadida. Kui aku järgib ainult käske, peab midagi muud järgima võrguarvestit, näiteks automatiseering. Kui piirad laadimist meelega, eira seda teadet."
     }
   }
 }

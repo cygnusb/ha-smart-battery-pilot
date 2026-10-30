@@ -107,6 +107,9 @@ class _Coordinator:
     def external_control_active(self):
         return False
 
+    def note_script_result(self, action, entity_id, success):
+        pass
+
     def charge_observation(self, requested_w, now=None, closing=None):
         pass
 
