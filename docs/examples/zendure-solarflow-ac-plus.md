@@ -281,14 +281,14 @@ in the prelude above — write them out in your actual YAML.)
 Tuning: the 150 W discharge floor ignores noise and tiny loads; the 250 W
 charge entry / 100 W charge hold pair is the hysteresis that keeps the AC relay
 from chattering when surplus hovers near the threshold. The 5% SOC floor
-mirrors the pilot's minimum SOC; the device's own minimum-SOC setting stays in
+matches a pilot *Min SOC* of 5 % (its default is 10 %); the device's own minimum-SOC setting stays in
 place as the hardware backstop. The `choose` conditions re-evaluate the regime
 at run time, so when two triggers fire around the same moment the newest run
 always acts on the freshest regime.
 
 Two pilot limits need one line each. **Max SOC** — the assist charges while
-`soc < 100`, so leave the pilot's *Max SOC* at its default 100 % or change the
-checks to match; otherwise the plan stops at Max SOC while the assist charges
+`soc < 100`, so set the pilot's *Max SOC* to 100 % (its default is 95 %) or
+change the checks to match; otherwise the plan stops at Max SOC while the assist charges
 on toward 100 %. **Backup reserve** — the fixed 5 % floor ignores
 `reserve_soc`; switch on
 [block discharging at the reserve](../configuration.md#backup-reserve) and the
@@ -303,6 +303,7 @@ off, so the assist can never drain a configured reserve.
 | SOC entity | `sensor.solarflow_2400_ac_plus_electric_level` |
 | Capacity | 5.28 kWh |
 | Max charge / discharge power | 800 / 800 W (socket-limited) |
+| Min / Max SOC | 5 / 100 % (the assist's floor and ceiling) |
 | Scripts | the four `sbp_*` scripts above |
 | Consumption sensor | DSMR-based whole-house load template sensor |
 | PV power entity | OpenDTU inverter AC power |

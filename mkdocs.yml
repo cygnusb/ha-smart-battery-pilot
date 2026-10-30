@@ -28,6 +28,7 @@ nav:
   - Examples:
       - examples/README.md
       - BYD + Fronius Gen24: examples/byd-fronius-gen24.md
+      - Zendure SolarFlow 2400 AC+: examples/zendure-solarflow-ac-plus.md
   # Built from the GitHub releases by tools/mkdocs_hooks.py.
   - Changelog: changelog.md
 
