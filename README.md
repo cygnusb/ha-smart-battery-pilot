@@ -28,7 +28,7 @@ dark winter weeks ("Dunkelflaute") when prices swing heavily within a day.
 The integration is **vendor neutral**: it controls your battery through Home
 Assistant scripts that *you* define, so it works with any inverter/battery
 combination that can be controlled from Home Assistant (Fronius, Victron, SMA,
-Sungrow, E3DC, …). See [docs/examples](docs/examples/) for ready-to-use
+Sungrow, E3DC, Zendure, …). See [docs/examples](docs/examples/) for ready-to-use
 vendor configurations.
 
 <p align="center">
@@ -81,6 +81,20 @@ is frozen, it says so under *Settings → Repairs*
 | `auto`   | Self-consumption — battery covers the house, PV surplus charges it |
 | `idle`   | Discharging blocked — preserve energy for more expensive hours |
 | `export` | Force-discharge into the grid (optional arbitrage mode)        |
+
+## What you need
+
+* **A battery you can control from Home Assistant**, through scripts you write
+  for *force charge*, *block discharge* and *auto mode*. In auto mode the battery
+  has to cover the house and charge from PV surplus, either by itself or with an
+  automation ([what an auto slot assumes](docs/optimizer.md#what-an-auto-slot-assumes)).
+* **A price sensor** from your tariff integration, with the price forecast in its
+  attributes.
+* **Its SOC** as a sensor, in percent.
+* **A sensor for the house consumption** with long-term statistics, so the
+  forecast can learn from it.
+* **Optional:** a PV forecast, and battery charge and discharge energy meters for
+  the savings figures.
 
 ## Installation (HACS)
 
@@ -170,7 +184,8 @@ Diagnostics (⋮ → *Download diagnostics* on the device page) dump the active
 configuration, the matched price adapter, the forecast model, the inputs the
 last plan was built from (SOC, price range, battery limits, tunables, charge
 factor, backup reserve), the first day of the plan, the learned cold-weather
-charge bands, the pilot's savings ledger, and the executor's last 50
+charge bands, the pilot's savings ledger, the state of the consistency checks,
+and the executor's last 50
 decisions (applied, unchanged, dry run, disabled, reserve updated, reserve
 block, EV block, external control, script failed, no valid plan — each with a reason) — attach that to
 any issue report.
@@ -214,6 +229,7 @@ scaled to it, so it stays legible from a 300 px phone column to a full-width
 panel view: more width buys a denser hour grid, more height buys taller
 panels. `height` overrides the automatic sizing, and in a sections view
 `grid_options: {columns: full}` lets the card use the whole section.
+
 > **YAML dashboards (`lovelace: resource_mode: yaml`):** the resource list is
 > read-only, so the card cannot be added automatically. Add it yourself:
 >
@@ -231,8 +247,7 @@ panels. `height` overrides the automatic sizing, and in a sections view
 
 See [docs/configuration.md](docs/configuration.md#dashboard).
 
-Each image is shown in your GitHub theme; click one to open it at full
-resolution. The energy panel also flips to the balance with the button in
+Click an image to open it at full resolution. The energy panel also flips to the balance with the button in
 the legend.
 
 <table>
@@ -286,6 +301,7 @@ renders the card against the result, in a light and a dark theme.
 ## Vendor examples
 
 * [BYD Battery-Box Premium HVM + Fronius Gen24 (Modbus TCP)](docs/examples/byd-fronius-gen24.md)
+* [Zendure SolarFlow 2400 AC+ (AC-coupled, separate PV inverter)](docs/examples/zendure-solarflow-ac-plus.md)
 * [Add your setup](docs/examples/TEMPLATE.md) — PRs welcome!
 
 ## How the optimizer decides
@@ -295,7 +311,8 @@ estimate and worked examples.
 
 ## Languages
 
-The setup flow, the entity states and the dashboard card are available in
+The setup flow, the entity states, the repair messages and the dashboard card are
+available in
 English, German, Dutch, Swedish, Norwegian (Bokmål), Danish, Finnish,
 Estonian, Latvian and Lithuanian — chosen to match where dynamic tariffs are
 common and the supported price sources reach (Nordpool, Tibber, aWATTar,
@@ -307,7 +324,7 @@ speaker's review, and the vocabulary here is full of inverter jargon —
 **corrections are very welcome.** A language lives in three places:
 
 * `custom_components/smart_battery_pilot/translations/<lang>.json` — setup
-  flow, entity names and states
+  flow, entity names and states, repair messages
 * the `TRANSLATIONS` table in
   `custom_components/smart_battery_pilot/frontend/smart-battery-pilot-card.js`
   — the dashboard card, which is plain JS and cannot read the files above
