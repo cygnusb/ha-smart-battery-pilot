@@ -397,6 +397,50 @@
     "currency_mismatch": {
       "title": "Preissensor rechnet in einer anderen Währung",
       "description": "**{entity}** liefert Preise in **{sensor_currency}**, Home Assistant ist aber auf **{ha_currency}** eingestellt.\n\nSmart Battery Pilot rechnet Preise nicht um. Die Planung stimmt, aber Preise und Ersparnisse werden als {ha_currency} beschriftet, und Standardwerte sowie Plausibilitätsgrenzen sind auf {ha_currency} bemessen.\n\nStelle unter **Einstellungen → System → Allgemein** die Währung ein, in der dein Tarif abgerechnet wird, lade die Integration neu und prüfe einmal Preisaufschlag, Einspeisevergütung und Spread. Diese Meldung verschwindet, sobald beide Währungen übereinstimmen."
+    },
+    "script_failing": {
+      "title": "Ein Steuerskript schlägt wiederholt fehl",
+      "description": "**{script}** (Aktion `{action}`) ist dreimal in Folge fehlgeschlagen, der Plan wird also nicht umgesetzt.\n\nDen Grund nennt das Log. Ein Skript gilt auch als fehlgeschlagen, wenn es länger als 120 s läuft."
+    },
+    "plan_invalid": {
+      "title": "Seit 12 Stunden kein gültiger Plan",
+      "description": "Smart Battery Pilot konnte seit mindestens 12 Stunden nicht planen (`{error}`), die Batterie bleibt deshalb im Auto-Modus.\n\nPrüfe die Preis- und SOC-Entität. Dieser Hinweis verschwindet, sobald die Planung wieder funktioniert."
+    },
+    "external_control_stuck": {
+      "title": "Eine andere Steuerung hält die Batterie seit 24 Stunden",
+      "description": "Die Entität für externe Steuerung ist seit mindestens 24 Stunden aktiv, und so lange pausiert der Pilot.\n\nPrüfe, ob diese Steuerung die Batterie wirklich noch hält oder ob die Entität hängt."
+    },
+    "soc_frozen": {
+      "title": "Der SOC-Sensor scheint eingefroren",
+      "description": "Der SOC blieb bei {soc} %, während etwa {moved_kwh} kWh in die Batterie oder aus ihr flossen. Jeder Plan startet von diesem Wert.\n\nPrüfe die Integration, die den SOC liefert."
+    },
+    "pv_today_is_remaining": {
+      "title": "Die PV-Prognose für heute wirkt wie ein „Rest des Tages“-Sensor",
+      "description": "An drei Tagen in Folge fiel die Prognose für heute bis zum Sonnenuntergang von {high_kwh} kWh auf {last_kwh} kWh (zuletzt). Der Plan erwartet die Summe des ganzen Tages und unterschätzt so die PV am Nachmittag.\n\nWähle einen Sensor mit der Prognose für den ganzen Tag."
+    },
+    "capacity_mismatch": {
+      "title": "Die eingestellte Batteriekapazität scheint falsch",
+      "description": "Das Laden deutet auf etwa {implied_kwh} kWh Kapazität hin, eingestellt sind {configured_kwh} kWh. SOC-Prognose und geplante Mengen weichen entsprechend ab.\n\nPrüfe die nutzbare Kapazität, die Einheit des Lademeters und den Wirkungsgrad."
+    },
+    "charge_ineffective": {
+      "title": "Lade-Slots laden nicht wie geplant",
+      "description": "An drei Tagen nahm die Batterie nur {actual_kwh} kWh der angeforderten {expected_kwh} kWh auf (zuletzt).\n\nPrüfe, ob das Ladeskript wirklich mit `power_w` lädt und die maximale Ladeleistung zur Hardware passt. Auch eine kalte Batterie kann der Grund sein; schalte dann das Laden bei Kälte ein."
+    },
+    "idle_discharges": {
+      "title": "Die Batterie entlädt in Idle-Slots",
+      "description": "An drei Tagen flossen in Idle-Slots {actual_kwh} kWh aus der Batterie (zuletzt), obwohl der Plan diese Energie für später zurückhält.\n\nPrüfe, ob das Skript das Entladen wirklich sperrt und ob eine Automation die Einstellung überschreibt."
+    },
+    "export_ineffective": {
+      "title": "Export-Slots entladen nicht wie geplant",
+      "description": "An drei Tagen gab die Batterie in Export-Slots nur {actual_kwh} kWh der geplanten {expected_kwh} kWh ab (zuletzt).\n\nPrüfe das Skript für erzwungenes Entladen."
+    },
+    "auto_not_covering": {
+      "title": "Die Batterie deckt in Auto-Slots das Haus nicht",
+      "description": "An drei Tagen gab sie nur {actual_kwh} kWh der vom Haus benötigten {expected_kwh} kWh ab (zuletzt), obwohl sie Energie hatte.\n\nPrüfe, ob das Auto-Skript die Batterie im Eigenverbrauch lässt und ob der Mindest-SOC des Wechselrichters höher liegt als der des Piloten."
+    },
+    "auto_not_capturing": {
+      "title": "PV-Überschuss kommt in Auto-Slots nicht in der Batterie an",
+      "description": "An drei Tagen nahm die Batterie nur {actual_kwh} kWh von {expected_kwh} kWh gemessenem Überschuss auf (zuletzt), obwohl sie Platz hatte. Der Plan rechnet mit dieser Energie, seine SOC-Prognose ist also zu hoch.\n\nDas Auto-Skript muss die Batterie aus Überschuss laden lassen. Folgt sie nur Befehlen, muss etwas dem Netzzähler folgen, zum Beispiel eine Automation. Begrenzt du das Laden absichtlich, ignoriere diesen Hinweis."
     }
   }
 }

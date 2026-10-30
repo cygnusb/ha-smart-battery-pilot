@@ -151,7 +151,9 @@ error:
   energy that never arrives.
 * **Surplus goes to the grid** while the battery is far from full.
 
-To check an installation, watch one sunny auto slot with the battery well below
+The pilot reports this once it has seen it on several days, if it has a live PV
+sensor ([consistency checks](configuration.md#consistency-checks)). To check an
+installation yourself, watch one sunny auto slot with the battery well below
 max SOC: the grid meter should show next to no export, and the SOC should
 rise. If you close the loop with an automation, have the auto script enable it
 and the other scripts disable it before they command the battery, so that only

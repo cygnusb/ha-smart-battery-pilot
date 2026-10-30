@@ -397,6 +397,50 @@
     "currency_mismatch": {
       "title": "Price sensor counts in a different currency",
       "description": "**{entity}** reports prices in **{sensor_currency}**, but Home Assistant's currency is **{ha_currency}**.\n\nSmart Battery Pilot does not convert prices. It plans correctly, but labels prices and savings as {ha_currency}, and its defaults and safety bounds are sized for {ha_currency}.\n\nSet the currency your tariff is billed in under **Settings → System → General**, then reload the integration and check the price offset, feed-in tariff and spread once. This message disappears as soon as both currencies match."
+    },
+    "script_failing": {
+      "title": "A control script keeps failing",
+      "description": "**{script}** (action `{action}`) failed three times in a row, so the plan isn't being carried out.\n\nThe log has the reason. A script also counts as failed if it runs longer than 120 s."
+    },
+    "plan_invalid": {
+      "title": "No valid plan for 12 hours",
+      "description": "Smart Battery Pilot hasn't been able to plan for at least 12 hours (`{error}`), so the battery has been left in auto mode.\n\nCheck the price and SOC entities. This message disappears as soon as planning works again."
+    },
+    "external_control_stuck": {
+      "title": "Another controller has held the battery for 24 hours",
+      "description": "The external control entity has been active for at least 24 hours, and the pilot pauses for as long as it is.\n\nCheck whether that controller really is still holding the battery, or whether the entity is stuck."
+    },
+    "soc_frozen": {
+      "title": "The SOC sensor seems frozen",
+      "description": "The SOC has stayed at {soc} % while about {moved_kwh} kWh moved in or out of the battery. Every plan starts from this value.\n\nCheck the integration that provides the SOC."
+    },
+    "pv_today_is_remaining": {
+      "title": "The PV forecast for today looks like a \"remaining today\" sensor",
+      "description": "On three days in a row the forecast for today fell from {high_kwh} kWh to {last_kwh} kWh by sunset (last time). The plan expects the total for the whole day, so afternoon PV is underestimated.\n\nSelect a sensor with the whole day's forecast."
+    },
+    "capacity_mismatch": {
+      "title": "The configured battery capacity looks wrong",
+      "description": "Charging suggests about {implied_kwh} kWh of capacity, but {configured_kwh} kWh is configured. SOC forecast and planned amounts are off by that much.\n\nCheck the usable capacity, the charge meter's unit and the roundtrip efficiency."
+    },
+    "charge_ineffective": {
+      "title": "Charge slots don't charge as planned",
+      "description": "On three days the battery took only {actual_kwh} kWh of the {expected_kwh} kWh requested (last time).\n\nCheck that the charge script really forces charging at `power_w`, and that the maximum charge power matches the hardware. A cold battery can also be the reason; if so, turn on cold-weather charging."
+    },
+    "idle_discharges": {
+      "title": "The battery discharges in idle slots",
+      "description": "On three days {actual_kwh} kWh left the battery during idle slots (last time), though the plan is holding that energy for later.\n\nCheck that the block-discharge script really blocks discharging, and whether an automation overwrites the setting."
+    },
+    "export_ineffective": {
+      "title": "Export slots don't discharge as planned",
+      "description": "On three days the battery delivered only {actual_kwh} kWh of the {expected_kwh} kWh planned for export slots (last time).\n\nCheck the force-discharge script."
+    },
+    "auto_not_covering": {
+      "title": "The battery doesn't cover the house in auto slots",
+      "description": "On three days it delivered only {actual_kwh} kWh of the {expected_kwh} kWh the house needed from it (last time), even though it held energy.\n\nCheck that the auto script leaves the battery in self-consumption, and whether the inverter's own minimum SOC is higher than the pilot's."
+    },
+    "auto_not_capturing": {
+      "title": "PV surplus doesn't reach the battery in auto slots",
+      "description": "On three days the battery took only {actual_kwh} kWh of {expected_kwh} kWh measured surplus (last time), even though it had room. The plan counts on this energy, so its SOC forecast is too high.\n\nThe auto script must leave the battery charging from surplus. If the battery only follows commands, something has to follow the grid meter, such as an automation. If you limit charging on purpose, ignore this message."
     }
   }
 }

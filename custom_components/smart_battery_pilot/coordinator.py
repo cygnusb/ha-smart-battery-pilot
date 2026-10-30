@@ -86,6 +86,7 @@ from .const import (
     EV_POLICY_BLOCK,
     EV_POLICY_EXTERNAL,
     EV_SOURCE_EVCC,
+    HEALTH_DOCS_URL,
     STORAGE_KEY,
     STORAGE_VERSION,
     STORE_SAVE_DELAY_SECONDS,
@@ -110,7 +111,8 @@ from .forecast.charge_rate import (
 )
 from .forecast.consumption import ConsumptionForecaster, TrainingSample
 from .forecast.pv import HourlyPv, pv_kwh_for_slot
-from .optimizer import BatteryState, InputSlot, OptimizerConfig, Plan, build_plan
+from .health import ALL_CHECKS, HealthMonitor, Observation, issue_id
+from .optimizer import BatteryState, InputSlot, OptimizerConfig, Plan, PlanSlot, build_plan
 from .price_adapters import detect_adapter
 from .price_adapters.base import PriceSlot
 from .pv_sources import async_fetch_hourly_pv
@@ -168,6 +170,10 @@ RESOLUTION_EXEMPT_AFTER = timedelta(minutes=30)
 TAPER_MARGIN_SOC = 5.0  # above max_soc - this, the BMS tapers because it is full
 MIN_REQUEST_SHARE = 0.2  # smaller requests say nothing about the limit
 SATURATION_SHARE = 0.85  # took less than this share of the request -> limited
+
+# From here on a low charge rate is not the cold. A factor learned up here must
+# not hide a battery that simply never takes what it is asked for.
+COLD_BELOW_C = 15.0
 
 
 class PriceEntityUnavailable(UpdateFailed):
@@ -361,6 +367,13 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         # Set by the executor while the battery is held for a car.
         self._ev_hold_active = False
 
+        # What the plan counts on against what really happens. Its repairs stay
+        # untouched until the switches restored their state: with the defaults
+        # of a fresh start, a repair the user chose to ignore would be deleted
+        # and come back.
+        self.health = HealthMonitor()
+        self._health_started = False
+
     # --- config helpers -------------------------------------------------------
 
     def conf(self, key: str, default: Any = None) -> Any:
@@ -414,6 +427,12 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                 )
             except (AttributeError, KeyError, TypeError, ValueError) as err:
                 _LOGGER.warning("Could not restore charge rate observations: %s", err)
+
+        if stored and stored.get("health"):
+            try:
+                self.health = HealthMonitor.from_dict(stored["health"])
+            except (AttributeError, KeyError, TypeError, ValueError) as err:
+                _LOGGER.warning("Could not restore the consistency checks: %s", err)
 
         price_entity = self.conf(CONF_PRICE_ENTITY)
         if price_entity:
@@ -654,6 +673,8 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             )
 
         self._update_actual_savings(plan, now)
+        self.health.plan_result(now, None)
+        self._sync_health_issues()
 
         pv_entity = self.conf(CONF_PV_POWER_ENTITY)
         pv_power = self._read_float_state(pv_entity) if pv_entity else None
@@ -724,6 +745,8 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             _LOGGER.warning("No valid plan (%s) - the battery is handed back to auto mode", error)
         else:
             _LOGGER.debug("Still no valid plan (%s)", error)
+        self.health.plan_result(now, error)
+        self._sync_health_issues()
         return SBPData(
             plan=Plan(), valid=False, error=error, updated_at=now, **self._savings_fields()
         )
@@ -1507,6 +1530,109 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         )
         self.schedule_persist()
 
+    # --- consistency checks ---------------------------------------------------------
+
+    @callback
+    def async_start_health(self) -> None:
+        """The switches are restored: repairs may follow the checks from now on."""
+        self._health_started = True
+        self._sync_health_issues()
+
+    @callback
+    def note_script_result(self, action: str, entity_id: str | None, success: bool) -> None:
+        """The executor reports every script call."""
+        self.health.script_result(action, entity_id, success)
+        self._sync_health_issues()
+        self.schedule_persist()
+
+    def _sync_health_issues(self) -> None:
+        """Mirror the failed checks into Settings > Repairs."""
+        if not self._health_started:
+            return
+        shown = self.health.issues(enabled=self.enabled, dry_run=self.dry_run)
+        for check in ALL_CHECKS:
+            key = issue_id(self.entry.entry_id, check)
+            if check not in shown:
+                ir.async_delete_issue(self.hass, DOMAIN, key)
+                continue
+            ir.async_create_issue(
+                self.hass,
+                DOMAIN,
+                key,
+                is_fixable=False,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key=check,
+                translation_placeholders=shown[check],
+                learn_more_url=HEALTH_DOCS_URL,
+            )
+
+    def _observe_health(self, plan: Plan, now: datetime) -> None:
+        slot = next((s for s in plan.slots if s.covers(now)), None)
+        steering = self._is_steering()
+        ev_power = self.ev_power_w()
+        factor, _, temperature = self.charge_factor()
+        reserve, _, _ = self.reserve_state()
+        efficiency = float(self.conf(CONF_EFFICIENCY, DEFAULT_EFFICIENCY)) / 100.0
+        self.health.observe(
+            Observation(
+                at=now,
+                day=dt_util.as_local(now).date().isoformat(),
+                steering=steering,
+                action=self.last_applied if steering else None,
+                power_w=slot.power_w if slot else 0.0,
+                soc=self.live_soc(),
+                charge_kwh=self._read_energy_kwh(self.conf(CONF_BATTERY_CHARGE_ENERGY_ENTITY)),
+                discharge_kwh=self._read_energy_kwh(
+                    self.conf(CONF_BATTERY_DISCHARGE_ENERGY_ENTITY)
+                ),
+                pv_w=self._live_pv_w(),
+                load_w=self._house_load_w(slot),
+                no_pv_expected=slot is not None and slot.pv_kwh <= 0,
+                ev_active=(ev_power is not None and ev_power > self.ev_threshold_w())
+                or (slot is not None and slot.ev_kwh > 0),
+                external=self.external_control_active(),
+                pv_today_kwh=self._pv_today_for_health(now),
+                capacity_kwh=float(self.conf(CONF_CAPACITY_KWH, 10.0)),
+                floor_soc=(
+                    reserve
+                    if reserve is not None
+                    else float(self.conf(CONF_MIN_SOC, DEFAULT_MIN_SOC))
+                ),
+                max_soc=float(self.conf(CONF_MAX_SOC, DEFAULT_MAX_SOC)),
+                eta_one_way=math.sqrt(max(0.5, min(1.0, efficiency))),
+                max_charge_w=float(self.conf(CONF_MAX_CHARGE_POWER_W, 5000)),
+                max_discharge_w=float(self.conf(CONF_MAX_DISCHARGE_POWER_W, 5000)),
+                charge_factor=(
+                    factor if temperature is not None and temperature < COLD_BELOW_C else 1.0
+                ),
+            )
+        )
+        self.schedule_persist()
+
+    def _live_pv_w(self) -> float | None:
+        entity_id = self.conf(CONF_PV_POWER_ENTITY)
+        return self._read_power_w(entity_id) if entity_id else None
+
+    def _house_load_w(self, slot: PlanSlot | None) -> float | None:
+        """The house right now; the forecast if its sensor only counts energy."""
+        entity_id = self.conf(CONF_CONSUMPTION_ENTITY)
+        if entity_id and self._unit(entity_id) in ("W", "kW"):
+            return self._read_power_w(entity_id)
+        if slot is None:
+            return None
+        hours = (slot.end - slot.start).total_seconds() / 3600.0
+        return max(0.0, slot.net_demand_kwh + slot.pv_kwh) / hours * 1000.0 if hours > 0 else None
+
+    def _pv_today_for_health(self, now: datetime) -> float | None:
+        """The daily forecast sensor while the sun is up, if the plan relies on it."""
+        if self._pv_forecast_entries():
+            return None
+        sunrise, sunset = self._daylight_window()
+        local = dt_util.as_local(now)
+        if not sunrise <= local.hour + local.minute / 60.0 < sunset:
+            return None
+        return self._read_float_state(self.conf(CONF_PV_FORECAST_TODAY))
+
     # --- actual savings tracking --------------------------------------------------
 
     def _has_energy_entities(self) -> bool:
@@ -1567,6 +1693,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         Only the savings accounting reads these, and only it trims them - so
         without meters configured nothing would ever clear the list.
         """
+        self._observe_health(plan, now)
         if not self._has_energy_entities():
             return
         self._ledger_step(plan, now)
@@ -1793,6 +1920,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             "last_reserve_sent": self.last_reserve_sent,
             "charge_rate": self.charge_model.to_dict(),
             "pilot_ledger": self.pilot_ledger.to_dict(),
+            "health": self.health.to_dict(),
             "savings": {
                 "savings_eur": self._acc_savings_eur,
                 "gross_eur": self._acc_gross_eur,

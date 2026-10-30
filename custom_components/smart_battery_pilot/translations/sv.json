@@ -397,6 +397,50 @@
     "currency_mismatch": {
       "title": "Prissensorn räknar i en annan valuta",
       "description": "**{entity}** rapporterar priser i **{sensor_currency}**, men Home Assistants valuta är **{ha_currency}**.\n\nSmart Battery Pilot räknar inte om priser. Planeringen blir rätt, men priser och besparingar märks som {ha_currency}, och standardvärden och rimlighetsgränser är anpassade för {ha_currency}.\n\nStäll in valutan som ditt elavtal faktureras i under **Inställningar → System → Allmänt**, ladda om integrationen och kontrollera prispåslag, ersättning för såld el och spread en gång. Meddelandet försvinner så snart båda valutorna stämmer överens."
+    },
+    "script_failing": {
+      "title": "Ett styrskript misslyckas upprepade gånger",
+      "description": "**{script}** (åtgärd `{action}`) misslyckades tre gånger i rad, så planen genomförs inte.\n\nOrsaken står i loggen. Ett skript räknas också som misslyckat om det kör längre än 120 s."
+    },
+    "plan_invalid": {
+      "title": "Ingen giltig plan på 12 timmar",
+      "description": "Smart Battery Pilot har inte kunnat planera på minst 12 timmar (`{error}`), så batteriet står i automatiskt läge.\n\nKontrollera pris- och SOC-entiteten. Det här meddelandet försvinner så snart planeringen fungerar igen."
+    },
+    "external_control_stuck": {
+      "title": "En annan styrning har hållit batteriet i 24 timmar",
+      "description": "Entiteten för extern styrning har varit aktiv i minst 24 timmar, och piloten pausar så länge den är det.\n\nKontrollera om styrningen verkligen fortfarande håller batteriet eller om entiteten har fastnat."
+    },
+    "soc_frozen": {
+      "title": "SOC-sensorn verkar ha frusit",
+      "description": "SOC stod kvar på {soc} % medan ungefär {moved_kwh} kWh gick in i eller ut ur batteriet. Varje plan utgår från det här värdet.\n\nKontrollera integrationen som levererar SOC."
+    },
+    "pv_today_is_remaining": {
+      "title": "Solprognosen för i dag liknar en sensor för resten av dagen",
+      "description": "Tre dagar i rad föll prognosen för i dag från {high_kwh} kWh till {last_kwh} kWh före solnedgången (senast). Planen väntar sig hela dagens summa och underskattar därför eftermiddagens solel.\n\nVälj en sensor med prognosen för hela dagen."
+    },
+    "capacity_mismatch": {
+      "title": "Den inställda batterikapaciteten verkar fel",
+      "description": "Laddningen tyder på ungefär {implied_kwh} kWh kapacitet, men {configured_kwh} kWh är inställt. SOC-prognos och planerade mängder avviker i motsvarande grad.\n\nKontrollera den användbara kapaciteten, laddmätarens enhet och verkningsgraden."
+    },
+    "charge_ineffective": {
+      "title": "Laddperioder laddar inte som planerat",
+      "description": "Under tre dagar tog batteriet bara emot {actual_kwh} kWh av begärda {expected_kwh} kWh (senast).\n\nKontrollera att laddskriptet verkligen laddar med `power_w` och att den maximala laddeffekten passar hårdvaran. Ett kallt batteri kan också vara orsaken; slå i så fall på laddning i kyla."
+    },
+    "idle_discharges": {
+      "title": "Batteriet laddar ur under viloperioder",
+      "description": "Under tre dagar gick {actual_kwh} kWh ut ur batteriet under viloperioder (senast), trots att planen sparar energin till senare.\n\nKontrollera att skriptet verkligen blockerar urladdning och om en automation skriver över inställningen."
+    },
+    "export_ineffective": {
+      "title": "Exportperioder laddar inte ur som planerat",
+      "description": "Under tre dagar levererade batteriet bara {actual_kwh} kWh av planerade {expected_kwh} kWh i exportperioder (senast).\n\nKontrollera skriptet för tvingad urladdning."
+    },
+    "auto_not_covering": {
+      "title": "Batteriet täcker inte huset i automatiska perioder",
+      "description": "Under tre dagar levererade det bara {actual_kwh} kWh av de {expected_kwh} kWh huset behövde (senast), trots att det innehöll energi.\n\nKontrollera att auto-skriptet låter batteriet stå i egenförbrukning och om växelriktarens minsta SOC är högre än pilotens."
+    },
+    "auto_not_capturing": {
+      "title": "Solöverskott når inte batteriet i automatiska perioder",
+      "description": "Under tre dagar tog batteriet bara emot {actual_kwh} kWh av {expected_kwh} kWh uppmätt överskott (senast), trots att det fanns plats. Planen räknar med den här energin, så dess SOC-prognos är för hög.\n\nAuto-skriptet måste låta batteriet ladda från överskott. Följer det bara kommandon måste något annat följa elmätaren, till exempel en automation. Begränsar du laddningen med flit kan du ignorera det här meddelandet."
     }
   }
 }

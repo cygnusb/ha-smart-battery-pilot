@@ -49,6 +49,7 @@ async def async_get_config_entry_diagnostics(
             "last_update_success": coordinator.last_update_success,
             "charge_rate_bands": coordinator.charge_model.bands(),
             "pilot_ledger": coordinator.pilot_ledger.to_dict(),
+            "health": coordinator.health.to_dict(),
         },
         "decisions": list(executor.decisions),
     }

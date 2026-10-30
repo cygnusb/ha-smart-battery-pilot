@@ -397,6 +397,50 @@
     "currency_mismatch": {
       "title": "Kainų jutiklis naudoja kitą valiutą",
       "description": "**{entity}** pateikia kainas valiuta **{sensor_currency}**, tačiau Home Assistant valiuta yra **{ha_currency}**.\n\nSmart Battery Pilot nekonvertuoja kainų. Planas teisingas, tačiau kainos ir sutaupymai žymimi kaip {ha_currency}, o numatytosios reikšmės ir patikimumo ribos pritaikytos valiutai {ha_currency}.\n\nSkiltyje **Nustatymai → Sistema → Bendra** nustatykite valiutą, kuria išrašomos jūsų elektros sąskaitos, iš naujo įkelkite integraciją ir vieną kartą patikrinkite kainos antkainį, atlygį už parduotą elektrą ir skirtumą. Šis pranešimas dingsta, kai tik abi valiutos sutampa."
+    },
+    "script_failing": {
+      "title": "Valdymo scenarijus nuolat nepavyksta",
+      "description": "**{script}** (veiksmas `{action}`) nepavyko tris kartus iš eilės, todėl planas nevykdomas.\n\nPriežastis nurodyta žurnale. Scenarijus laikomas nepavykusiu ir tada, kai veikia ilgiau nei 120 s."
+    },
+    "plan_invalid": {
+      "title": "12 valandų nėra galiojančio plano",
+      "description": "Smart Battery Pilot mažiausiai 12 valandų negalėjo planuoti (`{error}`), todėl akumuliatorius veikia automatiniu režimu.\n\nPatikrinkite kainos ir SOC objektus. Šis pranešimas išnyks, kai tik planavimas vėl veiks."
+    },
+    "external_control_stuck": {
+      "title": "Kitas valdiklis laiko akumuliatorių jau 24 valandas",
+      "description": "Išorinio valdymo objektas aktyvus mažiausiai 24 valandas, ir tiek laiko pilotas stovi.\n\nPatikrinkite, ar tas valdiklis tikrai vis dar laiko akumuliatorių, ar objektas užstrigo."
+    },
+    "soc_frozen": {
+      "title": "SOC jutiklis, regis, užstrigo",
+      "description": "SOC liko {soc} %, nors apie {moved_kwh} kWh įtekėjo į akumuliatorių arba ištekėjo iš jo. Kiekvienas planas prasideda nuo šios vertės.\n\nPatikrinkite integraciją, teikiančią SOC."
+    },
+    "pv_today_is_remaining": {
+      "title": "Šiandienos saulės prognozė panaši į likusios dienos jutiklį",
+      "description": "Tris dienas iš eilės šiandienos prognozė iki saulėlydžio nukrito nuo {high_kwh} kWh iki {last_kwh} kWh (paskutinį kartą). Planas tikisi visos dienos sumos, todėl per mažai įvertina popietės saulės energiją.\n\nPasirinkite jutiklį su visos dienos prognoze."
+    },
+    "capacity_mismatch": {
+      "title": "Nustatyta akumuliatoriaus talpa atrodo neteisinga",
+      "description": "Įkrovimas rodo maždaug {implied_kwh} kWh talpą, bet nustatyta {configured_kwh} kWh. SOC prognozė ir planuojami kiekiai tiek pat skiriasi.\n\nPatikrinkite naudingąją talpą, įkrovimo skaitiklio vienetą ir naudingumo koeficientą."
+    },
+    "charge_ineffective": {
+      "title": "Įkrovimo laikotarpiai neįkrauna pagal planą",
+      "description": "Per tris dienas akumuliatorius iš prašytų {expected_kwh} kWh priėmė tik {actual_kwh} kWh (paskutinį kartą).\n\nPatikrinkite, ar įkrovimo scenarijus tikrai įkrauna galia `power_w` ir ar didžiausia įkrovimo galia atitinka įrangą. Priežastis gali būti ir šaltas akumuliatorius; tada įjunkite įkrovimą šaltyje."
+    },
+    "idle_discharges": {
+      "title": "Akumuliatorius išsikrauna budėjimo laikotarpiais",
+      "description": "Per tris dienas budėjimo laikotarpiais iš akumuliatoriaus ištekėjo {actual_kwh} kWh (paskutinį kartą), nors planas šią energiją taupo vėlesniam laikui.\n\nPatikrinkite, ar scenarijus tikrai blokuoja iškrovimą ir ar kokia nors automatizacija neperrašo nustatymo."
+    },
+    "export_ineffective": {
+      "title": "Eksporto laikotarpiai neiškrauna pagal planą",
+      "description": "Per tris dienas akumuliatorius eksporto laikotarpiais iš planuotų {expected_kwh} kWh atidavė tik {actual_kwh} kWh (paskutinį kartą).\n\nPatikrinkite priverstinio iškrovimo scenarijų."
+    },
+    "auto_not_covering": {
+      "title": "Akumuliatorius automatiniais laikotarpiais nepadengia namo poreikio",
+      "description": "Per tris dienas jis iš namui reikalingų {expected_kwh} kWh atidavė tik {actual_kwh} kWh (paskutinį kartą), nors energijos turėjo.\n\nPatikrinkite, ar automatinis scenarijus palieka akumuliatorių savo vartojimo režime ir ar inverterio mažiausias SOC nėra didesnis už piloto."
+    },
+    "auto_not_capturing": {
+      "title": "Saulės energijos perteklius automatiniais laikotarpiais nepasiekia akumuliatoriaus",
+      "description": "Per tris dienas akumuliatorius iš išmatuoto {expected_kwh} kWh pertekliaus priėmė tik {actual_kwh} kWh (paskutinį kartą), nors vietos buvo. Planas skaičiuoja su šia energija, todėl jo SOC prognozė per didelė.\n\nAutomatinis scenarijus turi leisti akumuliatoriui krautis iš pertekliaus. Jei jis vykdo tik komandas, tinklo skaitiklį turi sekti kas nors kita, pavyzdžiui, automatizacija. Jei įkrovimą ribojate sąmoningai, nepaisykite šio pranešimo."
     }
   }
 }

@@ -12,6 +12,7 @@ from homeassistant.helpers import issue_registry
 from homeassistant.helpers.update_coordinator import UpdateFailed
 import pytest
 
+from smart_battery_pilot import health
 from smart_battery_pilot.const import (
     ACTION_AUTO,
     ACTION_CHARGE,
@@ -22,6 +23,7 @@ from smart_battery_pilot.const import (
     CONF_FEED_IN_TARIFF,
     CONF_PRICE_ENTITY,
     CONF_PRICE_OFFSET,
+    CONF_PV_POWER_ENTITY,
     CONF_SOC_ENTITY,
     DOMAIN,
     SERVICE_REPLAN,
@@ -776,3 +778,95 @@ def test_charge_in_an_unknown_mode_is_priced_at_the_import_price():
     coord._update_actual_savings(plan, NOW + timedelta(minutes=30))
 
     assert coord._acc_savings_eur == pytest.approx(-0.80)
+
+
+def _steering(hass, **options):
+    coord = _coordinator(hass, **options)
+    coord.enabled = True
+    coord.dry_run = False
+    coord.async_start_health()
+    return coord
+
+
+def test_a_failed_check_appears_under_repairs_and_goes_away():
+    hass = _FakeHass()
+    coord = _steering(hass)
+    key = (DOMAIN, health.issue_id(coord.entry.entry_id, health.CHECK_SCRIPT_FAILING))
+    for _ in range(3):
+        coord.note_script_result(ACTION_CHARGE, "script.charge", False)
+    issue = issue_registry.issues[key]
+    assert issue["translation_key"] == health.CHECK_SCRIPT_FAILING
+    assert issue["translation_placeholders"]["script"] == "script.charge"
+    coord.note_script_result(ACTION_CHARGE, "script.charge", True)
+    assert key not in issue_registry.issues
+
+
+def test_repairs_wait_for_the_switches_to_be_restored():
+    """Until then `enabled` is only the default, and a sync would delete a repair
+    the user chose to ignore - and raise it again moments later."""
+    hass = _FakeHass()
+    coord = _coordinator(hass)
+    key = (DOMAIN, health.issue_id(coord.entry.entry_id, health.CHECK_SCRIPT_FAILING))
+    issue_registry.issues[key] = {"translation_key": health.CHECK_SCRIPT_FAILING}
+    coord.note_script_result(ACTION_CHARGE, "script.charge", True)
+    assert key in issue_registry.issues
+    coord.async_start_health()
+    assert key not in issue_registry.issues
+
+
+def test_the_coordinator_feeds_the_checks_what_really_happens():
+    hass = _FakeHass()
+    hass.states.set("sensor.soc", 50.0)
+    hass.states.set("sensor.pv", 3.0, {"unit_of_measurement": "kW"})
+    hass.states.set("sensor.load", 500.0, {"unit_of_measurement": "W"})
+    coord = _steering(
+        hass,
+        **{
+            CONF_CONSUMPTION_ENTITY: "sensor.load",
+            CONF_PV_POWER_ENTITY: "sensor.pv",
+        },
+    )
+    coord._last_applied = ACTION_AUTO
+    slot = PlanSlot(
+        start=NOW,
+        end=NOW + timedelta(hours=1),
+        action=ACTION_AUTO,
+        price=0.3,
+        net_demand_kwh=-1.0,
+        pv_kwh=2.0,
+    )
+    plan = Plan(slots=[slot])
+    seen = []
+    coord.health.observe = seen.append
+    coord._note_conditions(plan, NOW)
+    obs = seen[0]
+    assert (obs.pv_w, obs.load_w, obs.soc, obs.action) == (3000.0, 500.0, 50.0, ACTION_AUTO)
+    assert obs.steering is True
+    assert obs.no_pv_expected is False
+
+
+def test_an_energy_only_consumption_sensor_falls_back_to_the_forecast():
+    hass = _FakeHass()
+    hass.states.set("sensor.load", 12.0, {"unit_of_measurement": "kWh"})
+    coord = _coordinator(hass, **{CONF_CONSUMPTION_ENTITY: "sensor.load"})
+    slot = PlanSlot(
+        start=NOW,
+        end=NOW + timedelta(minutes=30),
+        action=ACTION_AUTO,
+        price=0.3,
+        net_demand_kwh=-1.0,
+        pv_kwh=1.5,
+    )
+    assert coord._house_load_w(slot) == 1000.0
+    assert coord._house_load_w(None) is None
+
+
+def test_a_plan_invalid_for_12_hours_reaches_repairs():
+    hass = _FakeHass()
+    coord = _steering(hass)
+    coord.data = SBPData(plan=Plan(), valid=True)
+    key = (DOMAIN, health.issue_id(coord.entry.entry_id, health.CHECK_PLAN_INVALID))
+    coord._invalid_plan(NOW, "no_price_data")
+    assert key not in issue_registry.issues
+    coord._invalid_plan(NOW + timedelta(hours=12), "no_price_data")
+    assert issue_registry.issues[key]["translation_placeholders"] == {"error": "no_price_data"}

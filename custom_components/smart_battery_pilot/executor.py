@@ -490,13 +490,21 @@ class PlanExecutor:
         self._unsub_timer = async_track_point_in_time(self.hass, _fire, boundary)
 
     async def _call_script(self, action: str, power_w: float) -> bool:
+        success = await self._run_script(action, power_w)
+        self.coordinator.note_script_result(action, self._script_entity(action), success)
+        return success
+
+    def _script_entity(self, action: str) -> str | None:
         key = {
             ACTION_CHARGE: CONF_SCRIPT_CHARGE,
             ACTION_IDLE: CONF_SCRIPT_IDLE,
             ACTION_AUTO: CONF_SCRIPT_AUTO,
             ACTION_EXPORT: CONF_SCRIPT_EXPORT,
         }.get(action)
-        entity_id = self.coordinator.conf(key) if key else None
+        return self.coordinator.conf(key) if key else None
+
+    async def _run_script(self, action: str, power_w: float) -> bool:
+        entity_id = self._script_entity(action)
         if not entity_id:
             if action == ACTION_EXPORT:
                 _LOGGER.warning("No export script configured - skipping export action")

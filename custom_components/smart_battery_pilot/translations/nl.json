@@ -397,6 +397,50 @@
     "currency_mismatch": {
       "title": "Prijssensor rekent in een andere valuta",
       "description": "**{entity}** levert prijzen in **{sensor_currency}**, maar de valuta van Home Assistant is **{ha_currency}**.\n\nSmart Battery Pilot rekent prijzen niet om. De planning klopt, maar prijzen en besparingen worden als {ha_currency} gelabeld, en standaardwaarden en plausibiliteitsgrenzen zijn afgestemd op {ha_currency}.\n\nStel onder **Instellingen → Systeem → Algemeen** de valuta in waarin je tarief wordt gefactureerd, herlaad de integratie en controleer eenmalig de prijsopslag, de terugleververgoeding en de spread. Deze melding verdwijnt zodra beide valuta overeenkomen."
+    },
+    "script_failing": {
+      "title": "Een besturingsscript mislukt herhaaldelijk",
+      "description": "**{script}** (actie `{action}`) is drie keer achter elkaar mislukt, dus het plan wordt niet uitgevoerd.\n\nDe reden staat in het logboek. Een script telt ook als mislukt als het langer dan 120 s duurt."
+    },
+    "plan_invalid": {
+      "title": "Al 12 uur geen geldig plan",
+      "description": "Smart Battery Pilot kan al minstens 12 uur niet plannen (`{error}`), dus de batterij blijft in de automatische modus.\n\nControleer de prijs- en SOC-entiteit. Deze melding verdwijnt zodra het plannen weer werkt."
+    },
+    "external_control_stuck": {
+      "title": "Een andere regeling houdt de batterij al 24 uur vast",
+      "description": "De entiteit voor externe regeling is al minstens 24 uur actief, en zolang dat duurt pauzeert de piloot.\n\nControleer of die regeling de batterij echt nog vasthoudt of dat de entiteit is blijven hangen."
+    },
+    "soc_frozen": {
+      "title": "De SOC-sensor lijkt bevroren",
+      "description": "De SOC bleef op {soc} % staan terwijl ongeveer {moved_kwh} kWh de batterij in of uit ging. Elk plan begint bij deze waarde.\n\nControleer de integratie die de SOC levert."
+    },
+    "pv_today_is_remaining": {
+      "title": "De zonneprognose voor vandaag lijkt een sensor voor de rest van de dag",
+      "description": "Drie dagen achter elkaar daalde de prognose voor vandaag van {high_kwh} kWh naar {last_kwh} kWh voor zonsondergang (laatste keer). Het plan verwacht het totaal van de hele dag en onderschat zo de zonne-energie in de middag.\n\nKies een sensor met de prognose voor de hele dag."
+    },
+    "capacity_mismatch": {
+      "title": "De ingestelde batterijcapaciteit lijkt onjuist",
+      "description": "Het laden wijst op ongeveer {implied_kwh} kWh capaciteit, maar er is {configured_kwh} kWh ingesteld. SOC-prognose en geplande hoeveelheden wijken evenveel af.\n\nControleer de bruikbare capaciteit, de eenheid van de laadmeter en het rendement."
+    },
+    "charge_ineffective": {
+      "title": "Laadperiodes laden niet zoals gepland",
+      "description": "Op drie dagen nam de batterij maar {actual_kwh} kWh van de gevraagde {expected_kwh} kWh op (laatste keer).\n\nControleer of het laadscript echt met `power_w` laadt en of het maximale laadvermogen bij de hardware past. Ook een koude batterij kan de reden zijn; zet dan laden bij kou aan."
+    },
+    "idle_discharges": {
+      "title": "De batterij ontlaadt in rustperiodes",
+      "description": "Op drie dagen ging er in rustperiodes {actual_kwh} kWh uit de batterij (laatste keer), hoewel het plan die energie voor later bewaart.\n\nControleer of het script ontladen echt blokkeert en of een automatisering de instelling overschrijft."
+    },
+    "export_ineffective": {
+      "title": "Exportperiodes ontladen niet zoals gepland",
+      "description": "Op drie dagen leverde de batterij in exportperiodes maar {actual_kwh} kWh van de geplande {expected_kwh} kWh (laatste keer).\n\nControleer het script voor geforceerd ontladen."
+    },
+    "auto_not_covering": {
+      "title": "De batterij dekt het huis niet in automatische periodes",
+      "description": "Op drie dagen leverde ze maar {actual_kwh} kWh van de {expected_kwh} kWh die het huis nodig had (laatste keer), hoewel ze energie bevatte.\n\nControleer of het auto-script de batterij in eigen verbruik laat en of de minimale SOC van de omvormer hoger is dan die van de piloot."
+    },
+    "auto_not_capturing": {
+      "title": "Zonne-overschot bereikt de batterij niet in automatische periodes",
+      "description": "Op drie dagen nam de batterij maar {actual_kwh} kWh van {expected_kwh} kWh gemeten overschot op (laatste keer), hoewel er ruimte was. Het plan rekent op deze energie, dus de SOC-prognose is te hoog.\n\nHet auto-script moet de batterij uit overschot laten laden. Volgt ze alleen opdrachten, dan moet iets anders de netmeter volgen, bijvoorbeeld een automatisering. Beperk je het laden bewust, negeer deze melding dan."
     }
   }
 }
