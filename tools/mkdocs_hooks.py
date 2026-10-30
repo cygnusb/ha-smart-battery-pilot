@@ -55,7 +55,9 @@ def _fetch_releases():
 
 
 def _changelog(releases):
-    releases = sorted(releases, key=lambda r: r["published_at"], reverse=True)
+    # By the release commit's date: a version published late still belongs where
+    # its code landed.
+    releases = sorted(releases, key=lambda r: r["created_at"], reverse=True)
     index = ["| Version | Released | Headline |", "|---|---|---|"]
     sections = []
     for release in releases:
