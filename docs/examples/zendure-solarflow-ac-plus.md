@@ -12,7 +12,9 @@ charges its battery from its own PV; the SolarFlow AC+ in `output` mode never
 pulls AC power to charge. The pilot plans `auto` slots assuming exactly that
 capture happens, so this example adds a small *assist* automation that provides
 bidirectional self-consumption inside auto slots: discharge to cover the house
-load, charge from surplus otherwise.
+load, charge from surplus otherwise. In the
+[what an auto slot assumes](../optimizer.md#what-an-auto-slot-assumes) table,
+this is the row where nobody follows the meter unless an automation does.
 
 ## Architecture
 
@@ -29,6 +31,19 @@ pilot ──▶ scripts ──┼─ idle slot ───▶ sbp_block_discharge 
 The assist is the pilot's "hands" in auto mode only: the charge and idle scripts
 switch it off before they command the device, so there is exactly one writer to
 the power limits at any moment. The pilot stays the single brain.
+
+**What about the device's own smart-meter mode?** With a compatible meter
+paired in the vendor app, the 2400 AC+ can follow the grid meter on its own —
+the one case in
+[what an auto slot assumes](../optimizer.md#what-an-auto-slot-assumes) where
+the loop closes without an automation. It is still the wrong tool here: the
+mode lives in the vendor app, is not exposed to Home Assistant by the
+integration, and it follows the meter in *every* state — it would keep
+discharging through charge and idle slots where the plan wants the battery
+held or charging, trading the plan's price optimization and evening protection
+for plain load-following. So the battery stays in command mode, and the assist
+closes the loop instead — only inside auto slots, and only while the pilot has
+it enabled.
 
 ## Prerequisites
 
@@ -270,6 +285,15 @@ mirrors the pilot's minimum SOC; the device's own minimum-SOC setting stays in
 place as the hardware backstop. The `choose` conditions re-evaluate the regime
 at run time, so when two triggers fire around the same moment the newest run
 always acts on the freshest regime.
+
+Two pilot limits need one line each. **Max SOC** — the assist charges while
+`soc < 100`, so leave the pilot's *Max SOC* at its default 100 % or change the
+checks to match; otherwise the plan stops at Max SOC while the assist charges
+on toward 100 %. **Backup reserve** — the fixed 5 % floor ignores
+`reserve_soc`; switch on
+[block discharging at the reserve](../configuration.md#backup-reserve) and the
+pilot runs the block-discharge script at the reserve, which turns the assist
+off, so the assist can never drain a configured reserve.
 
 ## Integration configuration
 
