@@ -200,7 +200,7 @@ const hass = {
 Date.now = () => T0 + 30 * 60000;
 
 const out = {};
-for (const view of ["tracks", "balance", "compact", "nonsense", null]) {
+for (const view of ["tracks", "balance", "bars", "flow", "compact", "nonsense", null]) {
   const card = new Card();
   const config = { entity: "sensor.plan" };
   if (view !== null) config.view = view;
@@ -306,10 +306,43 @@ def test_compact_view_leads_with_figures(views):
     assert views["compact"]["size"] < views["tracks"]["size"]
 
 
+def test_bars_view_colours_each_price_by_its_action(views):
+    """One bar per slot, in the colour of the planned action; no ribbon."""
+    html = views["bars"]["html"]
+    bars = re.findall(r'class="pbar (\w+)"', html)
+    assert len(bars) == 24
+    assert bars[3] == "charge" and bars[18:21] == ["idle"] * 3 and bars[0] == "auto"
+    assert 'class="band ' not in html
+    assert '<i class="pbar-i"></i>Auto (Price)</span>' in html
+    assert 'class="pvarea"' in html and 'class="socline"' in html
+    # Only the two views reading the same panels share the toggle.
+    assert 'class="viewtog"' not in html
+
+
+def test_flow_view_draws_the_price_as_a_band(views):
+    html = views["flow"]["html"]
+    shades = [float(v) for v in re.findall(r'class="pcell" fill-opacity="([\d.]+)"', html)]
+    assert len(shades) == 24
+    # Cheapest palest, dearest darkest.
+    assert min(shades) == shades[0] and max(shades) == shades[-1]
+    # The ribbon still runs under the band, but is too thin for words.
+    assert 'class="band charge"' in html and 'class="bandtx' not in html
+    assert 'class="consarea"' in html and 'class="pvarea"' in html
+    assert 'class="ax pl">PV ↑  Consumption ↓  kWh<' in html
+
+
+def test_flow_view_names_the_operating_window(views):
+    html = views["flow"]["html"]
+    assert html.count('class="socref"') == 2
+    assert ">Max 95%<" in html
+    # 0-100 % on the axis, the window as lines rather than as the scale.
+    assert 'class="ax pr">100%<' in html and 'class="ax pr">0%<' in html
+
+
 def test_an_unknown_view_draws_the_default(views):
     """A typo in a dashboard must not cost the user their plan."""
-    assert views["nonsense"]["html"] == views["tracks"]["html"]
-    assert views["null"]["html"] == views["tracks"]["html"]
+    assert unnumbered(views["nonsense"]["html"]) == unnumbered(views["tracks"]["html"])
+    assert unnumbered(views["null"]["html"]) == unnumbered(views["tracks"]["html"])
 
 
 # A third harness: the same plan drawn into cards of very different sizes.
@@ -684,7 +717,7 @@ const draw = (plan, view, width) => {
 const out = {};
 for (const [name, plan] of Object.entries(plans)) {
   out[name] = {};
-  for (const view of ["tracks", "balance", "compact"]) {
+  for (const view of ["tracks", "balance", "bars", "flow", "compact"]) {
     const card = draw(plan, view);
     out[name][view] = { html: card.innerHTML, panels: card._geo.panels };
   }
@@ -732,12 +765,12 @@ def ev_views() -> dict:
 
 
 def unnumbered(html: str) -> str:
-    """clipPath ids are numbered across every card on the page.
+    """clipPath and gradient ids are numbered across every card on the page.
 
     Two cards therefore never share one, and that is the only difference two
     renders of the same plan may have.
     """
-    return re.sub(r"sbp-clip-\d+", "sbp-clip-N", html)
+    return re.sub(r"sbp-(clip|g)-\d+", r"sbp-\1-N", html)
 
 
 EV_MARKERS = ("evwin", "evedge", "evlimit", "evheld", "dirlbl ev", "next ev", "ev-i", "evlim-i")
@@ -818,6 +851,32 @@ def test_a_quiet_charger_still_says_how_it_stands(ev_views, plan, text):
 def test_a_planned_session_replaces_the_idle_text(ev_views):
     for view in ("tracks", "balance", "compact"):
         assert "no charging planned" not in ev_views["ev"][view]["html"], view
+
+
+def test_bars_and_flow_give_the_car_a_lane(ev_views):
+    """The car's kWh per slot on a scale of its own, only while it charges."""
+    for view in ("bars", "flow"):
+        drawn = ev_views["ev"][view]
+        assert drawn["html"].count('class="evbar"') == 6, view
+        assert 'class="ax pl ev">EV kWh<' in drawn["html"], view
+        lane = next(p for p in drawn["panels"] if p["key"] == "evlane")
+        assert lane["h"] == 30, view
+        assert not any(p["key"] == "evlane" for p in ev_views["plain"][view]["panels"]), view
+        assert 'class="evheld"' in drawn["html"], view
+    # The bars carry the limit as a line, the band as dots on cheap slots.
+    assert ev_views["ev"]["bars"]["html"].count('class="evlimit"') == 1
+    flow = ev_views["ev"]["flow"]["html"]
+    assert 'class="evlimit"' not in flow
+    assert flow.count('class="evbelow"') == 24 - 6  # every slot below 0.12 €/kWh but 18-23
+    assert '<i class="evbelow-i"></i>below evcc limit</span>' in flow
+
+
+def test_bars_and_flow_without_ev_charging_render_as_before(ev_views):
+    for view in ("bars", "flow"):
+        plain = ev_views["plain"][view]["html"]
+        assert unnumbered(ev_views["idle"][view]["html"]) == unnumbered(plain), view
+        for marker in (*EV_MARKERS, "evbar", "evbelow"):
+            assert marker not in plain, f"{view}: {marker!r} without EV charging"
 
 
 def test_the_soc_panel_marks_the_held_battery(ev_views):

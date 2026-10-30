@@ -1,17 +1,24 @@
 /* Smart Battery Pilot Lovelace card.
  *
- * Three views over the same plan, each giving every unit its own panel and
+ * Five views over the same plan, each giving every unit its own panel and
  * its own scale:
  *
  *   tracks  (default) price / PV + consumption / SOC, stacked
  *   balance           price / PV minus consumption / SOC - what the optimizer
  *                     actually plans against
+ *   bars              price as bars in the colour of the planned action /
+ *                     PV + consumption / SOC
+ *   flow              price as a colour band over the action ribbon / PV up
+ *                     and consumption down / SOC across 0-100 %
  *   compact           status, three tiles (four with a car session), SOC and
  *                     a price sparkline
  *
+ * With EV charging on the plan, bars and flow add a lane for the car's
+ * energy under the price.
+ *
  * type: custom:smart-battery-pilot-card
  * entity: sensor.<...>_charge_plan   (auto-discovered if omitted/wrong)
- * view: tracks | balance | compact   (optional, default tracks)
+ * view: tracks | balance | bars | flow | compact   (optional, default tracks)
  */
 
 // Action keys as they arrive in the charge_plan slots; ACTIONS drives the legend
@@ -54,6 +61,9 @@ const TRANSLATIONS = {
     ev_unplugged: "not plugged in",
     ev_idle: "no charging planned",
     ev_offline: "evcc not reachable",
+    ev_below_limit: "below evcc limit",
+    soc_reserve: "Reserve",
+    soc_ceiling: "Max",
   },
   de: {
     action_charge: "Laden",
@@ -90,6 +100,9 @@ const TRANSLATIONS = {
     ev_unplugged: "nicht eingesteckt",
     ev_idle: "keine Ladung geplant",
     ev_offline: "evcc nicht erreichbar",
+    ev_below_limit: "unter evcc-Grenze",
+    soc_reserve: "Reserve",
+    soc_ceiling: "Max",
   },
   da: {
     action_charge: "Lad",
@@ -126,6 +139,9 @@ const TRANSLATIONS = {
     ev_unplugged: "ikke tilsluttet",
     ev_idle: "ingen opladning planlagt",
     ev_offline: "evcc kan ikke nås",
+    ev_below_limit: "under evcc-grænse",
+    soc_reserve: "Reserve",
+    soc_ceiling: "Maks",
   },
   et: {
     action_charge: "Laadimine",
@@ -162,6 +178,9 @@ const TRANSLATIONS = {
     ev_unplugged: "pole ühendatud",
     ev_idle: "laadimist pole planeeritud",
     ev_offline: "evcc pole kättesaadav",
+    ev_below_limit: "alla evcc piiri",
+    soc_reserve: "Reserv",
+    soc_ceiling: "Maks",
   },
   fi: {
     action_charge: "Lataa",
@@ -198,6 +217,9 @@ const TRANSLATIONS = {
     ev_unplugged: "ei kytketty",
     ev_idle: "ei suunniteltua latausta",
     ev_offline: "evcc ei vastaa",
+    ev_below_limit: "alle evcc-rajan",
+    soc_reserve: "Varaus",
+    soc_ceiling: "Maks",
   },
   lt: {
     action_charge: "Įkrauti",
@@ -234,6 +256,9 @@ const TRANSLATIONS = {
     ev_unplugged: "neprijungtas",
     ev_idle: "įkrovimas nesuplanuotas",
     ev_offline: "evcc nepasiekiamas",
+    ev_below_limit: "žemiau evcc ribos",
+    soc_reserve: "Rezervas",
+    soc_ceiling: "Maks.",
   },
   lv: {
     action_charge: "Uzlāde",
@@ -270,6 +295,9 @@ const TRANSLATIONS = {
     ev_unplugged: "nav pievienots",
     ev_idle: "uzlāde nav plānota",
     ev_offline: "evcc nav sasniedzams",
+    ev_below_limit: "zem evcc robežas",
+    soc_reserve: "Rezerve",
+    soc_ceiling: "Maks.",
   },
   nb: {
     action_charge: "Lad",
@@ -306,6 +334,9 @@ const TRANSLATIONS = {
     ev_unplugged: "ikke tilkoblet",
     ev_idle: "ingen lading planlagt",
     ev_offline: "evcc svarer ikke",
+    ev_below_limit: "under evcc-grense",
+    soc_reserve: "Reserve",
+    soc_ceiling: "Maks",
   },
   nl: {
     action_charge: "Laden",
@@ -342,6 +373,9 @@ const TRANSLATIONS = {
     ev_unplugged: "niet aangesloten",
     ev_idle: "geen laden gepland",
     ev_offline: "evcc niet bereikbaar",
+    ev_below_limit: "onder evcc-limiet",
+    soc_reserve: "Reserve",
+    soc_ceiling: "Max",
   },
   sv: {
     action_charge: "Ladda",
@@ -378,6 +412,9 @@ const TRANSLATIONS = {
     ev_unplugged: "inte ansluten",
     ev_idle: "ingen laddning planerad",
     ev_offline: "evcc kan inte nås",
+    ev_below_limit: "under evcc-gräns",
+    soc_reserve: "Reserv",
+    soc_ceiling: "Max",
   },
 };
 
@@ -458,8 +495,9 @@ function esc(value) {
 // width and extra height buy resolution instead of magnification.
 const PAD_R = 16;
 const AXIS_H = 24; // hour labels, plus the date under a day separator
-const PANEL_LABEL_H = 13; // the unit caption sitting above each panel
-const PANEL_GAP = 11; // clear air between one panel and the next caption
+const PANEL_LABEL_H = 14; // the unit caption sitting above each panel
+const PANEL_GAP = 9; // clear air between one panel and the next caption
+const RIBBON_GAP = 4; // and between the action ribbon and the first caption
 const MIN_PANEL_H = 30; // below this a panel has no room left for its curve
 const MIN_CHART_H = 120; // an explicit `height:` under this is not a chart
 const FALLBACK_W = 480; // nothing to measure yet: first paint, or a test shim
@@ -474,7 +512,42 @@ const TICK_STEPS_H = [1, 2, 3, 6, 12];
 // clipPath ids have to be unique across every card on the dashboard.
 let clipSeq = 0;
 
-const VIEWS = ["tracks", "balance", "compact"];
+// Area fills, strongest along the curve and fading out towards the baseline,
+// so the line carries the value and the fill only says which side of it is
+// "inside". A flat wash at the strength the line needs turned the orange and
+// amber areas into a muddy brown block on a dark theme. Each entry is
+// [colour, opacity at the curve, opacity at the far edge]; the negative
+// balance runs the other way, its curve being the bottom of its area.
+const AREA_GRADIENTS = {
+  price: ["#eb6834", 0.26, 0.02],
+  pv: ["#eda100", 0.36, 0.04],
+  soc: ["#2a78d6", 0.3, 0.03],
+  balpos: ["#2a78d6", 0.34, 0.04],
+  balneg: ["#d03b3b", 0.04, 0.34],
+  cons: ["#1baf7a", 0.05, 0.4],
+};
+
+function gradientDefs(gid) {
+  let out = "<defs>";
+  for (const [key, [color, from, to]] of Object.entries(AREA_GRADIENTS)) {
+    out +=
+      `<linearGradient id="${gid}-${key}" x1="0" y1="0" x2="0" y2="1">` +
+      `<stop offset="0" stop-color="${color}" stop-opacity="${from}"/>` +
+      `<stop offset="1" stop-color="${color}" stop-opacity="${to}"/>` +
+      `</linearGradient>`;
+  }
+  return out + "</defs>";
+}
+
+const VIEWS = ["tracks", "balance", "bars", "flow", "compact"];
+
+// Fixed-height lanes. The price band in the flow view keeps a row above it
+// for the peak and trough figures and carries the action ribbon below it;
+// the EV lane is tall enough for its bars and a kWh figure over each.
+const STRIP_LABEL_H = 12;
+const STRIP_H = 22;
+const STRIP_RIBBON_H = 7;
+const EV_LANE_H = 30;
 const DEFAULT_VIEW = "tracks";
 
 // Panels top to bottom per view, with the share of the free vertical space
@@ -484,7 +557,7 @@ const DEFAULT_VIEW = "tracks";
 // becomes a wide chart rather than a wall of one.
 const LAYOUTS = {
   tracks: {
-    ribbon: 13,
+    ribbon: 15,
     panels: [
       { key: "price", weight: 60 },
       { key: "energy", weight: 58 },
@@ -493,7 +566,7 @@ const LAYOUTS = {
     height: { base: 184, perPx: 0.2, min: 236, max: 440 },
   },
   balance: {
-    ribbon: 13,
+    ribbon: 15,
     panels: [
       { key: "price", weight: 60 },
       { key: "balance", weight: 58 },
@@ -501,8 +574,30 @@ const LAYOUTS = {
     ],
     height: { base: 184, perPx: 0.2, min: 236, max: 440 },
   },
+  // Each price bar takes the colour of the action planned for its slot, which
+  // is what the ribbon says, so these two views go without one.
+  bars: {
+    ribbon: 0,
+    panels: [
+      { key: "pricebars", weight: 72 },
+      { key: "evlane", fixed: EV_LANE_H, ev: true },
+      { key: "energy", weight: 50 },
+      { key: "soc", weight: 50 },
+    ],
+    height: { base: 196, perPx: 0.2, min: 250, max: 460 },
+  },
+  flow: {
+    ribbon: 0,
+    panels: [
+      { key: "pricestrip", fixed: STRIP_LABEL_H + STRIP_H + 3 + STRIP_RIBBON_H },
+      { key: "evlane", fixed: EV_LANE_H, ev: true },
+      { key: "flow", weight: 60 },
+      { key: "soc100", weight: 60 },
+    ],
+    height: { base: 184, perPx: 0.2, min: 236, max: 440 },
+  },
   compact: {
-    ribbon: 17,
+    ribbon: 18,
     panels: [
       { key: "soc", weight: 76 },
       { key: "price", weight: 30 },
@@ -515,24 +610,33 @@ const LAYOUTS = {
 // caption above each panel and the hour-label strip cost a fixed number of
 // pixels whatever the card size; the remainder is shared out by weight, so a
 // taller card draws taller curves rather than more white space.
-function buildLayout(spec, width, height) {
+//
+// A panel with `fixed` keeps that height and stays out of the share-out; one
+// marked `ev` only exists while the plan has EV charging on it.
+function buildLayout(spec, width, height, withEv = false) {
   const padL = width < NARROW_W ? 34 : 42;
   const plotW = Math.max(60, width - padL - PAD_R);
-  const n = spec.panels.length;
-  const top = 6 + spec.ribbon;
-  const chrome = top + n * PANEL_LABEL_H + (n - 1) * PANEL_GAP + AXIS_H;
-  const budget = Math.max(n * MIN_PANEL_H, height - chrome);
-  const weights = spec.panels.reduce((sum, panel) => sum + panel.weight, 0);
-  const heights = spec.panels.map((panel) =>
-    Math.max(MIN_PANEL_H, Math.round((budget * panel.weight) / weights))
+  const specs = spec.panels.filter((panel) => !panel.ev || withEv);
+  const n = specs.length;
+  const top = 6 + spec.ribbon + (spec.ribbon ? RIBBON_GAP : 0);
+  const fixed = specs.reduce((sum, panel) => sum + (panel.fixed || 0), 0);
+  const flexible = specs.filter((panel) => !panel.fixed).length;
+  const chrome = top + n * PANEL_LABEL_H + (n - 1) * PANEL_GAP + AXIS_H + fixed;
+  const budget = Math.max(flexible * MIN_PANEL_H, height - chrome);
+  const weights = specs.reduce((sum, panel) => sum + (panel.fixed ? 0 : panel.weight), 0);
+  const heights = specs.map((panel) =>
+    panel.fixed || Math.max(MIN_PANEL_H, Math.round((budget * panel.weight) / weights))
   );
   // Rounding each panel independently loses up to a pixel per panel, which is
-  // enough to make `height: 300` render 302. The last panel absorbs the drift.
-  const drift = budget - heights.reduce((sum, h) => sum + h, 0);
-  heights[heights.length - 1] = Math.max(MIN_PANEL_H, heights[heights.length - 1] + drift);
+  // enough to make `height: 300` render 302. The last flexible panel absorbs
+  // the drift.
+  const drift = budget - heights.reduce((sum, h, i) => sum + (specs[i].fixed ? 0 : h), 0);
+  let absorb = heights.length - 1;
+  while (absorb > 0 && specs[absorb].fixed) absorb -= 1;
+  heights[absorb] = Math.max(MIN_PANEL_H, heights[absorb] + drift);
   const panels = [];
   let y = top + PANEL_LABEL_H;
-  spec.panels.forEach((panel, i) => {
+  specs.forEach((panel, i) => {
     panels.push({ key: panel.key, y, h: heights[i] });
     y += heights[i] + PANEL_GAP + PANEL_LABEL_H;
   });
@@ -643,7 +747,13 @@ const EV_STYLES = `
           .lg .evlim-i { width: 14px; height: 0; border-top: 2px dashed #0f9fb5; border-radius: 0; }
           .tiles.four { grid-template-columns: repeat(4, 1fr); }
           .tiles.four.narrow { grid-template-columns: repeat(2, 1fr); }
-          .tile.ev .tl { color: #0f9fb5; }`;
+          .tile.ev .tl { color: #0f9fb5; }
+          .ax.pl.ev { fill: #0f9fb5; opacity: 1; }
+          .evbar { fill: #0f9fb5; }
+          .dirlbl.ev.small { font-size: 9px; }
+          .dot.ev { fill: #0f9fb5; }
+          .evbelow { fill: #0f9fb5; stroke: var(--card-background-color, #fff); stroke-width: 1.2; }
+          .lg .evbelow-i { width: 8px; height: 8px; border-radius: 50%; background: #0f9fb5; }`;
 
 class SmartBatteryPilotCard extends HTMLElement {
   setConfig(config) {
@@ -940,7 +1050,8 @@ class SmartBatteryPilotCard extends HTMLElement {
     // for real at the end of the pass, which is why a percentage height can
     // need one correcting redraw.
     this._assumedNonChartH = this._nonChartH || 0;
-    const layout = buildLayout(spec, width, this._chartHeight(spec, width));
+    const ev = this._evPlan(slots, state.attributes);
+    const layout = buildLayout(spec, width, this._chartHeight(spec, width), Boolean(ev));
     this._geo = layout;
     this._renderedWidth = width;
     this._renderedHostH = this._offeredHeight();
@@ -955,18 +1066,21 @@ class SmartBatteryPilotCard extends HTMLElement {
     this._t1 = t1;
     const x = (ms) => layout.padL + ((ms - t0) / (t1 - t0)) * layout.plotW;
     this._x = x;
+    // Gradient ids, like clip ids, are document-wide: the card lives in the
+    // light DOM next to every other card on the dashboard.
+    this._gid = `sbp-g-${(clipSeq += 1)}`;
 
-    const ev = this._evPlan(slots, state.attributes);
-    const scales = this._buildScales(slots, state.attributes, layout, ev ? ev.limit : null);
-    if (ev) ev.limitShown = Boolean(scales.price && scales.price.limit !== null);
+    const scales = this._buildScales(slots, state.attributes, layout, ev ? ev.limit : null, ev);
+    if (ev) {
+      const priceScale = scales.price || scales.pricebars;
+      ev.limitShown = Boolean(priceScale && priceScale.limit !== null);
+      ev.belowShown = Boolean(scales.pricestrip && ev.limit !== null);
+    }
     this._ev = ev;
-    this._yPrice = scales.price ? scales.price.y : null;
-    this._cursorTop = layout.ribbon.y;
-    this._cursorBottom = plotBottom;
-    // The hover dot rides the curve the view leads with.
-    this._dotAt = scales.price
-      ? (slot) => scales.price.y(slot.price)
-      : (slot) => scales.soc.y(slot.soc_forecast);
+    // One hover dot on every curve the cursor crosses, so the price, the
+    // energy and the SOC of a slot read off in one look rather than one dot
+    // on the first panel and a vertical line to follow down the rest.
+    this._hoverDots = this._hoverSeries(layout, scales, slots);
 
     let chrome = "";
     for (const panel of layout.panels) chrome += this._panelChrome(panel, scales[panel.key]);
@@ -980,10 +1094,16 @@ class SmartBatteryPilotCard extends HTMLElement {
     }
 
     const nowMs = Date.now();
+    // A playhead: a pointer above the action ribbon, which is where "what
+    // happens now" is answered, and a hairline down through the panels.
     let nowLine = "";
     if (nowMs >= t0 && nowMs <= t1) {
-      const nx = x(nowMs).toFixed(1);
-      nowLine = `<line x1="${nx}" y1="${layout.ribbon.y}" x2="${nx}" y2="${plotBottom}" class="now"/>`;
+      const n = x(nowMs);
+      const nx = n.toFixed(1);
+      const tip = layout.ribbon.y - 1;
+      nowLine =
+        `<line x1="${nx}" y1="${layout.ribbon.y}" x2="${nx}" y2="${plotBottom}" class="now"/>` +
+        `<path d="M${(n - 4.5).toFixed(1)},0 L${(n + 4.5).toFixed(1)},0 L${nx},${tip} Z" class="nowcap"/>`;
     }
 
     const current = slots.find((s) => nowMs >= s.startMs && nowMs < s.endMs);
@@ -1038,12 +1158,17 @@ class SmartBatteryPilotCard extends HTMLElement {
       }
       <div class="chartwrap">
         <svg viewBox="0 0 ${layout.width} ${H}" width="${layout.width}" height="${H}" preserveAspectRatio="xMidYMid meet">
-          ${chrome}${ev ? this._evWindows(ev, layout) : ""}
-          ${this._ribbon(slots, layout.ribbon)}
+          ${gradientDefs(this._gid)}${chrome}${ev ? this._evWindows(ev, layout) : ""}
+          ${layout.ribbon.h ? this._ribbon(slots, layout.ribbon) : ""}
           ${marks}
           ${nowLine}
-          <line id="sbp-cursor" x1="0" y1="${layout.ribbon.y}" x2="0" y2="${plotBottom}" class="cursor" style="display:none"/>
-          <circle id="sbp-dot" r="3.5" class="dot" style="display:none"/>
+          <line id="sbp-cursor" x1="0" y1="${first.y}" x2="0" y2="${plotBottom}" class="cursor" style="display:none"/>
+          ${this._hoverDots
+            .map(
+              (d, i) =>
+                `<circle id="sbp-dot-${i}" r="3.5" class="dot ${d.cls}" style="display:none"/>`
+            )
+            .join("")}
           <rect id="sbp-hit" x="${layout.padL}" y="${first.y}" width="${layout.plotW}" height="${plotBottom - first.y}" fill="transparent"/>
         </svg>
         <div id="sbp-tip" class="tip" style="display:none"></div>
@@ -1053,14 +1178,43 @@ class SmartBatteryPilotCard extends HTMLElement {
     this._attachEvents();
   }
 
+  // The curves a hover dot rides, panel by panel: { cls, y(slot) }.
+  _hoverSeries(layout, scales, slots) {
+    const pv = slots.some((s) => (s.pv_kwh || 0) > 0);
+    const out = [];
+    for (const panel of layout.panels) {
+      const scale = scales[panel.key];
+      if (panel.key === "price" || panel.key === "pricebars") {
+        out.push({ cls: "price", y: (s) => scale.y(s.price) });
+      } else if (panel.key === "evlane") {
+        out.push({ cls: "ev", y: (s) => (slotEv(s) > EV_MIN_KWH ? scale.y(slotEv(s)) : NaN) });
+      } else if (panel.key === "flow") {
+        if (pv) out.push({ cls: "pv", y: (s) => scale.y(s.pv_kwh || 0) });
+        out.push({ cls: "cons", y: (s) => scale.y(-slotConsumption(s)) });
+      } else if (panel.key === "energy") {
+        if (pv) out.push({ cls: "pv", y: (s) => scale.y(s.pv_kwh || 0) });
+        out.push({ cls: "cons", y: (s) => scale.y(slotConsumption(s)) });
+      } else if (panel.key === "balance") {
+        out.push({
+          cls: "bal",
+          y: (s) => scale.y(slotBalance(s)),
+          neg: (s) => slotBalance(s) < 0,
+        });
+      } else if (panel.key === "soc" || panel.key === "soc100") {
+        out.push({ cls: "soc", y: (s) => scale.y(s.soc_forecast) });
+      }
+    }
+    return out;
+  }
+
   // --- scales -------------------------------------------------------------
 
   // `evLimit` is the EV charger's cheap-price limit, or null when the plan
-  // has no EV charging on it.
-  _buildScales(slots, attrs, layout, evLimit = null) {
+  // has no EV charging on it; `ev` is the whole EV plan, for the EV lane.
+  _buildScales(slots, attrs, layout, evLimit = null, ev = null) {
     const out = {};
     for (const panel of layout.panels) {
-      if (panel.key === "price") {
+      if (panel.key === "price" || panel.key === "pricebars") {
         const prices = slots.map((s) => s.price);
         let lo = Math.min(0, ...prices);
         let hi = Math.max(...prices);
@@ -1083,12 +1237,69 @@ class SmartBatteryPilotCard extends HTMLElement {
         const top = Math.ceil((hi + step * 0.12) / step) * step;
         const ticks = [];
         for (let v = bot; v <= top + 1e-9; v += step) ticks.push(v);
-        out.price = {
+        out[panel.key] = {
           y: (v) => panel.y + (1 - (v - bot) / (top - bot)) * panel.h,
           ticks,
           fmt: (v) => v.toFixed(2),
           label: `${this._tr("price")} ${this._priceUnit}`,
           limit,
+        };
+      } else if (panel.key === "pricestrip") {
+        // No y axis: the price is the depth of the colour, cheapest slot
+        // palest, so the scale is the plan's own price range.
+        const prices = slots.map((s) => s.price);
+        const lo = Math.min(...prices);
+        const hi = Math.max(...prices);
+        const stripY = panel.y + STRIP_LABEL_H;
+        out.pricestrip = {
+          y: () => stripY + STRIP_H / 2,
+          shade: (v) => (hi > lo ? 0.1 + (0.9 * (v - lo)) / (hi - lo) : 0.55),
+          lo,
+          hi,
+          strip: { y: stripY, h: STRIP_H },
+          ribbon: { y: stripY + STRIP_H + 3, h: STRIP_RIBBON_H },
+          ticks: [],
+          fmt: (v) => v.toFixed(2),
+          label: `${this._tr("price")} ${this._priceUnit}`,
+          limit: evLimit,
+        };
+      } else if (panel.key === "evlane") {
+        // The car's own scale: an hour of charging is several times the
+        // household's, so sharing the energy panel would flatten the house.
+        const max = Math.max(...slots.map(slotEv), EV_MIN_KWH);
+        const span = panel.h - 10;
+        out.evlane = {
+          y: (v) => panel.y + panel.h - (v / max) * span,
+          ticks: [0, max],
+          fmt: (v) => v.toFixed(max >= 10 || v === 0 ? 0 : 1),
+          label: `${this._tr("ev")} kWh`,
+        };
+      } else if (panel.key === "flow") {
+        // PV up, consumption down, on one kWh scale symmetric about zero.
+        const hi = Math.max(...slots.map((s) => Math.max(s.pv_kwh || 0, slotConsumption(s))));
+        const step = niceTickStep(hi || 0.2, 2);
+        const top = Math.max(step, Math.ceil((hi * 1.08) / step) * step);
+        const arms = Math.max(1, Math.floor((tickCount(panel.h) - 1) / 2));
+        const ticks = [];
+        for (let i = arms; i >= -arms; i--) ticks.push((top * i) / arms);
+        out.flow = {
+          y: (v) => panel.y + panel.h / 2 - (v / top) * (panel.h / 2),
+          ticks,
+          fmt: (v) => (v > 0 ? "+" : "") + v.toFixed(top < 1 ? 2 : 1),
+          label: `${this._tr("pv")} ↑  ${this._tr("consumption")} ↓  kWh`,
+        };
+      } else if (panel.key === "soc100") {
+        // The whole battery, so the operating window can show as two lines
+        // instead of being the axis itself.
+        const lo = finiteOrNull(attrs.min_soc);
+        const hi = finiteOrNull(attrs.max_soc);
+        const ticks = panel.h >= 70 ? [0, 25, 50, 75, 100] : [0, 50, 100];
+        out.soc100 = {
+          y: (v) => panel.y + (1 - v / 100) * panel.h,
+          ticks,
+          fmt: (v) => `${Math.round(v)}%`,
+          label: this._tr("soc"),
+          window: lo !== null && hi !== null && hi > lo ? { lo, hi } : null,
         };
       } else if (panel.key === "energy") {
         const hi = Math.max(...slots.map((s) => Math.max(s.pv_kwh || 0, slotConsumption(s))));
@@ -1168,10 +1379,15 @@ class SmartBatteryPilotCard extends HTMLElement {
 
   _panelChrome(panel, scale) {
     const { padL, plotW } = this._geo;
+    const caption = panel.key === "evlane" ? "ax pl ev" : "ax pl";
+    // The price band is all marks: no plot box, no y grid.
+    if (panel.key === "pricestrip") {
+      return `<text x="${padL}" y="${panel.y - 6}" class="${caption}">${esc(scale.label)}</text>`;
+    }
     let out = `<rect x="${padL}" y="${panel.y}" width="${plotW}" height="${panel.h}" class="panel"/>`;
     for (const v of scale.ticks) {
       const y = scale.y(v).toFixed(1);
-      const zero = panel.key === "balance" && Math.abs(v) < 1e-9;
+      const zero = (panel.key === "balance" || panel.key === "flow") && Math.abs(v) < 1e-9;
       out += `<line x1="${padL}" y1="${y}" x2="${padL + plotW}" y2="${y}" class="grid${
         zero ? " zero" : ""
       }"/>`;
@@ -1179,9 +1395,7 @@ class SmartBatteryPilotCard extends HTMLElement {
         scale.fmt(v)
       )}</text>`;
     }
-    return (
-      out + `<text x="${padL}" y="${panel.y - 6}" class="ax pl">${esc(scale.label)}</text>`
-    );
+    return out + `<text x="${padL}" y="${panel.y - 6}" class="${caption}">${esc(scale.label)}</text>`;
   }
 
   // How many hours apart the vertical grid lines stand: the closest spacing
@@ -1225,8 +1439,9 @@ class SmartBatteryPilotCard extends HTMLElement {
       const midnight = p.hour === 0;
       const px = this._x(tick).toFixed(1);
       for (const panel of layout.panels) {
+        if (panel.key === "pricestrip") continue;
         out += `<line x1="${px}" y1="${panel.y}" x2="${px}" y2="${panel.y + panel.h}" class="grid${
-          midnight ? " day" : ""
+          midnight ? " day" : " hr"
         }"/>`;
       }
       out += `<text x="${px}" y="${labelY}" class="ax tx${this._edge(px, 7)}">${String(
@@ -1246,7 +1461,7 @@ class SmartBatteryPilotCard extends HTMLElement {
 
   // Planned actions as one labeled band above the panels, instead of the pale
   // washes behind the curves that "auto" and "blocked" were told apart by.
-  _ribbon(slots, ribbon) {
+  _ribbon(slots, ribbon, labels = true) {
     let out = "";
     let runStart = 0;
     for (let i = 0; i <= slots.length; i++) {
@@ -1254,15 +1469,17 @@ class SmartBatteryPilotCard extends HTMLElement {
       const action = slots[runStart].action;
       const x0 = this._x(slots[runStart].startMs);
       const width = this._x(slots[i - 1].endMs) - x0;
+      // A 2px gap in the card's own colour between neighbouring runs, so
+      // two short runs read as two decisions rather than one smear.
       out += `<rect x="${x0.toFixed(1)}" y="${ribbon.y}" width="${Math.max(
         0,
-        width - 1
-      ).toFixed(1)}" height="${ribbon.h}" rx="2" class="band ${esc(action)}"/>`;
-      if (width > 46) {
+        width - 2
+      ).toFixed(1)}" height="${ribbon.h}" rx="3.5" class="band ${esc(action)}"/>`;
+      if (labels && width > 46) {
         out += `<text x="${(x0 + width / 2).toFixed(1)}" y="${(
           ribbon.y +
           ribbon.h / 2 +
-          3.4
+          3.5
         ).toFixed(1)}" class="bandtx ${esc(action)}">${esc(this._actionLabel(action))}</text>`;
       }
       runStart = i;
@@ -1295,13 +1512,94 @@ class SmartBatteryPilotCard extends HTMLElement {
     );
   }
 
+  // A bar from the baseline to `top`, rounded at the data end only.
+  _bar(x0, width, base, top, cls) {
+    const w = Math.max(1, width);
+    const r = Math.min(2.5, w / 2, Math.abs(base - top));
+    const up = top <= base;
+    const edge = up ? top + r : top - r;
+    const d =
+      `M${x0.toFixed(1)},${base.toFixed(1)} L${x0.toFixed(1)},${edge.toFixed(1)} ` +
+      `Q${x0.toFixed(1)},${top.toFixed(1)} ${(x0 + r).toFixed(1)},${top.toFixed(1)} ` +
+      `L${(x0 + w - r).toFixed(1)},${top.toFixed(1)} ` +
+      `Q${(x0 + w).toFixed(1)},${top.toFixed(1)} ${(x0 + w).toFixed(1)},${edge.toFixed(1)} ` +
+      `L${(x0 + w).toFixed(1)},${base.toFixed(1)} Z`;
+    return `<path d="${d}" class="${cls}"/>`;
+  }
+
   _panelMarks(panel, scale, slots, pvMax) {
     const floor = panel.y + panel.h;
+    if (panel.key === "pricebars") {
+      // A 2px gap between neighbours keeps 15-minute slots apart; below
+      // 3px a slot is drawn edge to edge instead of as a sliver.
+      const zero = scale.y(0);
+      let out = "";
+      for (const s of slots) {
+        const x0 = this._x(s.startMs);
+        const w = this._x(s.endMs) - x0;
+        const gap = w >= 5 ? 2 : 0;
+        out += this._bar(x0 + gap / 2, w - gap, zero, scale.y(s.price), `pbar ${esc(s.action)}`);
+      }
+      if (panel.h >= 50) out += this._peakLabel(slots, scale, Boolean(this._ev), true);
+      return out;
+    }
+    if (panel.key === "pricestrip") {
+      const { strip } = scale;
+      let out = "";
+      for (const s of slots) {
+        const x0 = this._x(s.startMs);
+        // A hair of overlap, or anti-aliasing leaves a seam between cells.
+        const w = this._x(s.endMs) - x0 + 0.4;
+        out += `<rect x="${x0.toFixed(1)}" y="${strip.y}" width="${w.toFixed(1)}" height="${
+          strip.h
+        }" class="pcell" fill-opacity="${scale.shade(s.price).toFixed(2)}"/>`;
+      }
+      out += this._ribbon(slots, scale.ribbon, false);
+      return out + this._stripLabels(slots, scale);
+    }
+    if (panel.key === "evlane") {
+      let out = "";
+      for (const s of slots) {
+        const kwh = slotEv(s);
+        if (kwh <= EV_MIN_KWH) continue;
+        const x0 = this._x(s.startMs);
+        const w = this._x(s.endMs) - x0;
+        const gap = w >= 5 ? 2 : 0;
+        const top = scale.y(kwh);
+        out += this._bar(x0 + gap / 2, w - gap, floor, top, "evbar");
+        if (w >= 20) {
+          out += `<text x="${(x0 + w / 2).toFixed(1)}" y="${(top - 2).toFixed(
+            1
+          )}" class="dirlbl ev small" text-anchor="middle">${kwh.toFixed(1)}</text>`;
+        }
+      }
+      return out;
+    }
+    if (panel.key === "flow") {
+      const zero = scale.y(0);
+      let out = "";
+      if (pvMax > 0) {
+        out +=
+          `<path d="${this._stepArea(slots, (s) => s.pv_kwh || 0, scale.y, zero)}" class="pvarea" fill="url(#${this._gid}-pv)"/>` +
+          `<path d="${this._stepPath(slots, (s) => s.pv_kwh || 0, scale.y)}" class="pvline"/>` +
+          `<text x="${this._geo.padL + this._geo.plotW - 4}" y="${(panel.y + 11).toFixed(
+            1
+          )}" class="dirlbl pv" text-anchor="end">${esc(this._tr("pv"))}</text>`;
+      }
+      return (
+        out +
+        `<path d="${this._stepArea(slots, (s) => -slotConsumption(s), scale.y, zero)}" class="consarea" fill="url(#${this._gid}-cons)"/>` +
+        `<path d="${this._stepPath(slots, (s) => -slotConsumption(s), scale.y)}" class="consline"/>` +
+        `<text x="${this._geo.padL + this._geo.plotW - 4}" y="${(floor - 4).toFixed(
+          1
+        )}" class="dirlbl cons" text-anchor="end">${esc(this._tr("consumption"))}</text>`
+      );
+    }
     if (panel.key === "price") {
       let out =
-        `<path d="${this._stepArea(slots, (s) => s.price, scale.y, floor)}" class="pricearea"/>` +
+        `<path d="${this._stepArea(slots, (s) => s.price, scale.y, floor)}" class="pricearea" fill="url(#${this._gid}-price)"/>` +
         `<path d="${this._stepPath(slots, (s) => s.price, scale.y)}" class="price"/>`;
-      if (panel.h >= 50) out += this._peakLabel(slots, scale);
+      if (panel.h >= 50) out += this._peakLabel(slots, scale, Boolean(this._ev));
       return out;
     }
     if (panel.key === "energy") {
@@ -1313,7 +1611,7 @@ class SmartBatteryPilotCard extends HTMLElement {
             (s) => s.pv_kwh || 0,
             scale.y,
             floor
-          )}" class="pvarea"/>` +
+          )}" class="pvarea" fill="url(#${this._gid}-pv)"/>` +
           `<path d="${this._stepPath(slots, (s) => s.pv_kwh || 0, scale.y)}" class="pvline"/>`;
       }
       return (
@@ -1337,13 +1635,13 @@ class SmartBatteryPilotCard extends HTMLElement {
           (s) => Math.max(0, slotBalance(s)),
           scale.y,
           zero
-        )}" class="balarea pos"/>` +
+        )}" class="balarea pos" fill="url(#${this._gid}-balpos)"/>` +
         `<path d="${this._stepArea(
           slots,
           (s) => Math.min(0, slotBalance(s)),
           scale.y,
           zero
-        )}" class="balarea neg"/>` +
+        )}" class="balarea neg" fill="url(#${this._gid}-balneg)"/>` +
         `<path d="${this._stepPath(slots, slotBalance, scale.y)}" class="balline pos" clip-path="url(#${id}-p)"/>` +
         `<path d="${this._stepPath(slots, slotBalance, scale.y)}" class="balline neg" clip-path="url(#${id}-n)"/>` +
         `<text x="${this._geo.padL + 5}" y="${(zero - 5).toFixed(1)}" class="dirlbl pos">${esc(
@@ -1354,17 +1652,36 @@ class SmartBatteryPilotCard extends HTMLElement {
         )}</text>`
       );
     }
-    // soc
+    // soc, soc100
     const end = slots[slots.length - 1];
     const ex = this._x(end.endMs);
     const ey = scale.y(end.soc_forecast);
+    let refs = "";
+    if (scale.window) {
+      // The operating window as two dashed lines, each named just above
+      // itself. The SOC never runs above the ceiling, so that name always
+      // has room; the reserve's goes where the curve stays clear of it.
+      const { padL, plotW } = this._geo;
+      for (const [v, key] of [[scale.window.lo, "soc_reserve"], [scale.window.hi, "soc_ceiling"]]) {
+        const y = scale.y(v);
+        refs += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${padL + plotW}" y2="${y.toFixed(
+          1
+        )}" class="socref"/>`;
+        const right = key === "soc_ceiling" ? padL + plotW - 44 : this._clearSpan(slots, scale, y);
+        if (right === null) continue;
+        refs += `<text x="${right.toFixed(1)}" y="${(y - 4).toFixed(
+          1
+        )}" class="dirlbl ref" text-anchor="end">${esc(this._tr(key))} ${Math.round(v)}%</text>`;
+      }
+    }
     return (
+      refs +
       `<path d="${this._stepArea(
         slots,
         (s) => s.soc_forecast,
         scale.y,
         floor
-      )}" class="socarea"/>` +
+      )}" class="socarea" fill="url(#${this._gid}-soc)"/>` +
       `<path d="${this._stepPath(slots, (s) => s.soc_forecast, scale.y)}" class="socline"/>` +
       `<circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="2.6" class="socdot"/>` +
       `<text x="${(ex - 6).toFixed(1)}" y="${(ey - 9).toFixed(1)}" class="dirlbl soc" text-anchor="end">${Math.round(
@@ -1373,21 +1690,84 @@ class SmartBatteryPilotCard extends HTMLElement {
     );
   }
 
-  // The most expensive slot is the one the whole plan is built around, so it
-  // gets the only number printed on the price curve.
-  _peakLabel(slots, scale) {
+  // The right end of the last stretch, clear of the end label, where the SOC
+  // curve keeps at least a label's height above the line at `y` for 80px -
+  // room for "Reserve 10%" - or null when the curve never leaves it.
+  _clearSpan(slots, scale, y) {
+    const { padL, plotW } = this._geo;
+    const need = 80;
+    let end = null;
+    for (let i = slots.length - 1; i >= 0; i--) {
+      const s = slots[i];
+      const x1 = this._x(s.endMs);
+      if (x1 > padL + plotW - 48 && i > 0) continue;
+      if (scale.y(s.soc_forecast) > y - 15) {
+        end = null;
+        continue;
+      }
+      if (end === null) end = x1;
+      if (end - this._x(s.startMs) >= need) return end - 4;
+    }
+    return null;
+  }
+
+  // The most expensive and the cheapest slot are the two the whole plan is
+  // built around - sell or save for the one, buy in the other - so they get
+  // the only numbers printed on the price curve. The cheapest one's label
+  // goes under the curve, where a trough leaves room, unless the curve sits
+  // on the baseline there. A plan with EV charging leaves the trough to the
+  // charging window's own label, which sits right there. Bars take both
+  // labels on top, since under a bar's end is the bar.
+  _peakLabel(slots, scale, ev = false, bars = false) {
     const peak = slots.reduce((best, s) => (s.price > best.price ? s : best), slots[0]);
-    const px = (this._x(peak.startMs) + this._x(peak.endMs)) / 2;
-    const py = scale.y(peak.price);
-    const toTheRight = px > this._geo.padL + this._geo.plotW * 0.72;
-    return (
-      `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="2.6" class="pricedot"/>` +
-      `<text x="${(px + (toTheRight ? -8 : 8)).toFixed(1)}" y="${(py - 9).toFixed(
-        1
-      )}" class="dirlbl price" text-anchor="${toTheRight ? "end" : "start"}">${peak.price.toFixed(
-        2
-      )}</text>`
-    );
+    const low = slots.reduce((best, s) => (s.price < best.price ? s : best), slots[0]);
+    const panelBottom = scale.y(scale.ticks[0]);
+    const mark = (slot, above) => {
+      const px = (this._x(slot.startMs) + this._x(slot.endMs)) / 2;
+      const py = scale.y(slot.price);
+      const toTheRight = px > this._geo.padL + this._geo.plotW * 0.72;
+      const under = !bars && !above && py + 15 <= panelBottom;
+      return (
+        `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="2.6" class="pricedot"/>` +
+        `<text x="${(px + (toTheRight ? -8 : 8)).toFixed(1)}" y="${(under ? py + 13 : py - 9).toFixed(
+          1
+        )}" class="dirlbl price" text-anchor="${toTheRight ? "end" : "start"}">${slot.price.toFixed(
+          2
+        )}</text>`
+      );
+    };
+    let out = mark(peak, true);
+    // A flat price day has no trough worth naming, and two labels a few
+    // pixels apart would print over each other.
+    const spread = scale.y(low.price) - scale.y(peak.price);
+    if (!ev && low !== peak && spread >= 24) out += mark(low, false);
+    return out;
+  }
+
+  // The band has no axis, so its two extremes are named above it, each on a
+  // short tick pointing at its cell.
+  _stripLabels(slots, scale) {
+    const peak = slots.reduce((best, s) => (s.price > best.price ? s : best), slots[0]);
+    const low = slots.reduce((best, s) => (s.price < best.price ? s : best), slots[0]);
+    const { padL, plotW } = this._geo;
+    const { strip } = scale;
+    const mark = (slot) => {
+      const px = (this._x(slot.startMs) + this._x(slot.endMs)) / 2;
+      const anchor = px > padL + plotW * 0.85 ? "end" : px < padL + 24 ? "start" : "middle";
+      return (
+        `<line x1="${px.toFixed(1)}" y1="${strip.y - 3}" x2="${px.toFixed(1)}" y2="${
+          strip.y
+        }" class="ptick"/>` +
+        `<text x="${px.toFixed(1)}" y="${strip.y - 4}" class="dirlbl strip" text-anchor="${anchor}">${slot.price.toFixed(
+          2
+        )}</text>`
+      );
+    };
+    let out = mark(peak);
+    // Two labels closer than this would run into each other.
+    const apart = Math.abs(this._x(peak.startMs) - this._x(low.startMs)) >= 40;
+    if (low !== peak && apart) out += mark(low);
+    return out;
   }
 
   // --- EV -----------------------------------------------------------------
@@ -1444,7 +1824,20 @@ class SmartBatteryPilotCard extends HTMLElement {
   _evMarks(panel, scale, ev) {
     const { padL, plotW } = this._geo;
     let out = "";
-    if (panel.key === "price") {
+    if (panel.key === "pricestrip") {
+      // No line to draw on a band: a dot on every slot cheap enough for the
+      // charger to take on price alone.
+      if (ev.limit === null) return out;
+      for (const s of this._slots) {
+        if (s.price > ev.limit) continue;
+        const cx = ((this._x(s.startMs) + this._x(s.endMs)) / 2).toFixed(1);
+        out += `<circle cx="${cx}" cy="${(scale.strip.y + scale.strip.h / 2).toFixed(
+          1
+        )}" r="2.6" class="evbelow"/>`;
+      }
+      return out;
+    }
+    if (panel.key === "price" || panel.key === "pricebars") {
       if (scale.limit !== null) {
         const y = scale.y(scale.limit);
         // The line sits on this card's price axis, the label quotes the
@@ -1467,7 +1860,9 @@ class SmartBatteryPilotCard extends HTMLElement {
       }
       // Like the peak label: a strip as short as the compact view's has no
       // room under the curve, and the status line carries the figure anyway.
-      for (const run of panel.h >= 50 ? ev.windows : []) {
+      // The bars view has a lane for the car's energy instead.
+      const labelled = panel.key === "price" && panel.h >= 50;
+      for (const run of labelled ? ev.windows : []) {
         const { x0, width } = this._runSpan(run);
         if (width < 46) continue;
         const kwh = run.reduce((sum, s) => sum + slotEv(s), 0);
@@ -1484,7 +1879,7 @@ class SmartBatteryPilotCard extends HTMLElement {
           1
         )} kWh</text>`;
       }
-    } else if (panel.key === "soc") {
+    } else if (panel.key === "soc" || panel.key === "soc100") {
       for (const run of ev.held) {
         out += `<path d="${this._stepPath(run, (s) => s.soc_forecast, scale.y)}" class="evheld"/>`;
         const { x0, width } = this._runSpan(run);
@@ -1629,8 +2024,20 @@ class SmartBatteryPilotCard extends HTMLElement {
     let out = present
       .map((key) => `<span class="lg"><i class="band-i ${key}"></i>${esc(this._actionLabel(key))}</span>`)
       .join("");
-    out += `<span class="lg"><i class="li price-i"></i>${this._tr("price")}</span>`;
-    if (view === "tracks") {
+    if (view === "bars") {
+      // An auto slot's bar is the plain price; say so where its swatch is.
+      out += `<span class="lg"><i class="pbar-i"></i>${esc(this._actionLabel("auto"))} (${esc(
+        this._tr("price")
+      )})</span>`;
+    } else if (view === "flow") {
+      const prices = slots.map((s) => s.price);
+      out += `<span class="lg"><i class="strip-i"></i>${this._tr("price")} ${Math.min(
+        ...prices
+      ).toFixed(2)}–${Math.max(...prices).toFixed(2)}</span>`;
+    } else {
+      out += `<span class="lg"><i class="li price-i"></i>${this._tr("price")}</span>`;
+    }
+    if (view === "tracks" || view === "bars" || view === "flow") {
       out += `<span class="lg"><i class="li cons-i"></i>${this._tr("consumption")}</span>`;
       if (pvMax > 0) out += `<span class="lg"><i class="pv-i"></i>${this._tr("pv")}</span>`;
     }
@@ -1640,8 +2047,11 @@ class SmartBatteryPilotCard extends HTMLElement {
       if (ev.limitShown) {
         out += `<span class="lg"><i class="li evlim-i"></i>${esc(this._tr("ev_limit"))}</span>`;
       }
+      if (ev.belowShown) {
+        out += `<span class="lg"><i class="evbelow-i"></i>${esc(this._tr("ev_below_limit"))}</span>`;
+      }
     }
-    if (view !== "compact") {
+    if (view === "tracks" || view === "balance") {
       const other = view === "tracks" ? "balance" : "tracks";
       out += `<button type="button" class="viewtog" data-view="${other}">${esc(
         this._tr(other === "balance" ? "balance" : "energy")
@@ -1655,7 +2065,10 @@ class SmartBatteryPilotCard extends HTMLElement {
   _tipRows(slot) {
     const ev = this._ev;
     const evKwh = ev ? slotEv(slot) : 0;
-    let price = `${this._tr("price")}: <b>${slot.price.toFixed(4)} ${this._priceUnit}</b>`;
+    // Each series row opens with the colour of its curve, so the tooltip
+    // doubles as the legend for the slot under the cursor.
+    const key = (cls) => `<i class="tk ${cls}"></i>`;
+    let price = `${key("price")}${this._tr("price")}: <b>${slot.price.toFixed(4)} ${this._priceUnit}</b>`;
     if (evKwh > EV_MIN_KWH && ev.limitEvcc !== undefined) {
       // evcc picked a smart_cost slot because its own price was at or below
       // its own limit. That price is not the one on this row (the plan's may
@@ -1673,11 +2086,11 @@ class SmartBatteryPilotCard extends HTMLElement {
         slot.endMs
       )}</b> · ${esc(this._actionLabel(slot.action))}`,
       price,
-      `${this._tr("soc_forecast")}: <b>${slot.soc_forecast}%</b>`,
+      `${key("soc")}${this._tr("soc_forecast")}: <b>${slot.soc_forecast}%</b>`,
     ];
     const cons = Math.max(0, (slot.net_demand_kwh || 0) + (slot.pv_kwh || 0));
-    rows.push(`${this._tr("consumption")}: ${cons.toFixed(2)} kWh`);
-    if (slot.pv_kwh) rows.push(`${this._tr("pv")}: ${slot.pv_kwh.toFixed(2)} kWh`);
+    rows.push(`${key("cons")}${this._tr("consumption")}: ${cons.toFixed(2)} kWh`);
+    if (slot.pv_kwh) rows.push(`${key("pv")}${this._tr("pv")}: ${slot.pv_kwh.toFixed(2)} kWh`);
     if (slot.net_demand_kwh !== undefined)
       rows.push(`${this._tr("net_demand")}: ${slot.net_demand_kwh.toFixed(2)} kWh`);
     // charge_power_w is the pre-0.6.4 name for the same value.
@@ -1706,7 +2119,7 @@ class SmartBatteryPilotCard extends HTMLElement {
     const svg = this.querySelector("svg");
     const tip = this.querySelector("#sbp-tip");
     const cursor = this.querySelector("#sbp-cursor");
-    const dot = this.querySelector("#sbp-dot");
+    const dots = (this._hoverDots || []).map((d, i) => this.querySelector(`#sbp-dot-${i}`));
     const wrap = this.querySelector(".chartwrap");
     if (!svg || !tip) return;
 
@@ -1730,16 +2143,28 @@ class SmartBatteryPilotCard extends HTMLElement {
         onLeave();
         return;
       }
-      tip.innerHTML = this._tipRows(slot).join("<br>");
+      tip.innerHTML = this._tipRows(slot)
+        .map((row, i) => `<div class="${i ? "tr" : "th"}">${row}</div>`)
+        .join("");
       tip.style.display = "block";
 
       const slotMidX = this._x((slot.startMs + slot.endMs) / 2);
       cursor.setAttribute("x1", slotMidX);
       cursor.setAttribute("x2", slotMidX);
       cursor.style.display = "";
-      dot.setAttribute("cx", slotMidX);
-      dot.setAttribute("cy", this._dotAt(slot));
-      dot.style.display = "";
+      this._hoverDots.forEach((d, i) => {
+        const dot = dots[i];
+        if (!dot) return;
+        const cy = d.y(slot);
+        if (!Number.isFinite(cy)) {
+          dot.style.display = "none";
+          return;
+        }
+        dot.setAttribute("cx", slotMidX);
+        dot.setAttribute("cy", cy);
+        if (d.neg) dot.setAttribute("class", `dot ${d.cls}${d.neg(slot) ? " neg" : ""}`);
+        dot.style.display = "";
+      });
 
       // position tooltip near pointer, keep inside the card
       const wrapRect = wrap.getBoundingClientRect();
@@ -1755,7 +2180,7 @@ class SmartBatteryPilotCard extends HTMLElement {
     const onLeave = () => {
       tip.style.display = "none";
       cursor.style.display = "none";
-      dot.style.display = "none";
+      for (const dot of dots) if (dot) dot.style.display = "none";
     };
     svg.addEventListener("pointermove", onMove);
     svg.addEventListener("pointerleave", onLeave);
@@ -1804,7 +2229,8 @@ class SmartBatteryPilotCard extends HTMLElement {
           svg { width: 100%; height: auto; display: block; touch-action: pan-y; }
           .empty { padding: 16px; color: var(--secondary-text-color); }
           .status { padding: 0 16px 6px; font-size: 14px; }
-          .chip { padding: 2px 10px; border-radius: 10px; font-weight: 500; color: #fff; }
+          .chip { display: inline-block; padding: 1px 10px 2px; border-radius: 999px;
+                  font-weight: 500; line-height: 20px; color: #fff; }
           .chip.auto { background: var(--divider-color, #e0e0e0); color: var(--primary-text-color); }
           .chip.charge { background: #22a04a; }
           .chip.idle { background: #7166d9; }
@@ -1818,47 +2244,74 @@ class SmartBatteryPilotCard extends HTMLElement {
                    border-bottom: 1px solid var(--divider-color, #e0e0e0);
                    margin: 0 0 8px; }
           .tile { background: var(--card-background-color, #fff); padding: 6px 16px 7px; }
-          .tl { font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase;
-                color: var(--secondary-text-color); }
+          .tl { font-size: 11px; color: var(--secondary-text-color); }
           .tv { font-size: 19px; font-weight: 500; line-height: 1.3;
                 color: var(--primary-text-color); font-variant-numeric: tabular-nums; }
           .ts { font-size: 11px; color: var(--secondary-text-color); }
           .tiles.narrow .tile { padding: 5px 10px 6px; }
-          .tiles.narrow .tl { font-size: 9px; letter-spacing: 0.02em; }
+          .tiles.narrow .tl { font-size: 10px; }
           .tiles.narrow .tv { font-size: 15px; }
           .tiles.narrow .ts { font-size: 10px; }
 
-          .panel { fill: var(--divider-color, #e0e0e0); opacity: 0.22; }
-          .ax { font-size: 9px; fill: var(--secondary-text-color); }
+          /* The panels sit on the card itself: no tinted plot box, a hairline
+             grid in the theme's divider colour, and the curves carry the
+             colour. */
+          .panel { fill: none; }
+          .ax { font-size: 9px; fill: var(--secondary-text-color);
+                font-variant-numeric: tabular-nums; }
           .ax.pr { text-anchor: end; }
-          .ax.pl { font-size: 8.5px; letter-spacing: 0.04em; opacity: 0.9; }
+          .ax.pl { font-size: 10px; font-weight: 500; fill: var(--primary-text-color); opacity: 0.72;
+                   paint-order: stroke fill; stroke: var(--card-background-color, #fff);
+                   stroke-width: 3px; stroke-linejoin: round; }
           .ax.tx { text-anchor: middle; }
           .ax.tx.s { text-anchor: start; }
           .ax.tx.e { text-anchor: end; }
           .ax.tx.day { font-weight: 600; }
-          .grid { stroke: var(--divider-color, #e0e0e0); stroke-width: 0.5; }
-          .grid.day { stroke: var(--secondary-text-color, #999); stroke-width: 1; opacity: 0.55; }
-          .grid.zero { stroke: var(--secondary-text-color, #666); stroke-width: 1; opacity: 0.8; }
+          .grid { stroke: var(--divider-color, #e0e0e0); stroke-width: 1; opacity: 0.6;
+                  shape-rendering: crispEdges; }
+          .grid.hr { opacity: 0.35; }
+          .grid.day { stroke: var(--secondary-text-color, #999); opacity: 0.5;
+                      stroke-dasharray: 3 3; }
+          .grid.zero { stroke: var(--secondary-text-color, #666); opacity: 0.7; }
 
-          .band.auto { fill: var(--divider-color, #e0e0e0); }
+          .band.auto { fill: var(--divider-color, #e0e0e0); opacity: 0.75; }
           .band.charge { fill: #22a04a; }
           .band.idle { fill: #7166d9; }
           .band.export { fill: #e05252; }
-          .bandtx { font-size: 10px; font-weight: 500; text-anchor: middle; fill: #fff; }
+          .bandtx { font-size: 10px; font-weight: 600; text-anchor: middle; fill: #fff;
+                    letter-spacing: 0.01em; }
           .bandtx.auto { fill: var(--secondary-text-color); }
 
-          .price { fill: none; stroke: #eb6834; stroke-width: 2; stroke-linejoin: round; }
-          .pricearea { fill: rgba(235, 104, 52, 0.12); stroke: none; }
+          /* Area fills come from the gradients in the SVG's <defs>; a fill
+             here would override them. */
+          .price { fill: none; stroke: #eb6834; stroke-width: 2; stroke-linejoin: round;
+                   stroke-linecap: round; }
+          .pricearea { stroke: none; }
           .pricedot { fill: #eb6834; stroke: var(--card-background-color, #fff); stroke-width: 1.5; }
-          .consline { fill: none; stroke: #1baf7a; stroke-width: 2; stroke-linejoin: round; }
-          .pvarea { fill: rgba(237, 161, 0, 0.25); stroke: none; }
-          .pvline { fill: none; stroke: rgba(237, 161, 0, 0.95); stroke-width: 1.3; stroke-linejoin: round; }
-          .socline { fill: none; stroke: #2a78d6; stroke-width: 2; stroke-linejoin: round; }
-          .socarea { fill: rgba(42, 120, 214, 0.16); stroke: none; }
+          .consline { fill: none; stroke: #1baf7a; stroke-width: 2; stroke-linejoin: round;
+                      stroke-linecap: round; }
+          .pvarea { stroke: none; }
+          .pvline { fill: none; stroke: #e09a00; stroke-width: 1.5; stroke-linejoin: round;
+                    stroke-linecap: round; }
+          .socline { fill: none; stroke: #2a78d6; stroke-width: 2; stroke-linejoin: round;
+                     stroke-linecap: round; }
+          .socarea { stroke: none; }
           .socdot { fill: #2a78d6; stroke: var(--card-background-color, #fff); stroke-width: 1.5; }
-          .balarea.pos { fill: rgba(42, 120, 214, 0.20); stroke: none; }
-          .balarea.neg { fill: rgba(208, 59, 59, 0.20); stroke: none; }
-          .balline { fill: none; stroke-width: 1.6; stroke-linejoin: round; }
+          .balarea, .consarea { stroke: none; }
+          /* bars view: the bar is the price, its colour the planned action */
+          .pbar.charge { fill: #22a04a; }
+          .pbar.idle { fill: #7166d9; }
+          .pbar.export { fill: #e05252; }
+          /* An auto bar is the plain price: a light fill under an orange edge,
+             which stays orange on a dark card where a dimmed fill turns brown. */
+          .pbar.auto { fill: #eb6834; fill-opacity: 0.3; stroke: #eb6834; stroke-width: 1.2;
+                       stroke-linejoin: round; }
+          /* flow view: the price as the depth of one orange */
+          .pcell { fill: #eb6834; }
+          .ptick { stroke: var(--primary-text-color, #212121); stroke-width: 1; }
+          .socref { stroke: var(--secondary-text-color, #727272); stroke-width: 1;
+                    stroke-dasharray: 2 3; opacity: 0.8; }
+          .balline { fill: none; stroke-width: 2; stroke-linejoin: round; }
           .balline.pos { stroke: #2a78d6; }
           .balline.neg { stroke: #d03b3b; }
           /* These four numbers are printed on top of the curves they label.
@@ -1874,34 +2327,58 @@ class SmartBatteryPilotCard extends HTMLElement {
           .dirlbl.neg { fill: #d03b3b; }
           .dirlbl.soc { fill: #2a78d6; }
           .dirlbl.price { fill: #eb6834; }
+          .dirlbl.strip { fill: var(--primary-text-color, #212121); }
+          .dirlbl.pv { fill: #e09a00; }
+          .dirlbl.cons { fill: #1baf7a; }
+          .dirlbl.ref { fill: var(--secondary-text-color, #727272); font-size: 9px; }
 
-          .now { stroke: var(--error-color, #f44336); stroke-width: 1.5; }
-          .cursor { stroke: var(--primary-text-color, #555); stroke-width: 0.8; stroke-dasharray: 2 2; }
-          .dot { fill: #eb6834; stroke: var(--card-background-color, #fff); stroke-width: 1.5; }
+          .now { stroke: var(--primary-text-color, #212121); stroke-width: 1.5; opacity: 0.6; }
+          .nowcap { fill: var(--primary-text-color, #212121); stroke-linejoin: round; }
+          .cursor { stroke: var(--secondary-text-color, #727272); stroke-width: 1; opacity: 0.7; }
+          .dot { stroke: var(--card-background-color, #fff); stroke-width: 2; }
+          .dot.price { fill: #eb6834; }
+          .dot.cons { fill: #1baf7a; }
+          .dot.pv { fill: #e09a00; }
+          .dot.soc, .dot.bal { fill: #2a78d6; }
+          .dot.bal.neg { fill: #d03b3b; }
           .tip { position: absolute; z-index: 5; pointer-events: none;
                  background: var(--card-background-color, #fff);
                  color: var(--primary-text-color, #222);
-                 border: 1px solid var(--divider-color, #ddd); border-radius: 6px;
-                 box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-                 padding: 6px 9px; font-size: 12px; line-height: 1.5; white-space: nowrap; }
+                 border: 1px solid var(--divider-color, #ddd); border-radius: 10px;
+                 box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+                 padding: 7px 11px 8px; font-size: 12px; line-height: 1.55; white-space: nowrap;
+                 font-variant-numeric: tabular-nums; }
+          .tip .th { padding-bottom: 4px; margin-bottom: 3px;
+                     border-bottom: 1px solid var(--divider-color, #ddd); }
+          .tip .tr { color: var(--secondary-text-color); }
+          .tip .tr b { color: var(--primary-text-color); font-weight: 600; }
+          .tip .tk { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+                     margin-right: 6px; vertical-align: 0; }
+          .tk.price { background: #eb6834; }
+          .tk.soc { background: #2a78d6; }
+          .tk.cons { background: #1baf7a; }
+          .tk.pv { background: #e09a00; }
 
           .legend { padding: 6px 16px 0; font-size: 11px; color: var(--secondary-text-color);
                     display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
           .lg { display: inline-flex; align-items: center; gap: 4px; }
-          .lg i { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
-          .lg .li { height: 3px; border-radius: 1px; }
+          .lg i { width: 12px; height: 10px; border-radius: 3px; display: inline-block; }
+          .lg .li { width: 14px; height: 3px; border-radius: 2px; }
           .band-i.charge { background: #22a04a; }
           .band-i.idle { background: #7166d9; }
           .band-i.export { background: #e05252; }
           .price-i { background: #eb6834; }
           .soc-i { background: #2a78d6; }
           .cons-i { background: #1baf7a; }
-          .pv-i { background: rgba(237, 161, 0, 0.35);
-                  border: 1px solid rgba(237, 161, 0, 0.9); }
+          .pv-i { background: linear-gradient(rgba(237, 161, 0, 0.55), rgba(237, 161, 0, 0.12));
+                  box-shadow: inset 0 1.5px 0 #e09a00; }
+          .pbar-i { background: rgba(235, 104, 52, 0.3); box-shadow: inset 0 0 0 1.2px #eb6834; }
+          .lg .strip-i { width: 26px;
+                     background: linear-gradient(90deg, rgba(235, 104, 52, 0.12), #eb6834); }
           .viewtog { margin-left: auto; font: inherit; font-size: 11px; cursor: pointer;
                      color: var(--primary-color, #03a9f4); background: none;
-                     border: 1px solid var(--divider-color, #e0e0e0); border-radius: 10px;
-                     padding: 1px 9px; }
+                     border: 1px solid var(--divider-color, #e0e0e0); border-radius: 999px;
+                     padding: 2px 10px; }
           .viewtog:hover { border-color: var(--primary-color, #03a9f4); }${
             this._ev ? EV_STYLES : ""
           }

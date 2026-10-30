@@ -192,7 +192,7 @@ Lovelace resource):
 ```yaml
 type: custom:smart-battery-pilot-card
 entity: sensor.smart_battery_pilot_charge_plan   # optional - auto-discovered
-view: tracks                                     # optional - tracks | balance | compact
+view: tracks                                     # optional - tracks | balance | bars | flow | compact
 height: auto                                     # optional - auto | <pixels> | <percent>
 ```
 
@@ -259,6 +259,16 @@ the legend.
 <td align="center" valign="top" width="50%">
 <a href="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/screenshots/card_view_compact_light.png"><img src="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/screenshots/card_view_compact_light.png" width="400" alt="Compact view: status line, three figures and a smaller SOC and price chart"></a><br>
 <sub><code>view: compact</code> — status, next change and planned discharge as figures, curves underneath. For overview dashboards and phones.</sub>
+</td>
+</tr>
+<tr>
+<td align="center" valign="top" width="50%">
+<a href="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/screenshots/card_view_bars_light.png"><img src="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/screenshots/card_view_bars_light.png" width="400" alt="Bars view: one price bar per hour in the colour of the planned action, a lane with the car's planned kWh per hour under it, consumption and the SOC forecast below"></a><br>
+<sub><code>view: bars</code> — every price bar in the colour of its planned action; with evcc, a lane for the car's energy.</sub>
+</td>
+<td align="center" valign="top" width="50%">
+<a href="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/screenshots/card_view_flow_light.png"><img src="https://raw.githubusercontent.com/cygnusb/ha-smart-battery-pilot/main/assets/screenshots/card_view_flow_light.png" width="400" alt="Flow view: the price as an orange band that darkens with the price, the action ribbon under it, PV drawn upwards and consumption downwards around zero, and the SOC across 0 to 100 percent with the reserve and the ceiling as dashed lines"></a><br>
+<sub><code>view: flow</code> — the price as a colour band, PV up and consumption down, the battery with its operating window.</sub>
 </td>
 </tr>
 </table>
