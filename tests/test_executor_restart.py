@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import replace
 from datetime import timedelta
 
 from homeassistant.util import dt as dt_util
@@ -258,14 +259,15 @@ def test_slot_boundary_applies_once_not_twice():
     """The boundary refresh re-enters the coordinator listener synchronously.
 
     Without deduplication that queues one apply, and `_fire` queues a second;
-    the lock serialises them but charge and export are exempt from the
-    "same action, skip" short-circuit, so the script runs twice per boundary.
+    the lock serialises them, so the second run would find nothing to do and
+    still record a decision.
     """
     from homeassistant.helpers import event as event_stub
 
     event_stub.SCHEDULED_POINTS.clear()
     hass = _RunningHass()
-    coord = _ListeningCoordinator([_slot(ACTION_CHARGE)])
+    slot = _slot(ACTION_CHARGE)
+    coord = _ListeningCoordinator([slot])
     executor = PlanExecutor(hass, coord)
 
     async def scenario():
@@ -274,12 +276,15 @@ def test_slot_boundary_applies_once_not_twice():
         assert hass.services.calls == ["sbp_charge"]
 
         hass.services.calls.clear()
+        next_slot = replace(slot, start=slot.start - timedelta(minutes=15))
+        coord.data = SBPData(plan=Plan(slots=[next_slot]), valid=True)
         event_stub.fire_scheduled_point()  # the slot boundary
         await hass.drain()
 
     asyncio.run(scenario())
 
     assert hass.services.calls == ["sbp_charge"]
+    assert executor.decisions[-1]["outcome"] == "applied"
 
 
 def test_apply_queued_before_unload_does_not_revive_a_forced_mode():

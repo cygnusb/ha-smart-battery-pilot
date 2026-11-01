@@ -6,7 +6,7 @@ import asyncio
 from collections import deque
 from datetime import datetime
 import logging
-from typing import Any
+from typing import Any, NamedTuple
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import (
@@ -48,6 +48,15 @@ EV_RELEASE_SHARE = 0.5
 MAX_DECISIONS = 50
 
 
+class _Sent(NamedTuple):
+    """The charge or export command the inverter last accepted."""
+
+    slot_start: datetime
+    action: str
+    power_w: int
+    reserve_soc: int
+
+
 class PlanExecutor:
     """Applies the planned action whenever a slot boundary is crossed."""
 
@@ -85,6 +94,10 @@ class PlanExecutor:
         # its own mode on its next cycle.
         self._external_active = False
         self._reassert = False
+        # A re-plan mid-slot must not repeat a command: integrations may limit
+        # how often a register can be written, and the failure would cancel a
+        # charge that is running fine. Not persisted: a restart sends again.
+        self._sent: _Sent | None = None
         # What the executor decided and why, newest last. A support report
         # rarely comes with debug logging switched on; the diagnostics dump
         # carries this instead.
@@ -308,8 +321,9 @@ class PlanExecutor:
         """Apply the action of the current slot and arm the next boundary timer."""
         async with self._lock:
             # Cleared under the lock, not when the task starts: a trigger
-            # arriving while this run waits for the lock has to queue a fresh
-            # run, but one arriving while it waits for a script must not.
+            # arriving while this run waits for the lock is covered by it, as
+            # it has not read the plan yet. One arriving while it waits for a
+            # script may bring a newer plan and queues a fresh run.
             self._apply_queued = False
             if self._stopped:
                 return
@@ -328,10 +342,12 @@ class PlanExecutor:
         """
         last = self.decisions[-1] if self.decisions else None
         charging = (
-            last is not None and last["outcome"] == "applied" and last["planned"] == ACTION_CHARGE
+            last is not None
+            and last["planned"] == ACTION_CHARGE
+            and last["outcome"] in ("applied", "unchanged", "failed_kept_running")
         )
         self.coordinator.charge_observation(
-            float(last["power_w"]) if charging else None, closing=reading
+            float(self._sent.power_w) if charging and self._sent else None, closing=reading
         )
 
     async def _apply_locked(self) -> None:
@@ -391,6 +407,7 @@ class PlanExecutor:
             # tug of war; the plan resumes when it lets go.
             _LOGGER.debug("External control active - leaving slot action '%s' to it", slot.action)
             self._reassert = True
+            self._sent = None
             self.coordinator.ev_hold_active = True
             self._record("external_control", slot)
             return
@@ -411,8 +428,23 @@ class PlanExecutor:
         # not book it as an arbitrage decision.
         self.coordinator.ev_hold_active = blocked == "ev_block"
 
+        wanted = _Sent(slot.start, action, round(slot.power_w), coordinator.reserve_for_scripts())
+        running = (
+            self._sent is not None
+            and self._sent.slot_start == slot.start
+            and self._sent.action == action
+            and action == self._last_applied
+        )
         if self._reassert:
-            _LOGGER.debug("External control ended - re-sending action '%s'", action)
+            _LOGGER.debug("Re-sending action '%s'", action)
+        elif running and wanted == self._sent:
+            _LOGGER.debug(
+                "Action '%s' already sent with these values - no script call for slot %s",
+                action,
+                slot.start.isoformat(),
+            )
+            self._record("unchanged", slot)
+            return
         elif action == self._last_applied and action not in (
             ACTION_CHARGE,
             ACTION_EXPORT,
@@ -441,7 +473,20 @@ class PlanExecutor:
         if await self._call_script(action, slot.power_w):
             await self._remember(action)
             self._reassert = False
+            self._sent = wanted if action in (ACTION_CHARGE, ACTION_EXPORT) else None
             self._record(blocked or "applied", slot)
+            return
+        if running:
+            # The slot's first call worked, so the inverter is still in this
+            # mode. Falling back would cancel it over a failed update; the
+            # script may have stopped halfway, so the next run sends again.
+            _LOGGER.warning(
+                "Updating action '%s' failed - keeping it running for slot %s",
+                action,
+                slot.start.isoformat(),
+            )
+            self._reassert = True
+            self._record("failed_kept_running", slot)
             return
         if action != ACTION_AUTO and await self._call_script(ACTION_AUTO, 0.0):
             await self._remember(ACTION_AUTO)

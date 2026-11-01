@@ -65,6 +65,14 @@ minimum SOC while no reserve is set. A script that writes it into the
 inverter's own reserve setting keeps the reserve even when Home Assistant is
 down. Scripts that ignore it keep working.
 
+Within a running charge or export slot, a re-plan calls the script again only
+when `power_w` or `reserve_soc` changed; the next slot always calls it. If such
+an update fails, for example because an integration limits how often a register
+can be written, the mode keeps running and the next re-plan or slot boundary
+tries again. If the first call of a slot fails, the pilot falls back to auto
+mode. Two calls can still come close together, so a script should tolerate a
+rate limit or skip writes that wouldn't change anything.
+
 Only the force-discharge script is optional — and only while the discharge
 mode is *self-consumption*. Selecting **export** mode without it is refused,
 because the planner would keep scheduling export slots that the executor can
