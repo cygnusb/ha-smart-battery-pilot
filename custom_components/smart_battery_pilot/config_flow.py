@@ -52,6 +52,7 @@ from .const import (
     CONF_SCRIPT_CHARGE,
     CONF_SCRIPT_EXPORT,
     CONF_SCRIPT_IDLE,
+    CONF_SCRIPT_REFRESH_INTERVAL,
     CONF_SOC_ENTITY,
     CONF_SPREAD_THRESHOLD,
     CONF_TEMPERATURE_ENTITY,
@@ -71,6 +72,7 @@ from .const import (
     DEFAULT_PRICE_OFFSET,
     DEFAULT_RESERVE_BLOCK_DISCHARGE,
     DEFAULT_RESERVE_REFILL_HOURS,
+    DEFAULT_SCRIPT_REFRESH_INTERVAL,
     DEFAULT_SPREAD_THRESHOLD,
     DEFAULT_TRAINING_DAYS,
     DERATING_CURVE_KEYS,
@@ -82,6 +84,8 @@ from .const import (
     EV_POLICY_EXTERNAL,
     EV_SOURCE_EVCC,
     EV_SOURCE_NONE,
+    MAX_SCRIPT_REFRESH_INTERVAL,
+    MIN_SCRIPT_REFRESH_INTERVAL,
 )
 from .currency import (
     DEFAULT_CURRENCY,
@@ -119,6 +123,11 @@ _EXTERNAL_CONTROL = selector.EntitySelector(
 EVCC_BATTERY_MODE_ENTITY = "sensor.evcc_battery_mode"
 EVCC_DOMAIN = "evcc_intg"
 EVCC_CHARGE_POWER_SUFFIX = "_charge_power"
+
+
+def _refresh_interval_is_valid(value: Any) -> bool:
+    """Return whether refresh is disabled or safely rate-limited."""
+    return value == 0 or MIN_SCRIPT_REFRESH_INTERVAL <= value <= MAX_SCRIPT_REFRESH_INTERVAL
 
 
 def _percent_slider() -> selector.NumberSelector:
@@ -209,12 +218,25 @@ def schema_battery(d: dict[str, Any]) -> vol.Schema:
 
 
 def schema_control(d: dict[str, Any]) -> vol.Schema:
+    interval = selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=0,
+            max=MAX_SCRIPT_REFRESH_INTERVAL,
+            step=1,
+            unit_of_measurement="s",
+            mode="box",
+        )
+    )
     return vol.Schema(
         {
             vol.Required(CONF_SCRIPT_CHARGE, description=_sugg(d.get(CONF_SCRIPT_CHARGE))): _SCRIPT,
             vol.Required(CONF_SCRIPT_IDLE, description=_sugg(d.get(CONF_SCRIPT_IDLE))): _SCRIPT,
             vol.Required(CONF_SCRIPT_AUTO, description=_sugg(d.get(CONF_SCRIPT_AUTO))): _SCRIPT,
             vol.Optional(CONF_SCRIPT_EXPORT, description=_sugg(d.get(CONF_SCRIPT_EXPORT))): _SCRIPT,
+            vol.Required(
+                CONF_SCRIPT_REFRESH_INTERVAL,
+                default=d.get(CONF_SCRIPT_REFRESH_INTERVAL, DEFAULT_SCRIPT_REFRESH_INTERVAL),
+            ): interval,
         }
     )
 
@@ -404,7 +426,13 @@ STEP_FIELDS: dict[str, list[str]] = {
         CONF_BATTERY_CHARGE_ENERGY_ENTITY,
         CONF_BATTERY_DISCHARGE_ENERGY_ENTITY,
     ],
-    "control": [CONF_SCRIPT_CHARGE, CONF_SCRIPT_IDLE, CONF_SCRIPT_AUTO, CONF_SCRIPT_EXPORT],
+    "control": [
+        CONF_SCRIPT_CHARGE,
+        CONF_SCRIPT_IDLE,
+        CONF_SCRIPT_AUTO,
+        CONF_SCRIPT_EXPORT,
+        CONF_SCRIPT_REFRESH_INTERVAL,
+    ],
     "consumption": [CONF_CONSUMPTION_ENTITY, CONF_TEMPERATURE_ENTITY, CONF_HAS_HEAT_PUMP],
     "pv": [
         CONF_PV_FORECAST_ENTRIES,
@@ -609,10 +637,17 @@ class SBPConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_control(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
         if user_input is not None:
-            self._data.update(user_input)
-            return await self.async_step_consumption()
-        return self.async_show_form(step_id="control", data_schema=schema_control(self._data))
+            user_input.setdefault(CONF_SCRIPT_REFRESH_INTERVAL, DEFAULT_SCRIPT_REFRESH_INTERVAL)
+            if not _refresh_interval_is_valid(user_input[CONF_SCRIPT_REFRESH_INTERVAL]):
+                errors[CONF_SCRIPT_REFRESH_INTERVAL] = "refresh_interval_invalid"
+            else:
+                self._data.update(user_input)
+                return await self.async_step_consumption()
+        return self.async_show_form(
+            step_id="control", data_schema=schema_control(self._data), errors=errors
+        )
 
     async def async_step_consumption(
         self, user_input: dict[str, Any] | None = None
@@ -762,7 +797,10 @@ class SBPOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
-            if not _export_script_is_configured(self._would_be("control", user_input)):
+            user_input.setdefault(CONF_SCRIPT_REFRESH_INTERVAL, DEFAULT_SCRIPT_REFRESH_INTERVAL)
+            if not _refresh_interval_is_valid(user_input[CONF_SCRIPT_REFRESH_INTERVAL]):
+                errors[CONF_SCRIPT_REFRESH_INTERVAL] = "refresh_interval_invalid"
+            elif not _export_script_is_configured(self._would_be("control", user_input)):
                 errors["base"] = "export_script_missing"
             else:
                 return await self._save_step("control", user_input)

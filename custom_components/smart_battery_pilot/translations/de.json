@@ -48,13 +48,15 @@
           "script_charge": "Script: Laden aus dem Netz erzwingen",
           "script_idle": "Script: Entladen sperren (Idle)",
           "script_auto": "Script: Normaler Auto-Modus",
-          "script_export": "Script: Entladen ins Netz erzwingen (optional)"
+          "script_export": "Script: Entladen ins Netz erzwingen (optional)",
+          "script_refresh_interval": "Wiederholungsintervall in Sekunden (0 deaktiviert)"
         },
         "data_description": {
           "script_charge": "Wird aufgerufen wenn die Batterie aus dem Netz laden soll. Erhaelt die Variable power_w (Ladeleistung in Watt).",
           "script_idle": "Wird aufgerufen wenn Entladung gesperrt sein soll (Batterie haelt Energie fuer spaeter).",
           "script_auto": "Setzt den Wechselrichter in den normalen Eigenverbrauchsmodus zurueck.",
-          "script_export": "Optional: Wird aufgerufen wenn bei sehr hohen Preisen ins Netz eingespeist werden soll. Erhaelt die Variable power_w (Entladeleistung in Watt)."
+          "script_export": "Optional: Wird aufgerufen wenn bei sehr hohen Preisen ins Netz eingespeist werden soll. Erhaelt die Variable power_w (Entladeleistung in Watt).",
+          "script_refresh_interval": "Wiederholungsintervall in Sekunden (0 deaktiviert)"
         }
       },
       "consumption": {
@@ -93,6 +95,7 @@
       "unsupported_price_format": "Das Preisformat dieser Entity wurde nicht erkannt. Unterstützte Integrationen siehe Dokumentation.",
       "no_future_prices": "Die Entity enthält keine zukünftigen Preise.",
       "soc_range_invalid": "Minimaler SOC muss unter dem maximalen SOC liegen.",
+      "refresh_interval_invalid": "0 deaktiviert Wiederholungen; sonst sind 30 bis 86400 Sekunden erlaubt.",
       "export_spread_unreachable": "Der Einspeise-Modus kann mit diesen Werten nichts tun: Die Einspeisevergütung liegt auf oder unter dem minimalen Preisspread, damit qualifiziert sich kein Slot. Vergütung erhöhen, Spread senken oder die Vergütung auf 0 setzen, um zum Marktpreis einzuspeisen.",
       "export_script_missing": "Der Export-Modus braucht ein Script zum erzwungenen Entladen. Hinterlege eines bei den Steuerungs-Scripts, oder stelle den Entlademodus zurück auf Eigenverbrauch.",
       "currency_mismatch": "Dieser Sensor liefert Preise in {sensor_currency}, Home Assistant ist aber auf {ha_currency} eingestellt. Preise werden nicht umgerechnet, daher wäre alles als {ha_currency} beschriftet und bemessen. Ändere zuerst die Währung unter Einstellungen → System → Allgemein oder sende das Formular erneut ab, um trotzdem fortzufahren."
@@ -147,13 +150,15 @@
           "script_charge": "Script: Laden aus dem Netz erzwingen",
           "script_idle": "Script: Entladen sperren (Idle)",
           "script_auto": "Script: Normaler Auto-Modus",
-          "script_export": "Script: Entladen ins Netz erzwingen (optional)"
+          "script_export": "Script: Entladen ins Netz erzwingen (optional)",
+          "script_refresh_interval": "Wiederholungsintervall in Sekunden (0 deaktiviert)"
         },
         "data_description": {
           "script_charge": "Wird aufgerufen wenn die Batterie aus dem Netz laden soll. Erhaelt die Variable power_w (Ladeleistung in Watt).",
           "script_idle": "Wird aufgerufen wenn Entladung gesperrt sein soll (Batterie haelt Energie fuer spaeter).",
           "script_auto": "Setzt den Wechselrichter in den normalen Eigenverbrauchsmodus zurueck.",
-          "script_export": "Optional: Wird aufgerufen wenn bei sehr hohen Preisen ins Netz eingespeist werden soll. Erhaelt die Variable power_w (Entladeleistung in Watt)."
+          "script_export": "Optional: Wird aufgerufen wenn bei sehr hohen Preisen ins Netz eingespeist werden soll. Erhaelt die Variable power_w (Entladeleistung in Watt).",
+          "script_refresh_interval": "Wiederholungsintervall in Sekunden (0 deaktiviert)"
         }
       },
       "consumption": {
@@ -276,6 +281,7 @@
       "unsupported_price_format": "Das Preisformat dieser Entity wurde nicht erkannt. Unterstützte Integrationen siehe Dokumentation.",
       "no_future_prices": "Die Entity enthält keine zukünftigen Preise.",
       "soc_range_invalid": "Minimaler SOC muss unter dem maximalen SOC liegen.",
+      "refresh_interval_invalid": "0 deaktiviert Wiederholungen; sonst sind 30 bis 86400 Sekunden erlaubt.",
       "export_spread_unreachable": "Der Einspeise-Modus kann mit diesen Werten nichts tun: Die Einspeisevergütung liegt auf oder unter dem minimalen Preisspread, damit qualifiziert sich kein Slot. Vergütung erhöhen, Spread senken oder die Vergütung auf 0 setzen, um zum Marktpreis einzuspeisen.",
       "export_script_missing": "Der Export-Modus braucht ein Script zum erzwungenen Entladen. Hinterlege eines bei den Steuerungs-Scripts, oder stelle den Entlademodus zurück auf Eigenverbrauch.",
       "derating_not_monotonic": "Die Ladeleistung darf mit steigender Temperatur nicht sinken. Bitte die Schieberegler prüfen.",

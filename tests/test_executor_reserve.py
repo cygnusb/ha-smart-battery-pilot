@@ -58,12 +58,13 @@ def test_an_unchanged_reserve_is_not_re_sent():
     assert executor.decisions[-1]["outcome"] == "unchanged"
 
 
-def test_after_a_restart_a_reserve_already_sent_is_not_re_sent():
+def test_after_a_restart_idle_keeps_legacy_no_resend_with_refresh_disabled():
     hass, coord, executor = _live(ACTION_IDLE)
     coord.last_applied = ACTION_IDLE
     coord.last_reserve_sent = 10
     _run(executor.async_apply_current())
-    assert hass.services.calls == []
+    assert _calls(hass) == []
+    assert executor.decisions[-1]["outcome"] == "unchanged"
 
 
 def test_dry_run_never_sends_a_reserve_update():

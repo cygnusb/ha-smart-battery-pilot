@@ -26,6 +26,7 @@ CONF_SCRIPT_CHARGE = "script_charge"
 CONF_SCRIPT_IDLE = "script_idle"
 CONF_SCRIPT_AUTO = "script_auto"
 CONF_SCRIPT_EXPORT = "script_export"
+CONF_SCRIPT_REFRESH_INTERVAL = "script_refresh_interval"
 
 # Step: consumption
 CONF_CONSUMPTION_ENTITY = "consumption_entity"
@@ -109,6 +110,7 @@ DEFAULT_RESERVE_BLOCK_DISCHARGE = False
 DEFAULT_EV_BATTERY_POLICY = EV_POLICY_ALLOW
 DEFAULT_EV_THRESHOLD_W = 1000
 DEFAULT_EV_SOURCE = EV_SOURCE_NONE
+DEFAULT_SCRIPT_REFRESH_INTERVAL = 0
 
 # --- Plan actions ---
 ACTION_CHARGE = "charge"
@@ -128,6 +130,10 @@ STORE_SAVE_DELAY_SECONDS = 60
 # - the vendor examples recommend wrapping Modbus writes in a retry loop -
 # would otherwise hang reloads and Home Assistant's shutdown for good.
 SCRIPT_CALL_TIMEOUT_SECONDS = 120
+# Keep the user-configurable refresh bounded while allowing intervals up to a
+# day. No device validity period is implied by this UI validation limit.
+MIN_SCRIPT_REFRESH_INTERVAL = 30
+MAX_SCRIPT_REFRESH_INTERVAL = 86400
 
 FRONTEND_SCRIPT_URL = f"/{DOMAIN}/smart-battery-pilot-card.js"
 CURRENCY_DOCS_URL = "https://cygnusb.github.io/ha-smart-battery-pilot/docs/configuration/#currency"

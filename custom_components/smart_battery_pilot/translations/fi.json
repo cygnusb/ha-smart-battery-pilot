@@ -48,13 +48,15 @@
           "script_charge": "Skripti: pakotettu lataus verkosta",
           "script_idle": "Skripti: estä purkaminen (idle)",
           "script_auto": "Skripti: normaali automaattitila",
-          "script_export": "Skripti: pakotettu purku verkkoon (valinnainen)"
+          "script_export": "Skripti: pakotettu purku verkkoon (valinnainen)",
+          "script_refresh_interval": "Päivitysväli sekunteina (0 poistaa toistot käytöstä)"
         },
         "data_description": {
           "script_charge": "Kutsutaan, kun akun pitää latautua verkosta. Saa muuttujan power_w (latausteho watteina).",
           "script_idle": "Kutsutaan, kun purkaminen pitää estää, jotta akku säästää energiansa kalliimpaan tuntiin.",
           "script_auto": "Palauttaa invertterin normaaliin oman käytön tilaan.",
-          "script_export": "Valinnainen: kutsutaan, kun energiaa pitää myydä verkkoon erittäin korkeilla hinnoilla. Saa muuttujan power_w (purkuteho watteina)."
+          "script_export": "Valinnainen: kutsutaan, kun energiaa pitää myydä verkkoon erittäin korkeilla hinnoilla. Saa muuttujan power_w (purkuteho watteina).",
+          "script_refresh_interval": "Päivitysväli sekunteina (0 poistaa toistot käytöstä)"
         }
       },
       "consumption": {
@@ -93,6 +95,7 @@
       "unsupported_price_format": "Tämän entiteetin hintamuotoa ei tunnistettu. Katso tuetut integraatiot dokumentaatiosta.",
       "no_future_prices": "Entiteetti ei sisällä tulevia hintoja.",
       "soc_range_invalid": "Pienimmän SOC:n on oltava suurinta SOC:ia pienempi.",
+      "refresh_interval_invalid": "Poista toistot käytöstä arvolla 0 tai käytä väliä 30–86400 sekuntia.",
       "export_spread_unreachable": "Myyntitila ei voi tehdä näillä arvoilla mitään: syöttötariffi on pienimmän hintaspreadin tasolla tai sen alle, joten yksikään tunti ei voi koskaan täyttää ehtoa. Nosta tariffia, laske spreadia, tai aseta tariffi arvoon 0 myydäksesi markkinahintaan.",
       "export_script_missing": "Vientitila vaatii pakotetun purun skriptin. Lisää sellainen ohjausskripteihin tai vaihda purkutila takaisin omaan käyttöön.",
       "currency_mismatch": "Tämä sensori ilmoittaa hinnat valuutassa {sensor_currency}, mutta Home Assistantin valuutta on {ha_currency}. Hintoja ei muunneta, joten kaikki merkittäisiin ja mitoitettaisiin valuutassa {ha_currency}. Vaihda ensin valuutta kohdassa Asetukset → Järjestelmä → Yleiset tai lähetä uudelleen jatkaaksesi silti."
@@ -147,13 +150,15 @@
           "script_charge": "Skripti: pakotettu lataus verkosta",
           "script_idle": "Skripti: estä purkaminen (idle)",
           "script_auto": "Skripti: normaali automaattitila",
-          "script_export": "Skripti: pakotettu purku verkkoon (valinnainen)"
+          "script_export": "Skripti: pakotettu purku verkkoon (valinnainen)",
+          "script_refresh_interval": "Päivitysväli sekunteina (0 poistaa toistot käytöstä)"
         },
         "data_description": {
           "script_charge": "Kutsutaan, kun akun pitää latautua verkosta. Saa muuttujan power_w (latausteho watteina).",
           "script_idle": "Kutsutaan, kun purkaminen pitää estää, jotta akku säästää energiansa kalliimpaan tuntiin.",
           "script_auto": "Palauttaa invertterin normaaliin oman käytön tilaan.",
-          "script_export": "Valinnainen: kutsutaan, kun energiaa pitää myydä verkkoon erittäin korkeilla hinnoilla. Saa muuttujan power_w (purkuteho watteina)."
+          "script_export": "Valinnainen: kutsutaan, kun energiaa pitää myydä verkkoon erittäin korkeilla hinnoilla. Saa muuttujan power_w (purkuteho watteina).",
+          "script_refresh_interval": "Päivitysväli sekunteina (0 poistaa toistot käytöstä)"
         }
       },
       "consumption": {
@@ -276,6 +281,7 @@
       "unsupported_price_format": "Tämän entiteetin hintamuotoa ei tunnistettu. Katso tuetut integraatiot dokumentaatiosta.",
       "no_future_prices": "Entiteetti ei sisällä tulevia hintoja.",
       "soc_range_invalid": "Pienimmän SOC:n on oltava suurinta SOC:ia pienempi.",
+      "refresh_interval_invalid": "Poista toistot käytöstä arvolla 0 tai käytä väliä 30–86400 sekuntia.",
       "export_spread_unreachable": "Myyntitila ei voi tehdä näillä arvoilla mitään: syöttötariffi on pienimmän hintaspreadin tasolla tai sen alle, joten yksikään tunti ei voi koskaan täyttää ehtoa. Nosta tariffia, laske spreadia, tai aseta tariffi arvoon 0 myydäksesi markkinahintaan.",
       "export_script_missing": "Vientitila vaatii pakotetun purun skriptin. Lisää sellainen ohjausskripteihin tai vaihda purkutila takaisin omaan käyttöön.",
       "derating_not_monotonic": "Lataustehon ei pidä laskea lämpötilan noustessa. Tarkista liukusäätimet.",

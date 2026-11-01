@@ -48,13 +48,15 @@
           "script_charge": "Scenarijus: priverstinis įkrovimas iš tinklo",
           "script_idle": "Scenarijus: blokuoti iškrovimą (idle)",
           "script_auto": "Scenarijus: įprastas automatinis režimas",
-          "script_export": "Scenarijus: priverstinis iškrovimas į tinklą (nebūtina)"
+          "script_export": "Scenarijus: priverstinis iškrovimas į tinklą (nebūtina)",
+          "script_refresh_interval": "Atnaujinimo intervalas sekundėmis (0 išjungia kartojimą)"
         },
         "data_description": {
           "script_charge": "Iškviečiamas, kai akumuliatorius turi būti įkraunamas iš tinklo. Gauna kintamąjį power_w (įkrovimo galia vatais).",
           "script_idle": "Iškviečiamas, kai iškrovimas turi būti blokuojamas, kad akumuliatorius išsaugotų energiją brangesnei valandai.",
           "script_auto": "Grąžina inverterį į įprastą savo suvartojimo režimą.",
-          "script_export": "Nebūtina: iškviečiamas, kai energiją reikia parduoti į tinklą esant labai aukštoms kainoms. Gauna kintamąjį power_w (iškrovimo galia vatais)."
+          "script_export": "Nebūtina: iškviečiamas, kai energiją reikia parduoti į tinklą esant labai aukštoms kainoms. Gauna kintamąjį power_w (iškrovimo galia vatais).",
+          "script_refresh_interval": "Atnaujinimo intervalas sekundėmis (0 išjungia kartojimą)"
         }
       },
       "consumption": {
@@ -93,6 +95,7 @@
       "unsupported_price_format": "Šio objekto kainų formatas neatpažintas. Palaikomas integracijas rasi dokumentacijoje.",
       "no_future_prices": "Objekte nėra būsimų kainų.",
       "soc_range_invalid": "Mažiausias SOC turi būti mažesnis už didžiausią SOC.",
+      "refresh_interval_invalid": "Pakartojimams išjungti naudokite 0 arba intervalą nuo 30 iki 86400 sekundžių.",
       "export_spread_unreachable": "Pardavimo režimas su šiomis reikšmėmis nieko negali padaryti: atlygis yra lygus mažiausiam kainų skirtumui arba už jį mažesnis, todėl nė viena valanda niekada netiks. Padidink atlygį, sumažink skirtumą arba nustatyk atlygį į 0, kad parduotum rinkos kaina.",
       "export_script_missing": "Eksporto režimui reikia priverstinio iškrovimo scenarijaus. Pridėkite jį prie valdymo scenarijų arba grąžinkite iškrovimo režimą į savo suvartojimą.",
       "currency_mismatch": "Šis jutiklis pateikia kainas valiuta {sensor_currency}, tačiau Home Assistant valiuta yra {ha_currency}. Kainos nekonvertuojamos, todėl viskas būtų pažymėta ir pritaikyta kaip {ha_currency}. Pirmiausia pakeiskite valiutą skiltyje Nustatymai → Sistema → Bendra arba pateikite dar kartą, kad vis tiek tęstumėte."
@@ -147,13 +150,15 @@
           "script_charge": "Scenarijus: priverstinis įkrovimas iš tinklo",
           "script_idle": "Scenarijus: blokuoti iškrovimą (idle)",
           "script_auto": "Scenarijus: įprastas automatinis režimas",
-          "script_export": "Scenarijus: priverstinis iškrovimas į tinklą (nebūtina)"
+          "script_export": "Scenarijus: priverstinis iškrovimas į tinklą (nebūtina)",
+          "script_refresh_interval": "Atnaujinimo intervalas sekundėmis (0 išjungia kartojimą)"
         },
         "data_description": {
           "script_charge": "Iškviečiamas, kai akumuliatorius turi būti įkraunamas iš tinklo. Gauna kintamąjį power_w (įkrovimo galia vatais).",
           "script_idle": "Iškviečiamas, kai iškrovimas turi būti blokuojamas, kad akumuliatorius išsaugotų energiją brangesnei valandai.",
           "script_auto": "Grąžina inverterį į įprastą savo suvartojimo režimą.",
-          "script_export": "Nebūtina: iškviečiamas, kai energiją reikia parduoti į tinklą esant labai aukštoms kainoms. Gauna kintamąjį power_w (iškrovimo galia vatais)."
+          "script_export": "Nebūtina: iškviečiamas, kai energiją reikia parduoti į tinklą esant labai aukštoms kainoms. Gauna kintamąjį power_w (iškrovimo galia vatais).",
+          "script_refresh_interval": "Atnaujinimo intervalas sekundėmis (0 išjungia kartojimą)"
         }
       },
       "consumption": {
@@ -276,6 +281,7 @@
       "unsupported_price_format": "Šio objekto kainų formatas neatpažintas. Palaikomas integracijas rasi dokumentacijoje.",
       "no_future_prices": "Objekte nėra būsimų kainų.",
       "soc_range_invalid": "Mažiausias SOC turi būti mažesnis už didžiausią SOC.",
+      "refresh_interval_invalid": "Pakartojimams išjungti naudokite 0 arba intervalą nuo 30 iki 86400 sekundžių.",
       "export_spread_unreachable": "Pardavimo režimas su šiomis reikšmėmis nieko negali padaryti: atlygis yra lygus mažiausiam kainų skirtumui arba už jį mažesnis, todėl nė viena valanda niekada netiks. Padidink atlygį, sumažink skirtumą arba nustatyk atlygį į 0, kad parduotum rinkos kaina.",
       "export_script_missing": "Eksporto režimui reikia priverstinio iškrovimo scenarijaus. Pridėkite jį prie valdymo scenarijų arba grąžinkite iškrovimo režimą į savo suvartojimą.",
       "derating_not_monotonic": "Įkrovimo galia neturi mažėti kylant temperatūrai. Patikrinkite slankiklius.",

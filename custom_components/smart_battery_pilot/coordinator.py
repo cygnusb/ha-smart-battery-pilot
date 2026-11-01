@@ -59,6 +59,7 @@ from .const import (
     CONF_PV_POWER_ENTITY,
     CONF_RESERVE_BLOCK_DISCHARGE,
     CONF_RESERVE_REFILL_HOURS,
+    CONF_SCRIPT_REFRESH_INTERVAL,
     CONF_SOC_ENTITY,
     CONF_SPREAD_THRESHOLD,
     CONF_TEMPERATURE_ENTITY,
@@ -79,6 +80,7 @@ from .const import (
     DEFAULT_PRICE_OFFSET,
     DEFAULT_RESERVE_BLOCK_DISCHARGE,
     DEFAULT_RESERVE_REFILL_HOURS,
+    DEFAULT_SCRIPT_REFRESH_INTERVAL,
     DEFAULT_SPREAD_THRESHOLD,
     DEFAULT_TRAINING_DAYS,
     DERATING_CURVE_KEYS,
@@ -87,6 +89,7 @@ from .const import (
     EV_POLICY_EXTERNAL,
     EV_SOURCE_EVCC,
     HEALTH_DOCS_URL,
+    MIN_SCRIPT_REFRESH_INTERVAL,
     STORAGE_KEY,
     STORAGE_VERSION,
     STORE_SAVE_DELAY_SECONDS,
@@ -381,6 +384,13 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
 
     def opt(self, key: str, default: Any = None) -> Any:
         return self.entry.options.get(key, default)
+
+    def script_refresh_interval(self) -> int:
+        """Configured delay between successful repeated control calls."""
+        interval = int(
+            self.conf(CONF_SCRIPT_REFRESH_INTERVAL, DEFAULT_SCRIPT_REFRESH_INTERVAL) or 0
+        )
+        return max(interval, MIN_SCRIPT_REFRESH_INTERVAL) if interval > 0 else 0
 
     def derating_enabled(self) -> bool:
         return bool(self.conf(CONF_CHARGE_DERATING, DEFAULT_CHARGE_DERATING))

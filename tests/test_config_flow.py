@@ -49,6 +49,7 @@ from smart_battery_pilot.const import (
     CONF_SCRIPT_CHARGE,
     CONF_SCRIPT_EXPORT,
     CONF_SCRIPT_IDLE,
+    CONF_SCRIPT_REFRESH_INTERVAL,
     CONF_SOC_ENTITY,
     CONF_SPREAD_THRESHOLD,
     CONF_TEMPERATURE_ENTITY,
@@ -211,9 +212,21 @@ def test_the_full_setup_walks_every_step_and_starts_safe():
     assert entry["data"][CONF_PRICE_ENTITY] == "sensor.price"
     assert entry["data"][CONF_SOC_ENTITY] == "sensor.soc"
     assert entry["data"][CONF_PV_FORECAST_TODAY] == "sensor.pv"
+    assert entry["data"][CONF_SCRIPT_REFRESH_INTERVAL] == 0
     # Shipped safe: disabled is the switch default, dry-run is an option.
     assert entry["options"][CONF_DRY_RUN] is True
     assert entry["options"][CONF_DISCHARGE_MODE] == DISCHARGE_MODE_SELF_CONSUMPTION
+
+
+@pytest.mark.parametrize("interval", [1, 29, 86401])
+def test_setup_rejects_unsafe_refresh_intervals(interval):
+    result = _run(
+        _flow(_FakeHass()).async_step_control(
+            {**CONTROL_INPUT, CONF_SCRIPT_REFRESH_INTERVAL: interval}
+        )
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {CONF_SCRIPT_REFRESH_INTERVAL: "refresh_interval_invalid"}
 
 
 def test_the_unique_id_tracks_the_steered_battery():
@@ -505,6 +518,29 @@ def test_the_export_script_stays_optional_in_self_consumption_mode():
     result = _run(flow.async_step_control(dict(CONTROL_INPUT)))
     assert result["type"] == "menu"
     assert _run(flow.async_step_apply())["data"][CONF_SCRIPT_EXPORT] is None
+
+
+def test_control_refresh_interval_is_persisted_in_options():
+    flow = _options_flow(_FakeHass(), _entry())
+    result = _run(flow.async_step_control({**CONTROL_INPUT, CONF_SCRIPT_REFRESH_INTERVAL: 180}))
+    assert result["type"] == "menu"
+    assert _run(flow.async_step_apply())["data"][CONF_SCRIPT_REFRESH_INTERVAL] == 180
+
+
+@pytest.mark.parametrize("interval", [1, 29, 86401])
+def test_options_reject_unsafe_refresh_intervals(interval):
+    flow = _options_flow(_FakeHass(), _entry())
+    result = _run(
+        flow.async_step_control({**CONTROL_INPUT, CONF_SCRIPT_REFRESH_INTERVAL: interval})
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {CONF_SCRIPT_REFRESH_INTERVAL: "refresh_interval_invalid"}
+
+
+def test_missing_legacy_refresh_option_is_presented_as_zero():
+    form = _run(_options_flow(_FakeHass(), _entry()).async_step_control())
+    values = _suggested(form)
+    assert values[CONF_SCRIPT_REFRESH_INTERVAL] == 0
 
 
 # --- cold-weather charging ------------------------------------------------------

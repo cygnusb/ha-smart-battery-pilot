@@ -48,13 +48,15 @@
           "script_charge": "Skripts: piespiedu uzlāde no tīkla",
           "script_idle": "Skripts: bloķēt izlādi (idle)",
           "script_auto": "Skripts: parasts automātiskais režīms",
-          "script_export": "Skripts: piespiedu izlāde tīklā (neobligāti)"
+          "script_export": "Skripts: piespiedu izlāde tīklā (neobligāti)",
+          "script_refresh_interval": "Atjaunošanas intervāls sekundēs (0 izslēdz atkārtošanu)"
         },
         "data_description": {
           "script_charge": "Tiek izsaukts, kad akumulatoram jāuzlādējas no tīkla. Saņem mainīgo power_w (uzlādes jauda vatos).",
           "script_idle": "Tiek izsaukts, kad izlāde jābloķē, lai akumulators saglabātu enerģiju dārgākai stundai.",
           "script_auto": "Atgriež invertoru parastajā pašpatēriņa režīmā.",
-          "script_export": "Neobligāti: tiek izsaukts, kad enerģija jāpārdod tīklā ļoti augstu cenu laikā. Saņem mainīgo power_w (izlādes jauda vatos)."
+          "script_export": "Neobligāti: tiek izsaukts, kad enerģija jāpārdod tīklā ļoti augstu cenu laikā. Saņem mainīgo power_w (izlādes jauda vatos).",
+          "script_refresh_interval": "Atjaunošanas intervāls sekundēs (0 izslēdz atkārtošanu)"
         }
       },
       "consumption": {
@@ -93,6 +95,7 @@
       "unsupported_price_format": "Šīs entītijas cenu formāts netika atpazīts. Atbalstītās integrācijas skati dokumentācijā.",
       "no_future_prices": "Entītijā nav nākotnes cenu.",
       "soc_range_invalid": "Minimālajam SOC jābūt zemākam par maksimālo SOC.",
+      "refresh_interval_invalid": "Izmantojiet 0, lai izslēgtu atkārtošanu, vai intervālu no 30 līdz 86400 sekundēm.",
       "export_spread_unreachable": "Pārdošanas režīms ar šīm vērtībām neko nevar izdarīt: atlīdzība ir vienāda ar minimālo cenu starpību vai zemāka, tāpēc neviena stunda nekad nekvalificēsies. Palielini atlīdzību, samazini starpību vai iestati atlīdzību uz 0, lai pārdotu par tirgus cenu.",
       "export_script_missing": "Eksporta režīmam nepieciešams piespiedu izlādes skripts. Pievienojiet to vadības skriptos vai iestatiet izlādes režīmu atpakaļ uz pašpatēriņu.",
       "currency_mismatch": "Šis sensors norāda cenas valūtā {sensor_currency}, bet Home Assistant valūta ir {ha_currency}. Cenas netiek konvertētas, tāpēc viss tiktu apzīmēts un mērogots kā {ha_currency}. Vispirms nomainiet valūtu sadaļā Iestatījumi → Sistēma → Vispārīgi vai iesniedziet vēlreiz, lai tomēr turpinātu."
@@ -147,13 +150,15 @@
           "script_charge": "Skripts: piespiedu uzlāde no tīkla",
           "script_idle": "Skripts: bloķēt izlādi (idle)",
           "script_auto": "Skripts: parasts automātiskais režīms",
-          "script_export": "Skripts: piespiedu izlāde tīklā (neobligāti)"
+          "script_export": "Skripts: piespiedu izlāde tīklā (neobligāti)",
+          "script_refresh_interval": "Atjaunošanas intervāls sekundēs (0 izslēdz atkārtošanu)"
         },
         "data_description": {
           "script_charge": "Tiek izsaukts, kad akumulatoram jāuzlādējas no tīkla. Saņem mainīgo power_w (uzlādes jauda vatos).",
           "script_idle": "Tiek izsaukts, kad izlāde jābloķē, lai akumulators saglabātu enerģiju dārgākai stundai.",
           "script_auto": "Atgriež invertoru parastajā pašpatēriņa režīmā.",
-          "script_export": "Neobligāti: tiek izsaukts, kad enerģija jāpārdod tīklā ļoti augstu cenu laikā. Saņem mainīgo power_w (izlādes jauda vatos)."
+          "script_export": "Neobligāti: tiek izsaukts, kad enerģija jāpārdod tīklā ļoti augstu cenu laikā. Saņem mainīgo power_w (izlādes jauda vatos).",
+          "script_refresh_interval": "Atjaunošanas intervāls sekundēs (0 izslēdz atkārtošanu)"
         }
       },
       "consumption": {
@@ -276,6 +281,7 @@
       "unsupported_price_format": "Šīs entītijas cenu formāts netika atpazīts. Atbalstītās integrācijas skati dokumentācijā.",
       "no_future_prices": "Entītijā nav nākotnes cenu.",
       "soc_range_invalid": "Minimālajam SOC jābūt zemākam par maksimālo SOC.",
+      "refresh_interval_invalid": "Izmantojiet 0, lai izslēgtu atkārtošanu, vai intervālu no 30 līdz 86400 sekundēm.",
       "export_spread_unreachable": "Pārdošanas režīms ar šīm vērtībām neko nevar izdarīt: atlīdzība ir vienāda ar minimālo cenu starpību vai zemāka, tāpēc neviena stunda nekad nekvalificēsies. Palielini atlīdzību, samazini starpību vai iestati atlīdzību uz 0, lai pārdotu par tirgus cenu.",
       "export_script_missing": "Eksporta režīmam nepieciešams piespiedu izlādes skripts. Pievienojiet to vadības skriptos vai iestatiet izlādes režīmu atpakaļ uz pašpatēriņu.",
       "derating_not_monotonic": "Uzlādes jauda nedrīkst samazināties, temperatūrai pieaugot. Pārbaudiet slīdņus.",

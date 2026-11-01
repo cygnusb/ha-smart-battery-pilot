@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from datetime import timedelta
 
+from homeassistant.helpers.event import SCHEDULED_POINTS, fire_scheduled_point
 from homeassistant.util import dt as dt_util
 
 from smart_battery_pilot import executor as executor_module
@@ -39,13 +40,15 @@ class _FakeHass:
         self.services = _FakeServices()
 
     def async_create_task(self, coro):
-        if asyncio.iscoroutine(coro):
+        try:
+            return asyncio.get_running_loop().create_task(coro)
+        except RuntimeError:
             coro.close()
-        return
+            return None
 
 
 class _FakeCoordinator:
-    def __init__(self, slots: list[PlanSlot], *, valid=True, enabled=True, dry_run=True):
+    def __init__(self, slots: list[PlanSlot], *, valid=True, enabled=True, dry_run=True, refresh=0):
         self.data = SBPData(plan=Plan(slots=slots), valid=valid)
         self.enabled = enabled
         self.dry_run = dry_run
@@ -65,6 +68,7 @@ class _FakeCoordinator:
         self.ev_power = None
         self.ev_threshold = 1000.0
         self.external = False
+        self.refresh = refresh
         self._conf = {
             CONF_SCRIPT_CHARGE: "script.sbp_charge",
             CONF_SCRIPT_IDLE: "script.sbp_idle",
@@ -74,6 +78,9 @@ class _FakeCoordinator:
 
     def conf(self, key, default=None):
         return self._conf.get(key, default)
+
+    def script_refresh_interval(self):
+        return self.refresh
 
     def async_add_listener(self, _listener):
         return lambda: None
@@ -327,3 +334,120 @@ def test_every_script_call_reports_its_result():
         (ACTION_CHARGE, "script.sbp_charge", False),
         (ACTION_AUTO, "script.sbp_auto", False),
     ]
+
+
+def test_refresh_timer_callbacks_repeat_only_refreshable_actions(monkeypatch):
+    for action in (ACTION_IDLE, ACTION_CHARGE, ACTION_EXPORT):
+        SCHEDULED_POINTS.clear()
+        hass = _FakeHass()
+        slot = _slot(action, hours=2)
+        clock = {"now": slot.start + timedelta(minutes=5)}
+        monkeypatch.setattr(executor_module.dt_util, "now", lambda clock=clock: clock["now"])
+        coord = _FakeCoordinator([slot], dry_run=False, refresh=180)
+        executor = PlanExecutor(hass, coord)
+
+        async def scenario(executor=executor, hass=hass, clock=clock):
+            await executor.async_apply_current()
+            refresh_at = clock["now"] + timedelta(seconds=180)
+            index = next(i for i, entry in enumerate(SCHEDULED_POINTS) if entry[2] == refresh_at)
+            clock["now"] = refresh_at
+            fire_scheduled_point(index)
+            await asyncio.sleep(0)
+            await asyncio.sleep(0)
+
+        _run(scenario())
+        assert [call[1] for call in hass.services.calls] == [f"sbp_{action}"] * 2
+        assert executor.decisions[-1]["outcome"] == "applied"
+
+
+def test_failed_refresh_is_not_success_and_does_not_loop(monkeypatch):
+    SCHEDULED_POINTS.clear()
+    hass = _FakeHass()
+    slot = _slot(ACTION_CHARGE, hours=2)
+    now = slot.start + timedelta(minutes=5)
+    monkeypatch.setattr(executor_module.dt_util, "now", lambda: now)
+    coord = _FakeCoordinator([slot], dry_run=False, refresh=180)
+    executor = PlanExecutor(hass, coord)
+
+    async def scenario():
+        nonlocal now
+        await executor.async_apply_current()
+        confirmed_at = executor._refresh_success_at
+        now += timedelta(seconds=180)
+        hass.services.fail = True
+        index = next(i for i, entry in enumerate(SCHEDULED_POINTS) if entry[2] == now)
+        fire_scheduled_point(index)
+        await asyncio.sleep(0)
+        await asyncio.sleep(0)
+        assert executor._refresh_success_at == confirmed_at
+
+    _run(scenario())
+    assert len(hass.services.calls) == 2
+    assert executor.decisions[-1]["outcome"] == "failed_kept_running"
+    assert any(entry[2] == now + timedelta(seconds=180) for entry in SCHEDULED_POINTS)
+
+
+def test_stop_cancels_timed_action_refresh(monkeypatch):
+    SCHEDULED_POINTS.clear()
+    hass = _FakeHass()
+    slot = _slot(ACTION_IDLE, hours=2)
+    now = slot.start + timedelta(minutes=5)
+    monkeypatch.setattr(executor_module.dt_util, "now", lambda: now)
+    coord = _FakeCoordinator([slot], dry_run=False, refresh=180)
+    executor = PlanExecutor(hass, coord)
+
+    _run(executor.async_apply_current())
+    assert executor._unsub_refresh_timer is not None
+    _run(executor.async_stop(restore_auto=False))
+
+    assert executor._unsub_refresh_timer is None
+    assert executor._refresh_success_at is None
+
+
+def test_zero_and_missing_refresh_interval_never_arm_refresh(monkeypatch):
+    for refresh in (0, None):
+        SCHEDULED_POINTS.clear()
+        hass = _FakeHass()
+        slot = _slot(ACTION_IDLE, hours=2)
+        monkeypatch.setattr(
+            executor_module.dt_util,
+            "now",
+            lambda slot=slot: slot.start + timedelta(minutes=5),
+        )
+        coord = _FakeCoordinator([slot], dry_run=False, refresh=refresh)
+        executor = PlanExecutor(hass, coord)
+        _run(executor.async_apply_current())
+        assert executor._unsub_refresh_timer is None
+        _run(executor.async_apply_current())
+        assert len(hass.services.calls) == 1
+
+
+def test_auto_is_never_periodically_refreshed():
+    SCHEDULED_POINTS.clear()
+    hass = _FakeHass()
+    coord = _FakeCoordinator([_slot(ACTION_AUTO, hours=2)], dry_run=False, refresh=180)
+    executor = PlanExecutor(hass, coord)
+    _run(executor.async_apply_current())
+    assert executor._unsub_refresh_timer is None
+
+
+def test_delivered_refresh_callback_cannot_race_stop_into_a_script(monkeypatch):
+    SCHEDULED_POINTS.clear()
+    hass = _FakeHass()
+    slot = _slot(ACTION_IDLE, hours=2)
+    now = slot.start + timedelta(minutes=5)
+    monkeypatch.setattr(executor_module.dt_util, "now", lambda: now)
+    coord = _FakeCoordinator([slot], dry_run=False, refresh=180)
+    executor = PlanExecutor(hass, coord)
+
+    async def scenario():
+        nonlocal now
+        await executor.async_apply_current()
+        now += timedelta(seconds=180)
+        index = next(i for i, entry in enumerate(SCHEDULED_POINTS) if entry[2] == now)
+        fire_scheduled_point(index)
+        await executor.async_stop(restore_auto=False)
+        await asyncio.sleep(0)
+
+    _run(scenario())
+    assert [call[1] for call in hass.services.calls] == ["sbp_idle"]

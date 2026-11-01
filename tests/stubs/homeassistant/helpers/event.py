@@ -25,5 +25,5 @@ def async_track_point_in_time(hass, action, when):
 
 def fire_scheduled_point(index: int = -1) -> None:
     """Invoke a registered timer callback as Home Assistant would."""
-    _hass, action, when = SCHEDULED_POINTS[index]
+    _hass, action, when = SCHEDULED_POINTS.pop(index)
     action(when)

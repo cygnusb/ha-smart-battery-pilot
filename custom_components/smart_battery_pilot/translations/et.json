@@ -48,13 +48,15 @@
           "script_charge": "Skript: sunnitud laadimine võrgust",
           "script_idle": "Skript: blokeeri tühjenemine (idle)",
           "script_auto": "Skript: tavaline automaatrežiim",
-          "script_export": "Skript: sunnitud tühjendamine võrku (valikuline)"
+          "script_export": "Skript: sunnitud tühjendamine võrku (valikuline)",
+          "script_refresh_interval": "Värskendusintervall sekundites (0 lülitab kordused välja)"
         },
         "data_description": {
           "script_charge": "Kutsutakse, kui aku peab võrgust laadima. Saab muutuja power_w (laadimisvõimsus vattides).",
           "script_idle": "Kutsutakse, kui tühjenemine tuleb blokeerida, et aku hoiaks energia kallima tunni jaoks.",
           "script_auto": "Viib inverteri tagasi tavalisse omatarbimise režiimi.",
-          "script_export": "Valikuline: kutsutakse, kui energiat tuleb väga kõrgete hindadega võrku müüa. Saab muutuja power_w (tühjenemisvõimsus vattides)."
+          "script_export": "Valikuline: kutsutakse, kui energiat tuleb väga kõrgete hindadega võrku müüa. Saab muutuja power_w (tühjenemisvõimsus vattides).",
+          "script_refresh_interval": "Värskendusintervall sekundites (0 lülitab kordused välja)"
         }
       },
       "consumption": {
@@ -93,6 +95,7 @@
       "unsupported_price_format": "Selle olemi hinnavormingut ei tuntud ära. Toetatud integratsioonid leiad dokumentatsioonist.",
       "no_future_prices": "Olem ei sisalda tulevasi hindu.",
       "soc_range_invalid": "Minimaalne SOC peab olema väiksem kui maksimaalne SOC.",
+      "refresh_interval_invalid": "Korduste keelamiseks kasuta väärtust 0 või intervalli 30 kuni 86400 sekundit.",
       "export_spread_unreachable": "Müügirežiim ei saa nende väärtustega midagi teha: müügihind on minimaalse hinnavahemiku tasemel või allpool, seega ei kvalifitseeru ükski tund kunagi. Tõsta müügihinda, langeta vahemikku või määra müügihinnaks 0, et müüa turuhinnaga.",
       "export_script_missing": "Ekspordirežiim vajab sunnitud tühjendamise skripti. Lisa see juhtimisskriptide sammus või määra tühjendusrežiim tagasi omatarbeks.",
       "currency_mismatch": "See andur esitab hinnad valuutas {sensor_currency}, kuid Home Assistanti valuuta on {ha_currency}. Hindu ei teisendata, seega märgistataks ja mõõdetaks kõike valuutas {ha_currency}. Muuda esmalt valuutat jaotises Seaded → Süsteem → Üldine või saada vorm uuesti, et siiski jätkata."
@@ -147,13 +150,15 @@
           "script_charge": "Skript: sunnitud laadimine võrgust",
           "script_idle": "Skript: blokeeri tühjenemine (idle)",
           "script_auto": "Skript: tavaline automaatrežiim",
-          "script_export": "Skript: sunnitud tühjendamine võrku (valikuline)"
+          "script_export": "Skript: sunnitud tühjendamine võrku (valikuline)",
+          "script_refresh_interval": "Värskendusintervall sekundites (0 lülitab kordused välja)"
         },
         "data_description": {
           "script_charge": "Kutsutakse, kui aku peab võrgust laadima. Saab muutuja power_w (laadimisvõimsus vattides).",
           "script_idle": "Kutsutakse, kui tühjenemine tuleb blokeerida, et aku hoiaks energia kallima tunni jaoks.",
           "script_auto": "Viib inverteri tagasi tavalisse omatarbimise režiimi.",
-          "script_export": "Valikuline: kutsutakse, kui energiat tuleb väga kõrgete hindadega võrku müüa. Saab muutuja power_w (tühjenemisvõimsus vattides)."
+          "script_export": "Valikuline: kutsutakse, kui energiat tuleb väga kõrgete hindadega võrku müüa. Saab muutuja power_w (tühjenemisvõimsus vattides).",
+          "script_refresh_interval": "Värskendusintervall sekundites (0 lülitab kordused välja)"
         }
       },
       "consumption": {
@@ -276,6 +281,7 @@
       "unsupported_price_format": "Selle olemi hinnavormingut ei tuntud ära. Toetatud integratsioonid leiad dokumentatsioonist.",
       "no_future_prices": "Olem ei sisalda tulevasi hindu.",
       "soc_range_invalid": "Minimaalne SOC peab olema väiksem kui maksimaalne SOC.",
+      "refresh_interval_invalid": "Korduste keelamiseks kasuta väärtust 0 või intervalli 30 kuni 86400 sekundit.",
       "export_spread_unreachable": "Müügirežiim ei saa nende väärtustega midagi teha: müügihind on minimaalse hinnavahemiku tasemel või allpool, seega ei kvalifitseeru ükski tund kunagi. Tõsta müügihinda, langeta vahemikku või määra müügihinnaks 0, et müüa turuhinnaga.",
       "export_script_missing": "Ekspordirežiim vajab sunnitud tühjendamise skripti. Lisa see juhtimisskriptide sammus või määra tühjendusrežiim tagasi omatarbeks.",
       "derating_not_monotonic": "Laadimisvõimsus ei tohi temperatuuri tõustes langeda. Kontrolli liugureid.",

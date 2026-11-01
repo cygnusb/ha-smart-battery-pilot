@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import deque
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from typing import Any, NamedTuple
 
@@ -47,6 +47,8 @@ EV_RELEASE_SHARE = 0.5
 # into a single entry, so this covers many hours of steady operation.
 MAX_DECISIONS = 50
 
+REFRESH_ACTIONS = (ACTION_IDLE, ACTION_CHARGE, ACTION_EXPORT)
+
 
 class _Sent(NamedTuple):
     """The charge or export command the inverter last accepted."""
@@ -64,6 +66,7 @@ class PlanExecutor:
         self.hass = hass
         self.coordinator = coordinator
         self._unsub_timer = None
+        self._unsub_refresh_timer = None
         self._unsub_coordinator = None
         # Serialises the three triggers (coordinator update, slot boundary,
         # switches). Script calls are awaited, so without it two runs can
@@ -98,6 +101,12 @@ class PlanExecutor:
         # how often a register can be written, and the failure would cancel a
         # charge that is running fine. Not persisted: a restart sends again.
         self._sent: _Sent | None = None
+        # Persisted state cannot prove that an expiring inverter mode is still
+        # active.  Confirmation is therefore process-local and advances only
+        # after a successful blocking script call.
+        self._refresh_success_action: str | None = None
+        self._refresh_success_at: datetime | None = None
+        self._refresh_attempt_at: datetime | None = None
         # What the executor decided and why, newest last. A support report
         # rarely comes with debug logging switched on; the diagnostics dump
         # carries this instead.
@@ -182,9 +191,15 @@ class PlanExecutor:
 
     async def async_stop(self, restore_auto: bool = True) -> None:
         """Stop execution; optionally hand the battery back to auto mode."""
+        # Close the gate before unsubscribing so a callback already delivered
+        # in this event-loop turn cannot queue another device command.
+        self._stopped = True
         if self._unsub_timer:
             self._unsub_timer()
             self._unsub_timer = None
+        if self._unsub_refresh_timer:
+            self._unsub_refresh_timer()
+            self._unsub_refresh_timer = None
         if self._unsub_coordinator:
             self._unsub_coordinator()
             self._unsub_coordinator = None
@@ -195,7 +210,7 @@ class PlanExecutor:
             self._unsub_ev()
             self._unsub_ev = None
         async with self._lock:
-            self._stopped = True
+            self._clear_refresh_state()
             self.coordinator.charge_observation(None)
             # `last_applied` is only set after a real script call, so dry-run
             # never triggers a restore on unload.
@@ -280,8 +295,18 @@ class PlanExecutor:
         coordinator = self.coordinator
         if not coordinator.enabled or coordinator.dry_run:
             return
-        if coordinator.external_control_active() != self._external_active:
+        external_active = coordinator.external_control_active()
+        if external_active != self._external_active:
             _LOGGER.debug("External control changed - re-applying")
+            self._external_active = external_active
+            if external_active:
+                # Invalidate ownership synchronously. A takeover and release
+                # can otherwise both arrive before the queued apply runs.
+                if self._unsub_refresh_timer:
+                    self._unsub_refresh_timer()
+                    self._unsub_refresh_timer = None
+                self._clear_refresh_state()
+                self._reassert = True
             self._queue_apply()
             return
         slot = self.current_slot()
@@ -333,6 +358,9 @@ class PlanExecutor:
             reading = self.coordinator.charge_reading()
             await self._apply_locked()
             self._report_charge(reading)
+            # A successful call starts a fresh refresh window. Re-arm after it
+            # returns so script runtime cannot shorten that window.
+            self._schedule_refresh()
 
     def _report_charge(self, reading: ChargeReading) -> None:
         """Tell the coordinator whether a charge slot is really running.
@@ -358,6 +386,7 @@ class PlanExecutor:
         was_ev_blocking, self._ev_blocking = self._ev_blocking, False
         slot = self.current_slot()
         if slot is None or not self._plan_is_live():
+            self._clear_refresh_state()
             reason = self._why_no_live_plan()
             _LOGGER.debug(
                 "No live plan slot (%s); last applied mode '%s'", reason, self._last_applied
@@ -378,6 +407,7 @@ class PlanExecutor:
             return
 
         if not coordinator.enabled:
+            self._clear_refresh_state()
             _LOGGER.debug("Pilot disabled - leaving slot action '%s' unapplied", slot.action)
             self.coordinator.ev_hold_active = False
             self._record("disabled", slot)
@@ -385,6 +415,7 @@ class PlanExecutor:
 
         action = slot.action
         if coordinator.dry_run:
+            self._clear_refresh_state()
             if self._last_applied not in (None, ACTION_AUTO):
                 _LOGGER.info("Dry-run enabled - restoring battery auto mode")
                 if await self._call_script(ACTION_AUTO, 0.0):
@@ -408,6 +439,7 @@ class PlanExecutor:
             _LOGGER.debug("External control active - leaving slot action '%s' to it", slot.action)
             self._reassert = True
             self._sent = None
+            self._clear_refresh_state()
             self.coordinator.ev_hold_active = True
             self._record("external_control", slot)
             return
@@ -428,7 +460,16 @@ class PlanExecutor:
         # not book it as an arbitrage decision.
         self.coordinator.ev_hold_active = blocked == "ev_block"
 
+        if self._refresh_success_action is not None and self._refresh_success_action != action:
+            self._clear_refresh_state()
+
         wanted = _Sent(slot.start, action, round(slot.power_w), coordinator.reserve_for_scripts())
+        reserve_changed = (
+            coordinator.last_reserve_sent is not None
+            and wanted.reserve_soc != coordinator.last_reserve_sent
+        )
+        refresh_enabled = self._refresh_enabled(action)
+        refresh_due = self._refresh_due(action)
         running = (
             self._sent is not None
             and self._sent.slot_start == slot.start
@@ -437,17 +478,18 @@ class PlanExecutor:
         )
         if self._reassert:
             _LOGGER.debug("Re-sending action '%s'", action)
-        elif running and wanted == self._sent:
+        elif running and wanted == self._sent and not refresh_due:
             _LOGGER.debug(
-                "Action '%s' already sent with these values - no script call for slot %s",
+                "Action '%s' already applied with these values - no script call for slot %s",
                 action,
                 slot.start.isoformat(),
             )
-            self._record("unchanged", slot)
+            self._record(blocked or "unchanged", slot)
             return
-        elif action == self._last_applied and action not in (
-            ACTION_CHARGE,
-            ACTION_EXPORT,
+        elif (
+            action == self._last_applied
+            and action not in (ACTION_CHARGE, ACTION_EXPORT)
+            and not refresh_enabled
         ):
             if coordinator.reserve_for_scripts() != coordinator.last_reserve_sent:
                 # Same mode, new reserve: the inverter only learns it from the
@@ -473,8 +515,10 @@ class PlanExecutor:
         if await self._call_script(action, slot.power_w):
             await self._remember(action)
             self._reassert = False
-            self._sent = wanted if action in (ACTION_CHARGE, ACTION_EXPORT) else None
-            self._record(blocked or "applied", slot)
+            self._sent = (
+                wanted if action in (ACTION_CHARGE, ACTION_EXPORT) or refresh_enabled else None
+            )
+            self._record(blocked or ("reserve_updated" if reserve_changed else "applied"), slot)
             return
         if running:
             # The slot's first call worked, so the inverter is still in this
@@ -488,12 +532,42 @@ class PlanExecutor:
             self._reassert = True
             self._record("failed_kept_running", slot)
             return
+        if action in REFRESH_ACTIONS:
+            self._sent = None
+            self._clear_refresh_state()
         if action != ACTION_AUTO and await self._call_script(ACTION_AUTO, 0.0):
             await self._remember(ACTION_AUTO)
             self._reassert = False
             self._record("failed_fell_back_to_auto", slot)
             return
+        if action == ACTION_AUTO:
+            _LOGGER.warning(
+                "Restoring battery auto mode failed for slot %s; will retry on a later trigger",
+                slot.start.isoformat(),
+            )
         self._record("failed", slot)
+
+    def _refresh_enabled(self, action: str) -> bool:
+        return action in REFRESH_ACTIONS and self._refresh_interval() > 0
+
+    def _refresh_interval(self) -> int:
+        getter = getattr(self.coordinator, "script_refresh_interval", None)
+        return int(getter() or 0) if getter else 0
+
+    def _clear_refresh_state(self) -> None:
+        """Cancel periodic ownership state when the effective mode changes."""
+        self._refresh_success_action = None
+        self._refresh_success_at = None
+        self._refresh_attempt_at = None
+        self._sent = None
+
+    def _refresh_due(self, action: str) -> bool:
+        if not self._refresh_enabled(action) or self._refresh_success_action != action:
+            return False
+        anchor = self._refresh_attempt_at or self._refresh_success_at
+        return bool(
+            anchor and dt_util.now() >= anchor + timedelta(seconds=self._refresh_interval())
+        )
 
     def _why_no_live_plan(self) -> str:
         """Short reason the executor has no slot to apply, for logs and diagnostics."""
@@ -534,9 +608,60 @@ class PlanExecutor:
 
         self._unsub_timer = async_track_point_in_time(self.hass, _fire, boundary)
 
+    def _schedule_refresh(self) -> None:
+        """Arm renewal of a successfully applied time-limited mode."""
+        if self._unsub_refresh_timer:
+            self._unsub_refresh_timer()
+            self._unsub_refresh_timer = None
+        if (
+            self._stopped
+            or self._refresh_success_action not in REFRESH_ACTIONS
+            or self._refresh_success_at is None
+            or not self.coordinator.enabled
+            or self.coordinator.dry_run
+            or self.coordinator.external_control_active()
+        ):
+            return
+        slot = self.current_slot()
+        if (
+            slot is None
+            or self._sent is None
+            or self._sent.slot_start != slot.start
+            or self._sent.action != self._refresh_success_action
+            or self._last_applied != self._refresh_success_action
+        ):
+            return
+        anchor = self._refresh_attempt_at or self._refresh_success_at
+        refresh_at = anchor + timedelta(seconds=self._refresh_interval())
+        if refresh_at <= dt_util.now():
+            refresh_at = dt_util.now() + timedelta(seconds=self._refresh_interval())
+
+        @callback
+        def _fire(_now: datetime) -> None:
+            self._unsub_refresh_timer = None
+            self._queue_apply()
+
+        _LOGGER.debug(
+            "Time-limited action '%s' renewal armed for %s",
+            self._refresh_success_action,
+            refresh_at.isoformat(),
+        )
+        self._unsub_refresh_timer = async_track_point_in_time(self.hass, _fire, refresh_at)
+
     async def _call_script(self, action: str, power_w: float) -> bool:
+        if self._refresh_enabled(action):
+            self._refresh_attempt_at = dt_util.now()
         success = await self._run_script(action, power_w)
         self.coordinator.note_script_result(action, self._script_entity(action), success)
+        if success:
+            if self._refresh_enabled(action):
+                self._refresh_success_action = action
+                self._refresh_success_at = dt_util.now()
+                self._refresh_attempt_at = self._refresh_success_at
+            else:
+                self._refresh_success_action = None
+                self._refresh_success_at = None
+                self._refresh_attempt_at = None
         return success
 
     def _script_entity(self, action: str) -> str | None:

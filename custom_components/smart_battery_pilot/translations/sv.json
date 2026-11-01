@@ -48,13 +48,15 @@
           "script_charge": "Skript: tvingad laddning från elnätet",
           "script_idle": "Skript: blockera urladdning (idle)",
           "script_auto": "Skript: normalt automatläge",
-          "script_export": "Skript: tvingad urladdning till elnätet (valfritt)"
+          "script_export": "Skript: tvingad urladdning till elnätet (valfritt)",
+          "script_refresh_interval": "Uppdateringsintervall i sekunder (0 inaktiverar upprepning)"
         },
         "data_description": {
           "script_charge": "Anropas när batteriet ska laddas från elnätet. Tar emot variabeln power_w (laddeffekt i watt).",
           "script_idle": "Anropas när urladdning ska blockeras, så att batteriet sparar sin energi till en dyrare timme.",
           "script_auto": "Återställer växelriktaren till normalt läge för egenanvändning.",
-          "script_export": "Valfritt: anropas när energi ska säljas till elnätet vid mycket höga priser. Tar emot variabeln power_w (urladdningseffekt i watt)."
+          "script_export": "Valfritt: anropas när energi ska säljas till elnätet vid mycket höga priser. Tar emot variabeln power_w (urladdningseffekt i watt).",
+          "script_refresh_interval": "Uppdateringsintervall i sekunder (0 inaktiverar upprepning)"
         }
       },
       "consumption": {
@@ -93,6 +95,7 @@
       "unsupported_price_format": "Prisformatet för den här entiteten kändes inte igen. Se dokumentationen för integrationer som stöds.",
       "no_future_prices": "Entiteten innehåller inga framtida priser.",
       "soc_range_invalid": "Lägsta SOC måste vara under högsta SOC.",
+      "refresh_interval_invalid": "Använd 0 för att inaktivera upprepning, eller ett intervall från 30 till 86400 sekunder.",
       "export_spread_unreachable": "Försäljningsläget kan inte göra något med dessa värden: ersättningen ligger på eller under den minsta prisspreaden, så ingen timme kan någonsin kvalificera sig. Höj ersättningen, sänk spreaden, eller sätt ersättningen till 0 för att sälja till marknadspris.",
       "export_script_missing": "Exportläget kräver ett skript för tvingad urladdning. Lägg till ett under styrskript, eller ställ tillbaka urladdningsläget till egenförbrukning.",
       "currency_mismatch": "Den här sensorn rapporterar priser i {sensor_currency}, men Home Assistants valuta är {ha_currency}. Priser räknas inte om, så allt skulle märkas och dimensioneras som {ha_currency}. Ändra först valutan under Inställningar → System → Allmänt, eller skicka igen för att fortsätta ändå."
@@ -147,13 +150,15 @@
           "script_charge": "Skript: tvingad laddning från elnätet",
           "script_idle": "Skript: blockera urladdning (idle)",
           "script_auto": "Skript: normalt automatläge",
-          "script_export": "Skript: tvingad urladdning till elnätet (valfritt)"
+          "script_export": "Skript: tvingad urladdning till elnätet (valfritt)",
+          "script_refresh_interval": "Uppdateringsintervall i sekunder (0 inaktiverar upprepning)"
         },
         "data_description": {
           "script_charge": "Anropas när batteriet ska laddas från elnätet. Tar emot variabeln power_w (laddeffekt i watt).",
           "script_idle": "Anropas när urladdning ska blockeras, så att batteriet sparar sin energi till en dyrare timme.",
           "script_auto": "Återställer växelriktaren till normalt läge för egenanvändning.",
-          "script_export": "Valfritt: anropas när energi ska säljas till elnätet vid mycket höga priser. Tar emot variabeln power_w (urladdningseffekt i watt)."
+          "script_export": "Valfritt: anropas när energi ska säljas till elnätet vid mycket höga priser. Tar emot variabeln power_w (urladdningseffekt i watt).",
+          "script_refresh_interval": "Uppdateringsintervall i sekunder (0 inaktiverar upprepning)"
         }
       },
       "consumption": {
@@ -276,6 +281,7 @@
       "unsupported_price_format": "Prisformatet för den här entiteten kändes inte igen. Se dokumentationen för integrationer som stöds.",
       "no_future_prices": "Entiteten innehåller inga framtida priser.",
       "soc_range_invalid": "Lägsta SOC måste vara under högsta SOC.",
+      "refresh_interval_invalid": "Använd 0 för att inaktivera upprepning, eller ett intervall från 30 till 86400 sekunder.",
       "export_spread_unreachable": "Försäljningsläget kan inte göra något med dessa värden: ersättningen ligger på eller under den minsta prisspreaden, så ingen timme kan någonsin kvalificera sig. Höj ersättningen, sänk spreaden, eller sätt ersättningen till 0 för att sälja till marknadspris.",
       "export_script_missing": "Exportläget kräver ett skript för tvingad urladdning. Lägg till ett under styrskript, eller ställ tillbaka urladdningsläget till egenförbrukning.",
       "derating_not_monotonic": "Laddeffekten får inte sjunka när temperaturen stiger. Kontrollera skjutreglagen.",

@@ -48,13 +48,15 @@
           "script_charge": "Skript: tvungen lading fra nettet",
           "script_idle": "Skript: blokker utlading (idle)",
           "script_auto": "Skript: normal automatikkmodus",
-          "script_export": "Skript: tvungen utlading til nettet (valgfritt)"
+          "script_export": "Skript: tvungen utlading til nettet (valgfritt)",
+          "script_refresh_interval": "Oppdateringsintervall i sekunder (0 deaktiverer gjentakelser)"
         },
         "data_description": {
           "script_charge": "Kalles når batteriet skal lades fra nettet. Mottar variabelen power_w (ladeeffekt i watt).",
           "script_idle": "Kalles når utlading skal blokkeres, slik at batteriet sparer energien til en dyrere time.",
           "script_auto": "Setter vekselretteren tilbake til normal modus for eget forbruk.",
-          "script_export": "Valgfritt: kalles når energi skal selges til nettet ved svært høye priser. Mottar variabelen power_w (utladingseffekt i watt)."
+          "script_export": "Valgfritt: kalles når energi skal selges til nettet ved svært høye priser. Mottar variabelen power_w (utladingseffekt i watt).",
+          "script_refresh_interval": "Oppdateringsintervall i sekunder (0 deaktiverer gjentakelser)"
         }
       },
       "consumption": {
@@ -93,6 +95,7 @@
       "unsupported_price_format": "Prisformatet til denne entiteten ble ikke gjenkjent. Se dokumentasjonen for integrasjoner som støttes.",
       "no_future_prices": "Entiteten inneholder ingen fremtidige priser.",
       "soc_range_invalid": "Laveste SOC må være under høyeste SOC.",
+      "refresh_interval_invalid": "Bruk 0 for å deaktivere gjentakelser, eller et intervall fra 30 til 86400 sekunder.",
       "export_spread_unreachable": "Innmatingsmodusen kan ikke gjøre noe med disse verdiene: innmatingstariffen ligger på eller under den minste prisspreaden, så ingen time kan noen gang kvalifisere. Øk tariffen, senk spreaden, eller sett tariffen til 0 for å selge til markedspris.",
       "export_script_missing": "Eksportmodus krever et skript for tvungen utlading. Legg til ett under styringsskript, eller sett utladingsmodus tilbake til eget forbruk.",
       "currency_mismatch": "Denne sensoren rapporterer priser i {sensor_currency}, men Home Assistants valuta er {ha_currency}. Priser regnes ikke om, så alt ville blitt merket og dimensjonert som {ha_currency}. Endre først valutaen under Innstillinger → System → Generelt, eller send inn på nytt for å fortsette likevel."
@@ -147,13 +150,15 @@
           "script_charge": "Skript: tvungen lading fra nettet",
           "script_idle": "Skript: blokker utlading (idle)",
           "script_auto": "Skript: normal automatikkmodus",
-          "script_export": "Skript: tvungen utlading til nettet (valgfritt)"
+          "script_export": "Skript: tvungen utlading til nettet (valgfritt)",
+          "script_refresh_interval": "Oppdateringsintervall i sekunder (0 deaktiverer gjentakelser)"
         },
         "data_description": {
           "script_charge": "Kalles når batteriet skal lades fra nettet. Mottar variabelen power_w (ladeeffekt i watt).",
           "script_idle": "Kalles når utlading skal blokkeres, slik at batteriet sparer energien til en dyrere time.",
           "script_auto": "Setter vekselretteren tilbake til normal modus for eget forbruk.",
-          "script_export": "Valgfritt: kalles når energi skal selges til nettet ved svært høye priser. Mottar variabelen power_w (utladingseffekt i watt)."
+          "script_export": "Valgfritt: kalles når energi skal selges til nettet ved svært høye priser. Mottar variabelen power_w (utladingseffekt i watt).",
+          "script_refresh_interval": "Oppdateringsintervall i sekunder (0 deaktiverer gjentakelser)"
         }
       },
       "consumption": {
@@ -276,6 +281,7 @@
       "unsupported_price_format": "Prisformatet til denne entiteten ble ikke gjenkjent. Se dokumentasjonen for integrasjoner som støttes.",
       "no_future_prices": "Entiteten inneholder ingen fremtidige priser.",
       "soc_range_invalid": "Laveste SOC må være under høyeste SOC.",
+      "refresh_interval_invalid": "Bruk 0 for å deaktivere gjentakelser, eller et intervall fra 30 til 86400 sekunder.",
       "export_spread_unreachable": "Innmatingsmodusen kan ikke gjøre noe med disse verdiene: innmatingstariffen ligger på eller under den minste prisspreaden, så ingen time kan noen gang kvalifisere. Øk tariffen, senk spreaden, eller sett tariffen til 0 for å selge til markedspris.",
       "export_script_missing": "Eksportmodus krever et skript for tvungen utlading. Legg til ett under styringsskript, eller sett utladingsmodus tilbake til eget forbruk.",
       "derating_not_monotonic": "Ladeeffekten skal ikke synke når temperaturen stiger. Kontroller glidebryterne.",

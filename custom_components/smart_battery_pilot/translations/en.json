@@ -48,13 +48,15 @@
           "script_charge": "Script: force charge from grid",
           "script_idle": "Script: block discharging (idle)",
           "script_auto": "Script: normal auto mode",
-          "script_export": "Script: force discharge to grid (optional)"
+          "script_export": "Script: force discharge to grid (optional)",
+          "script_refresh_interval": "Refresh interval in seconds (0 disables periodic calls)"
         },
         "data_description": {
           "script_charge": "Called when the battery should charge from the grid. Receives the variable power_w (charge power in watts).",
           "script_idle": "Called when discharging should be blocked, so the battery keeps its energy for a more expensive hour.",
           "script_auto": "Returns the inverter to its normal self-consumption mode.",
-          "script_export": "Optional: called when energy should be sold to the grid during very high prices. Receives the variable power_w (discharge power in watts)."
+          "script_export": "Optional: called when energy should be sold to the grid during very high prices. Receives the variable power_w (discharge power in watts).",
+          "script_refresh_interval": "Refresh interval in seconds (0 disables periodic calls)"
         }
       },
       "consumption": {
@@ -93,6 +95,7 @@
       "unsupported_price_format": "The price format of this entity was not recognized. See the documentation for supported integrations.",
       "no_future_prices": "The entity contains no future prices.",
       "soc_range_invalid": "Minimum SOC must be below maximum SOC.",
+      "refresh_interval_invalid": "Use 0 to disable refreshes, or an interval from 30 to 86400 seconds.",
       "export_spread_unreachable": "Export mode cannot do anything with these values: the feed-in tariff is at or below the minimum price spread, so no slot can ever qualify. Raise the feed-in tariff, lower the spread, or set the feed-in tariff to 0 to export at the market price.",
       "export_script_missing": "Export mode needs a force-discharge script. Configure one in the control scripts step, or set the discharge mode back to self-consumption.",
       "currency_mismatch": "This sensor reports prices in {sensor_currency}, but Home Assistant's currency is {ha_currency}. Prices are not converted, so everything would be labelled and sized as {ha_currency}. Change the currency under Settings → System → General first, or submit again to continue anyway."
@@ -147,13 +150,15 @@
           "script_charge": "Script: force charge from grid",
           "script_idle": "Script: block discharging (idle)",
           "script_auto": "Script: normal auto mode",
-          "script_export": "Script: force discharge to grid (optional)"
+          "script_export": "Script: force discharge to grid (optional)",
+          "script_refresh_interval": "Refresh interval in seconds (0 disables periodic calls)"
         },
         "data_description": {
           "script_charge": "Called when the battery should charge from the grid. Receives the variable power_w (charge power in watts).",
           "script_idle": "Called when discharging should be blocked, so the battery keeps its energy for a more expensive hour.",
           "script_auto": "Returns the inverter to its normal self-consumption mode.",
-          "script_export": "Optional: called when energy should be sold to the grid during very high prices. Receives the variable power_w (discharge power in watts)."
+          "script_export": "Optional: called when energy should be sold to the grid during very high prices. Receives the variable power_w (discharge power in watts).",
+          "script_refresh_interval": "Refresh interval in seconds (0 disables periodic calls)"
         }
       },
       "consumption": {
@@ -276,6 +281,7 @@
       "unsupported_price_format": "The price format of this entity was not recognized. See the documentation for supported integrations.",
       "no_future_prices": "The entity contains no future prices.",
       "soc_range_invalid": "Minimum SOC must be below maximum SOC.",
+      "refresh_interval_invalid": "Use 0 to disable refreshes, or an interval from 30 to 86400 seconds.",
       "export_spread_unreachable": "Export mode cannot do anything with these values: the feed-in tariff is at or below the minimum price spread, so no slot can ever qualify. Raise the feed-in tariff, lower the spread, or set the feed-in tariff to 0 to export at the market price.",
       "export_script_missing": "Export mode needs a force-discharge script. Configure one in the control scripts step, or set the discharge mode back to self-consumption.",
       "derating_not_monotonic": "The charge power must not fall as the temperature rises. Check the sliders.",

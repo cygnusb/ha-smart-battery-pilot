@@ -48,13 +48,15 @@
           "script_charge": "Script: tvungen ladning fra elnettet",
           "script_idle": "Script: bloker afladning (idle)",
           "script_auto": "Script: normal automatisk tilstand",
-          "script_export": "Script: tvungen afladning til elnettet (valgfri)"
+          "script_export": "Script: tvungen afladning til elnettet (valgfri)",
+          "script_refresh_interval": "Opdateringsinterval i sekunder (0 deaktiverer gentagelser)"
         },
         "data_description": {
           "script_charge": "Kaldes, når batteriet skal lades fra elnettet. Modtager variablen power_w (ladeeffekt i watt).",
           "script_idle": "Kaldes, når afladning skal blokeres, så batteriet gemmer sin energi til en dyrere time.",
           "script_auto": "Sætter inverteren tilbage til normal tilstand for egetforbrug.",
-          "script_export": "Valgfri: kaldes, når energi skal sælges til elnettet ved meget høje priser. Modtager variablen power_w (afladeeffekt i watt)."
+          "script_export": "Valgfri: kaldes, når energi skal sælges til elnettet ved meget høje priser. Modtager variablen power_w (afladeeffekt i watt).",
+          "script_refresh_interval": "Opdateringsinterval i sekunder (0 deaktiverer gentagelser)"
         }
       },
       "consumption": {
@@ -93,6 +95,7 @@
       "unsupported_price_format": "Prisformatet for denne entitet blev ikke genkendt. Se dokumentationen for understøttede integrationer.",
       "no_future_prices": "Entiteten indeholder ingen fremtidige priser.",
       "soc_range_invalid": "Mindste SOC skal være under største SOC.",
+      "refresh_interval_invalid": "Brug 0 for at deaktivere gentagelser, eller 30 til 86400 sekunder.",
       "export_spread_unreachable": "Salgstilstanden kan ikke gøre noget med disse værdier: afregningsprisen ligger på eller under det mindste prisspread, så ingen time kan nogensinde kvalificere sig. Hæv afregningsprisen, sænk spreadet, eller sæt afregningsprisen til 0 for at sælge til markedspris.",
       "export_script_missing": "Eksporttilstand kræver et script til tvungen afladning. Tilføj et under styringsscripts, eller sæt afladningstilstanden tilbage til eget forbrug.",
       "currency_mismatch": "Denne sensor rapporterer priser i {sensor_currency}, men Home Assistants valuta er {ha_currency}. Priser omregnes ikke, så alt ville blive mærket og dimensioneret som {ha_currency}. Skift først valutaen under Indstillinger → System → Generelt, eller indsend igen for at fortsætte alligevel."
@@ -147,13 +150,15 @@
           "script_charge": "Script: tvungen ladning fra elnettet",
           "script_idle": "Script: bloker afladning (idle)",
           "script_auto": "Script: normal automatisk tilstand",
-          "script_export": "Script: tvungen afladning til elnettet (valgfri)"
+          "script_export": "Script: tvungen afladning til elnettet (valgfri)",
+          "script_refresh_interval": "Opdateringsinterval i sekunder (0 deaktiverer gentagelser)"
         },
         "data_description": {
           "script_charge": "Kaldes, når batteriet skal lades fra elnettet. Modtager variablen power_w (ladeeffekt i watt).",
           "script_idle": "Kaldes, når afladning skal blokeres, så batteriet gemmer sin energi til en dyrere time.",
           "script_auto": "Sætter inverteren tilbage til normal tilstand for egetforbrug.",
-          "script_export": "Valgfri: kaldes, når energi skal sælges til elnettet ved meget høje priser. Modtager variablen power_w (afladeeffekt i watt)."
+          "script_export": "Valgfri: kaldes, når energi skal sælges til elnettet ved meget høje priser. Modtager variablen power_w (afladeeffekt i watt).",
+          "script_refresh_interval": "Opdateringsinterval i sekunder (0 deaktiverer gentagelser)"
         }
       },
       "consumption": {
@@ -276,6 +281,7 @@
       "unsupported_price_format": "Prisformatet for denne entitet blev ikke genkendt. Se dokumentationen for understøttede integrationer.",
       "no_future_prices": "Entiteten indeholder ingen fremtidige priser.",
       "soc_range_invalid": "Mindste SOC skal være under største SOC.",
+      "refresh_interval_invalid": "Brug 0 for at deaktivere gentagelser, eller 30 til 86400 sekunder.",
       "export_spread_unreachable": "Salgstilstanden kan ikke gøre noget med disse værdier: afregningsprisen ligger på eller under det mindste prisspread, så ingen time kan nogensinde kvalificere sig. Hæv afregningsprisen, sænk spreadet, eller sæt afregningsprisen til 0 for at sælge til markedspris.",
       "export_script_missing": "Eksporttilstand kræver et script til tvungen afladning. Tilføj et under styringsscripts, eller sæt afladningstilstanden tilbage til eget forbrug.",
       "derating_not_monotonic": "Ladeeffekten må ikke falde, når temperaturen stiger. Kontrollér skyderne.",

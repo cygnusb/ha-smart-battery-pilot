@@ -60,6 +60,15 @@ Assistant scripts that you provide. This is what makes it vendor neutral.
 | Auto mode | an `auto` slot starts; also when the integration is disabled, unloaded, the plan becomes invalid, or dry-run is turned on after a live script was applied | variable `reserve_soc` |
 | Force discharge to grid | an `export` slot starts | variables `power_w` (planned discharge power), `reserve_soc` |
 
+The same section has one vendor-neutral **control script refresh interval** in
+seconds (`0`, or `30` to `86400`). Its default is `0`: periodic calls are disabled, so
+existing installations retain their previous event-driven behaviour. With a
+positive value, a successfully completed `idle`, `charge` or `export` script
+is called again after that many seconds while the same slot and effective mode
+are still active. `auto` is never refreshed periodically. The delay starts
+after the blocking script call returns; a failed refresh is not treated as
+success and is retried no sooner than one full interval later.
+
 `reserve_soc` (whole percent) is the [backup reserve](#backup-reserve), or the
 minimum SOC while no reserve is set. A script that writes it into the
 inverter's own reserve setting keeps the reserve even when Home Assistant is
@@ -70,8 +79,9 @@ when `power_w` or `reserve_soc` changed; the next slot always calls it. If such
 an update fails, for example because an integration limits how often a register
 can be written, the mode keeps running and the next re-plan or slot boundary
 tries again. If the first call of a slot fails, the pilot falls back to auto
-mode. Two calls can still come close together, so a script should tolerate a
-rate limit or skip writes that wouldn't change anything.
+mode. Two calls can still come close together, so all control scripts must be
+repeatable (idempotent): tolerate the same values again and ideally skip
+device writes that would not change anything.
 
 Only the force-discharge script is optional — and only while the discharge
 mode is *self-consumption*. Selecting **export** mode without it is refused,
