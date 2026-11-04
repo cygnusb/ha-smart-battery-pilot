@@ -62,6 +62,7 @@ integrating power.
 | 40350    | MinRsvPct   | Minimum SOC reserve ×100 (`500` = 5 %, `9900` = 99 %). The Gen24 tops a battery below it up from the grid, but only at ~500 W |
 | 40355    | OutWRte     | Discharge limit, % of WChaMax ×100 (`10000` = 100 %, signed). `0` blocks discharging; a **negative** value (`65536 − rate`) forces charging at that rate. Needs bit 1 |
 | 40356    | InWRte      | Charge limit, % of WChaMax ×100 (`10000` = 100 %, signed). `0` blocks charging; a **negative** value forces discharging at that rate. Needs bit 0 |
+| 40358    | InOutWRte_RvrtTms | Revert timeout in seconds for InWRte/OutWRte. `0` = the limits stay until the next write; any other value drops them back to normal operation after that many seconds |
 | 40360    | ChaGriSet   | Grid charging: `1` = allowed (required for forced charging), `0` = PV only |
 
 The rates only take effect while their bit is set in StorCtl_Mod. Measured on
@@ -71,6 +72,18 @@ StorCtl_Mod `2` charged at 3000 W. EVCC's Gen24 template uses the same
 semantics (hold = StorCtl_Mod `2` + OutWRte `0`; charge = StorCtl_Mod `2` +
 negative OutWRte) and rewrites StorCtl_Mod when a car starts or stops
 charging, which can end a running charge slot early.
+
+Check InOutWRte_RvrtTms (40358) before you go live. The scripts below assume
+`0`. Smart Battery Pilot runs the charge and export scripts at the start of
+each slot, but the idle and auto scripts only when the mode or the reserve
+changes. With a timeout of 900 s, a charge in hourly slots therefore stops
+after 15 minutes, and in 15-minute slots the timeout races the next write.
+The idle script below is not affected: it holds the battery through
+MinRsvPct, which has no timeout. A hold built from StorCtl_Mod `2` and
+OutWRte `0` instead expires after the timeout, and the battery discharges
+for the rest of the idle block. Either write `0` to 40358, or have the
+charge and export scripts write a timeout longer than one slot, which keeps
+a safety net in case Home Assistant stops.
 
 ## Scripts (scripts.yaml)
 
