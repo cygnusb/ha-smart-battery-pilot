@@ -292,8 +292,9 @@ Good to know:
   (under 10 % of the capacity, 5 % in charge and export slots) doesn't count
   either way. A clearly good day resets the series and clears the message.
 * **A wrong forecast doesn't fire a check.** Surplus and deficit come from the
-  live PV sensor, not from the plan. If the consumption sensor only counts energy,
-  the forecast load stands in for the live load.
+  live PV sensor, not from the plan, read every minute together with the
+  consumption. If the consumption sensor only counts energy, the forecast load
+  stands in for the live load.
 * **Meters and accuracy:** with charge and discharge meters the checks read those;
   without them they use the SOC. A live PV sensor that misses part of the PV
   underestimates the surplus, so the check stays quiet rather than raising a

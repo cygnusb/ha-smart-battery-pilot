@@ -11,8 +11,10 @@ No Home Assistant imports, like the optimizer.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from itertools import pairwise
 import logging
 from typing import Any
 
@@ -52,6 +54,7 @@ _WITHOUT_STEERING = frozenset(
 
 STRIKES = 3  # days (or capacity windows) in a row before a check fires
 HISTORY_DAYS = 7  # daily verdicts kept for the diagnostics
+MAX_FLOW_SAMPLES = 180  # a minute apart, more than the longest span holds
 SCRIPT_FAILURES = 3
 PLAN_INVALID_AFTER = timedelta(hours=12)
 EXTERNAL_STUCK_AFTER = timedelta(hours=24)
@@ -143,6 +146,28 @@ VERDICT_BETWEEN = "between"  # neither bad nor clearly good: the series stays
 VERDICT_TOO_LITTLE = "too_little"  # too little at stake to count either way
 
 
+@dataclass(frozen=True, slots=True)
+class FlowSample:
+    """PV and house load at one instant between two observations."""
+
+    at: datetime
+    pv_w: float | None
+    load_w: float | None
+
+
+def _integrate_kwh(
+    points: list[FlowSample], power_w: Callable[[FlowSample], float | None]
+) -> float:
+    """Trapezoid over consecutive points; a pair without a value counts nothing."""
+    total = 0.0
+    for left, right in pairwise(points):
+        p1, p2 = power_w(left), power_w(right)
+        if p1 is None or p2 is None:
+            continue
+        total += (p1 + p2) / 2.0 / 1000.0 * (right.at - left.at).total_seconds() / 3600.0
+    return total
+
+
 def _delta(after: float | None, before: float | None) -> float | None:
     """What a cumulative meter moved; a reset or a gap tells nothing."""
     if after is None or before is None or after < before:
@@ -155,6 +180,9 @@ class HealthMonitor:
 
     def __init__(self) -> None:
         self._prev: Observation | None = None
+        # PV and load between two observations: those come every 15-30
+        # minutes, too far apart to integrate a changing sky.
+        self._flow: list[FlowSample] = []
         self._capacity = 0.0
         self._active: dict[str, dict[str, str]] = {}
         self._strikes: dict[str, int] = {}
@@ -349,6 +377,15 @@ class HealthMonitor:
                 {"action": failing, "script": self._script_entities.get(failing, "-")},
             )
 
+    def sample_flow(self, at: datetime, pv_w: float | None, load_w: float | None) -> None:
+        """PV and load between observations, for the auto slots' surplus and
+        deficit; the battery side comes from its meters at each observation."""
+        if self._prev is None or at <= self._prev.at:
+            return
+        if len(self._flow) >= MAX_FLOW_SAMPLES:
+            return
+        self._flow.append(FlowSample(at, pv_w, load_w))
+
     def observe(self, obs: Observation) -> None:
         """Take one sample; settles the span since the previous one."""
         self._capacity = obs.capacity_kwh
@@ -360,8 +397,9 @@ class HealthMonitor:
             self._pv_last = obs.pv_today_kwh
         self._check_external(obs)
         prev, self._prev = self._prev, obs
+        flow, self._flow = self._flow, []
         if prev is not None and timedelta(0) < obs.at - prev.at <= MAX_SEGMENT:
-            self._settle(prev, obs)
+            self._settle(prev, obs, [s for s in flow if prev.at < s.at < obs.at])
         self._check_frozen(prev, obs)
 
     def _check_external(self, obs: Observation) -> None:
@@ -407,7 +445,7 @@ class HealthMonitor:
                 {"soc": f"{obs.soc:g}", "moved_kwh": _kwh(self._frozen_moved)},
             )
 
-    def _settle(self, a: Observation, b: Observation) -> None:
+    def _settle(self, a: Observation, b: Observation, flow: list[FlowSample]) -> None:
         hours = (b.at - a.at).total_seconds() / 3600.0
         charged = _delta(b.charge_kwh, a.charge_kwh)
         discharged = _delta(b.discharge_kwh, a.discharge_kwh)
@@ -439,13 +477,13 @@ class HealthMonitor:
             tally["idle_hours"] += hours
             tally["idle_leak"] += max(0.0, given - taken)
         elif a.action == ACTION_AUTO:
-            self._settle_auto(a, b, hours, taken, given, room_above, room_below)
+            self._settle_auto(a, b, flow, taken, given, room_above, room_below)
 
     def _settle_auto(
         self,
         a: Observation,
         b: Observation,
-        hours: float,
+        flow: list[FlowSample],
         taken: float,
         given: float,
         room_above: bool,
@@ -454,21 +492,37 @@ class HealthMonitor:
         if a.load_w is None or b.load_w is None:
             return
         tally = self._tally
-        if a.pv_w is not None and b.pv_w is not None:
-            # A battery can't take more than its limit, and less when cold.
-            surplus = (max(0.0, a.pv_w - a.load_w) + max(0.0, b.pv_w - b.load_w)) / 2.0
-            surplus = min(surplus, b.max_charge_w * b.charge_factor)
-            if room_above and surplus > 0:
-                tally["surplus"] += surplus / 1000.0 * hours
-                tally["taken"] += taken
-            deficit = (max(0.0, a.load_w - a.pv_w) + max(0.0, b.load_w - b.pv_w)) / 2.0
-        elif a.no_pv_expected and b.no_pv_expected:
-            deficit = (a.load_w + b.load_w) / 2.0
-        else:
+        points = [FlowSample(a.at, a.pv_w, a.load_w), *flow, FlowSample(b.at, b.pv_w, b.load_w)]
+        # The battery can't take or give more than its limits, and takes less
+        # when cold; capped per instant, since a peak above them is lost.
+        charge_cap = b.max_charge_w * b.charge_factor
+        # Without a PV reading the deficit is only known in the dark.
+        dark = a.pv_w is None or b.pv_w is None
+        if dark and not (a.no_pv_expected and b.no_pv_expected):
             return
-        deficit = min(deficit, b.max_discharge_w)
+
+        def surplus_w(p: FlowSample) -> float | None:
+            if p.pv_w is None or p.load_w is None:
+                return None
+            return min(max(0.0, p.pv_w - p.load_w), charge_cap)
+
+        def deficit_w(p: FlowSample) -> float | None:
+            if p.load_w is None:
+                return None
+            if dark:
+                return min(p.load_w, b.max_discharge_w)
+            if p.pv_w is None:
+                return None
+            return min(max(0.0, p.load_w - p.pv_w), b.max_discharge_w)
+
+        if not dark:
+            surplus = _integrate_kwh(points, surplus_w)
+            if room_above and surplus > 0:
+                tally["surplus"] += surplus
+                tally["taken"] += taken
+        deficit = _integrate_kwh(points, deficit_w)
         if room_below and deficit > 0:
-            tally["deficit"] += deficit / 1000.0 * hours
+            tally["deficit"] += deficit
             tally["given"] += given
 
     def _track_capacity(
