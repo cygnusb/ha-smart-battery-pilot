@@ -528,3 +528,61 @@ def test_a_strike_is_logged_at_info(caplog):
     monitor = HealthMonitor()
     _days(monitor, 1, charge_per_step=0.0, discharge_per_step=0.0, **SURPLUS)
     assert any("strike 1 of 3" in r.getMessage() for r in caplog.records)
+
+
+def test_minute_samples_catch_a_sunny_spell_between_two_observations():
+    monitor = HealthMonitor()
+    dull = {"pv_w": 500.0, "load_w": 500.0, "charge_kwh": 100.0, "discharge_kwh": 100.0}
+    monitor.observe(_obs(START, **dull))
+    for minute in range(1, 30):
+        monitor.sample_flow(START + timedelta(minutes=minute), 2500.0, 500.0)
+    monitor.observe(_obs(START + STEP, **dull))
+    # 2 kW for the 28 minutes between the first and the last sunny sample,
+    # ramping in and out over a minute each.
+    assert monitor.to_dict()["tally"]["surplus"] == pytest.approx(2.0 * 29 / 60, abs=0.001)
+
+
+def test_minute_samples_are_capped_at_the_charge_limit_each():
+    monitor = HealthMonitor()
+    dull = {"pv_w": 500.0, "load_w": 500.0, "charge_kwh": 100.0, "discharge_kwh": 100.0}
+    monitor.observe(_obs(START, max_charge_w=800.0, **dull))
+    for minute in range(1, 30):
+        surplus = 2500.0 if minute % 2 else 0.0
+        monitor.sample_flow(START + timedelta(minutes=minute), 500.0 + surplus, 500.0)
+    monitor.observe(_obs(START + STEP, max_charge_w=800.0, **dull))
+    # Half the time 800 W reach the battery, not half of 2500 W.
+    assert monitor.to_dict()["tally"]["surplus"] == pytest.approx(0.4 * 0.5, abs=0.01)
+
+
+def test_minute_samples_fill_the_deficit_in_the_dark():
+    monitor = HealthMonitor()
+    dark = {"load_w": 300.0, "no_pv_expected": True, "charge_kwh": 100.0, "discharge_kwh": 100.0}
+    monitor.observe(_obs(START, **dark))
+    for minute in range(1, 30):
+        monitor.sample_flow(START + timedelta(minutes=minute), None, 900.0)
+    monitor.observe(_obs(START + STEP, **dark))
+    # 900 W for 28 minutes, ramping from and back to the observations' 300 W.
+    expected = (0.9 * 28 + 2 * 0.6) / 60
+    assert monitor.to_dict()["tally"]["deficit"] == pytest.approx(expected, abs=0.001)
+
+
+def test_flow_samples_outside_the_span_are_dropped():
+    monitor = HealthMonitor()
+    monitor.sample_flow(START, 5000.0, 0.0)  # nothing to settle against yet
+    dull = {"pv_w": 500.0, "load_w": 500.0, "charge_kwh": 100.0, "discharge_kwh": 100.0}
+    monitor.observe(_obs(START, **dull))
+    monitor.sample_flow(START, 5000.0, 0.0)  # not after the last observation
+    monitor.observe(_obs(START + STEP, **dull))
+    monitor.observe(_obs(START + STEP * 2, **dull))
+    assert monitor.to_dict()["tally"]["surplus"] == 0.0
+
+
+def test_flow_samples_across_a_gap_settle_nothing():
+    monitor = HealthMonitor()
+    dull = {"pv_w": 500.0, "load_w": 500.0, "charge_kwh": 100.0, "discharge_kwh": 100.0}
+    monitor.observe(_obs(START, **dull))
+    for minute in range(1, 200):
+        monitor.sample_flow(START + timedelta(minutes=minute), 3000.0, 500.0)
+    monitor.observe(_obs(START + timedelta(hours=4), **dull))
+    monitor.observe(_obs(START + timedelta(hours=4) + STEP, **dull))
+    assert monitor.to_dict()["tally"]["surplus"] == 0.0

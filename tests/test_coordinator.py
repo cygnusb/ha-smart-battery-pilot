@@ -846,6 +846,25 @@ def test_the_coordinator_feeds_the_checks_what_really_happens():
     assert obs.no_pv_expected is False
 
 
+def test_the_minute_sampler_feeds_pv_and_load_between_refreshes():
+    hass = _FakeHass()
+    hass.states.set("sensor.pv", 2.0, {"unit_of_measurement": "kW"})
+    hass.states.set("sensor.load", 400.0, {"unit_of_measurement": "W"})
+    coord = _steering(
+        hass,
+        **{
+            CONF_CONSUMPTION_ENTITY: "sensor.load",
+            CONF_PV_POWER_ENTITY: "sensor.pv",
+        },
+    )
+    seen = []
+    coord.health.sample_flow = lambda at, pv_w, load_w: seen.append((at, pv_w, load_w))
+    coord._sample_health_flow(NOW)  # no plan yet
+    coord.data = SBPData(plan=Plan(), valid=True)
+    coord._sample_health_flow(NOW)
+    assert seen == [(NOW, 2000.0, 400.0)]
+
+
 def test_an_energy_only_consumption_sensor_falls_back_to_the_forecast():
     hass = _FakeHass()
     hass.states.set("sensor.load", 12.0, {"unit_of_measurement": "kWh"})

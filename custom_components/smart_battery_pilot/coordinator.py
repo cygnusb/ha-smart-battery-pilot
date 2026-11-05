@@ -133,6 +133,8 @@ MAX_CONDITION_SAMPLES = 200
 # when the expected sessions changed. A fetch younger than EVCC_MAX_AGE is
 # reused by a refresh instead of asking evcc again.
 EVCC_POLL_INTERVAL = timedelta(seconds=60)
+# PV and load for the consistency checks between two refreshes.
+HEALTH_FLOW_INTERVAL = timedelta(seconds=60)
 EVCC_MAX_AGE = timedelta(minutes=5)
 
 # Above this, a parsed price is not a price but a unit error - cents or öre
@@ -364,6 +366,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         self._unsub_evcc_poll = None
         self._unsub_started = None
         self._unsub_soc = None
+        self._unsub_health_flow = None
         # Set by the executor while the battery is held for a car.
         self._ev_hold_active = False
 
@@ -449,6 +452,10 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             self._unsub_soc = async_track_state_change_event(
                 self.hass, [soc_entity], self._handle_soc_update
             )
+        if self.conf(CONF_PV_POWER_ENTITY) or self.conf(CONF_CONSUMPTION_ENTITY):
+            self._unsub_health_flow = async_track_time_interval(
+                self.hass, self._sample_health_flow, HEALTH_FLOW_INTERVAL
+            )
         if self.ev_source() == EV_SOURCE_EVCC:
             self._unsub_evcc_poll = async_track_time_interval(
                 self.hass, self._async_poll_evcc, EVCC_POLL_INTERVAL
@@ -471,6 +478,9 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         if self._unsub_evcc_poll:
             self._unsub_evcc_poll()
             self._unsub_evcc_poll = None
+        if self._unsub_health_flow:
+            self._unsub_health_flow()
+            self._unsub_health_flow = None
         if self._unsub_started:
             self._unsub_started()
             self._unsub_started = None
@@ -1609,6 +1619,15 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             )
         )
         self.schedule_persist()
+
+    @callback
+    def _sample_health_flow(self, now: datetime) -> None:
+        """PV and load every minute: a refresh or slot boundary alone samples
+        a changing sky too seldom to integrate the surplus."""
+        if self.data is None:
+            return
+        slot = next((s for s in self.data.plan.slots if s.covers(now)), None)
+        self.health.sample_flow(now, self._live_pv_w(), self._house_load_w(slot))
 
     def _live_pv_w(self) -> float | None:
         entity_id = self.conf(CONF_PV_POWER_ENTITY)
