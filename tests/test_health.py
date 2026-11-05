@@ -472,3 +472,59 @@ def test_every_check_has_a_translated_repair(check):
             assert set(PLACEHOLDER.findall(translated[name])) == set(
                 PLACEHOLDER.findall(english[name])
             ), (path, check)
+
+
+def test_each_closed_day_keeps_its_verdicts():
+    monitor = HealthMonitor()
+    _days(monitor, 3, charge_per_step=0.0, discharge_per_step=0.0, **SURPLUS)
+    history = monitor.to_dict()["history"]
+    assert [day["day"] for day in history] == ["2026-06-01", "2026-06-02", "2026-06-03"]
+    assert [day[CHECK_CAPTURE]["strikes"] for day in history] == [1, 2, 3]
+    assert history[-1][CHECK_CAPTURE] == {
+        "expected_kwh": 10.0,
+        "actual_kwh": 0.0,
+        "verdict": "strike",
+        "strikes": 3,
+    }
+
+
+def test_a_reset_series_stays_visible_in_the_history():
+    monitor = HealthMonitor()
+    _days(monitor, 2, charge_per_step=0.0, discharge_per_step=0.0, **SURPLUS)
+    _day(monitor, 2, charge_per_step=1.0, discharge_per_step=0.0, **SURPLUS)
+    monitor.observe(_obs(START + timedelta(days=3)))
+    verdicts = [day[CHECK_CAPTURE]["verdict"] for day in monitor.to_dict()["history"]]
+    assert verdicts == ["strike", "strike", "pass"]
+    assert monitor.to_dict()["strikes"] == {}
+
+
+def test_too_little_at_stake_is_recorded_but_does_not_count():
+    monitor = HealthMonitor()
+    _days(
+        monitor,
+        1,
+        samples=1,
+        charge_per_step=0.0,
+        discharge_per_step=0.0,
+        pv_w=1000.0,
+        load_w=500.0,
+    )
+    day = monitor.to_dict()["history"][0]
+    assert day[CHECK_CAPTURE]["verdict"] == "too_little"
+    assert day[CHECK_CAPTURE]["strikes"] == 0
+    assert CHECK_COVER not in day
+
+
+def test_the_history_keeps_a_week():
+    monitor = HealthMonitor()
+    _days(monitor, 10, charge_per_step=0.0, discharge_per_step=0.0, **SURPLUS)
+    history = HealthMonitor.from_dict(monitor.to_dict()).to_dict()["history"]
+    assert len(history) == 7
+    assert history[-1]["day"] == "2026-06-10"
+
+
+def test_a_strike_is_logged_at_info(caplog):
+    caplog.set_level(logging.INFO, logger="smart_battery_pilot.health")
+    monitor = HealthMonitor()
+    _days(monitor, 1, charge_per_step=0.0, discharge_per_step=0.0, **SURPLUS)
+    assert any("strike 1 of 3" in r.getMessage() for r in caplog.records)
