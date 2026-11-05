@@ -268,42 +268,74 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
             levels.append(e)
         return levels, curtailed
 
+    def _export_sell_price(i: int) -> float:
+        if config.feed_in_tariff > 0:
+            return config.feed_in_tariff
+        return prices[i] - config.price_offset
+
+    export_mode = config.discharge_mode == DISCHARGE_MODE_EXPORT
+
     # --- backup reserve refill ------------------------------------------------
     # Before any arbitrage: a SOC below the reserve is brought back up by the
     # deadline - PV first (already in the timeline), the rest from the
     # cheapest grid slots, whether or not the spread pays for it.
-    warnings: list[str] = []
-    refill_stored = [0.0] * n
+    # Until then the battery sits under the reserve, where nothing may be
+    # spent, so the cheapest slot before the deadline is not always the
+    # cheapest refill: one behind a price peak gives that peak away. Each
+    # earlier slot the refill could be finished by, in front of a slot worth
+    # more than the energy it could buy before it, is planned as well, and
+    # the cheapest whole plan wins. A tie keeps the latest deadline.
+    def refill_by(last: int, bare_levels: list[float]) -> tuple[list[float], float]:
+        """Grid energy stored per slot to refill the reserve by the end of slot
+        `last` in the cheapest slots up to it, and what does not fit."""
+        stored = [0.0] * n
+        missing = max(0.0, -bare_levels[last])
+        for i in sorted(range(last + 1), key=lambda i: prices[i]):
+            if missing <= 1e-9:
+                break
+            q = min(missing, charge_cap[i] - pv_surplus_stored[i])
+            if q <= 1e-9:
+                continue
+            stored[i] = q
+            missing -= q
+        return stored, missing
+
+    refill_options: list[tuple[list[float], float]] = [([0.0] * n, 0.0)]
     if e_init < -1e-9:
         deadline = slots[0].price_slot.start.timestamp() + config.reserve_refill_hours * 3600.0
         k = max(
             (i for i in range(n) if slots[i].price_slot.start.timestamp() < deadline),
             default=0,
         )
-        levels, _ = timeline()
-        missing = max(0.0, -levels[k])
+        bare_levels, _ = timeline()
         if debug:
             _LOGGER.debug(
                 "Reserve deficit %.3f kWh; by %s PV leaves %.3f kWh to refill from the grid",
                 -e_init,
                 label(k),
-                missing,
+                max(0.0, -bare_levels[k]),
             )
-        for i in sorted(range(k + 1), key=lambda i: prices[i]):
-            if missing <= 1e-9:
+        # Finishing before slot d opens it up for the battery. That only pays
+        # where d is worth more, after losses, than the cheapest slot in front.
+        lasts = [k]
+        cheapest = math.inf
+        for d in range(1, k + 1):
+            cheapest = min(cheapest, prices[d - 1])
+            worth = max(prices[d], _export_sell_price(d)) if export_mode else prices[d]
+            if worth * eta > cheapest:
+                lasts.append(d - 1)
+        refill_options = []
+        seen: set[tuple[float, ...]] = set()
+        for last in sorted(set(lasts), reverse=True):
+            stored, missing = refill_by(last, bare_levels)
+            if last < k and missing > 1e-9:
+                # An earlier deadline leaves less PV and fewer slots: it can
+                # only fall shorter still.
                 break
-            q = min(missing, charge_cap[i] - pv_surplus_stored[i] - charge_stored[i])
-            if q <= 1e-9:
-                continue
-            charge_stored[i] += q
-            refill_stored[i] += q
-            missing -= q
-            if debug:
-                _LOGGER.debug("refill %s @ %.4f: %.3f kWh stored", label(i), prices[i], q)
-        if missing > 1e-9:
-            warnings.append("reserve_refill_incomplete")
-            if debug:
-                _LOGGER.debug("Reserve refill incomplete: %.3f kWh missing", missing)
+            key = tuple(round(q, 6) for q in stored)
+            if key not in seen:
+                seen.add(key)
+                refill_options.append((stored, missing))
 
     def withdrawable(levels: list[float], curtailed: list[float], d: int) -> float:
         """Stored energy that slot d may spend without emptying a later slot.
@@ -323,11 +355,6 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
             absorbed += curtailed[j]
             room = min(room, levels[j] + absorbed)
         return max(0.0, room)
-
-    def _export_sell_price(i: int) -> float:
-        if config.feed_in_tariff > 0:
-            return config.feed_in_tariff
-        return prices[i] - config.price_offset
 
     def _delivers(i: int) -> bool:
         """True when slot i is already planned to take energy out of the battery."""
@@ -426,56 +453,6 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
                 )
         return assigned
 
-    # --- discharge: the most valuable use of the battery first ----------------
-    # Covering a slot's demand is worth its import price; in export mode,
-    # selling into the grid is worth the sell price. Both kinds of use compete
-    # for the same stored energy in one value-ordered list - visited one kind
-    # after the other, cheap self-consumption would drain the battery before
-    # an export peak worth far more is even looked at. An export ranks at its
-    # sell price minus the spread: a slot whose demand the battery can cover
-    # keeps that energy unless selling it elsewhere clearly pays more.
-    export_mode = config.discharge_mode == DISCHARGE_MODE_EXPORT
-    uses = [(prices[d], False, d) for d in range(n)]
-    if export_mode:
-        uses += [
-            (_export_sell_price(d) - config.spread_threshold, True, d)
-            for d in range(n)
-            if _export_sell_price(d) > config.spread_threshold
-        ]
-    # Most valuable first; on a tie, covering demand before selling.
-    uses.sort(key=lambda u: (-u[0], u[1]))
-    for _, export, d in uses:
-        if charge_stored[d] > 1e-9:
-            # A slot already paired as a cheap charge slot for a pricier hour
-            # will be force-charged. The inverter cannot serve the house from
-            # the battery or export at the same time, so that demand comes
-            # from the grid.
-            if debug and not export:
-                _LOGGER.debug("%s: not discharged - already a charge slot", label(d))
-            continue
-        if export:
-            room = discharge_cap[d] - (discharge_stored[d] + export_stored[d]) * eta_one_way
-            want_stored = max(0.0, room) / eta_one_way
-            if want_stored <= 1e-9:
-                continue
-            assign_discharge(d, want_stored, export_stored)
-            continue
-        if prices[d] <= 0:
-            # Import is paid (or free). Hold the energy for a later positive hour.
-            continue
-        # Energy delivered to the load is limited by demand and by the power an
-        # export in this slot has not already taken.
-        deliverable = min(demand[d], discharge_cap[d] - export_stored[d] * eta_one_way)
-        want_stored = max(0.0, deliverable) / eta_one_way
-        if want_stored <= 1e-9:
-            continue
-        assign_discharge(d, want_stored, discharge_stored)
-
-    export_spread_unreachable = export_mode and all(
-        _export_sell_price(i) <= config.spread_threshold for i in range(n)
-    )
-
-    # --- build plan slots ----------------------------------------------------
     def charge_request_w(i: int, stored: float) -> float:
         """Power to ask the charge script for, to store `stored` kWh in slot i."""
         if (
@@ -493,143 +470,238 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
             return battery.max_charge_power_w
         return stored / eta_one_way / hours[i] * 1000.0
 
-    if export_spread_unreachable:
-        warnings.append("export_spread_unreachable")
-    plan = Plan(warnings=list(warnings))
-    levels, _ = timeline()
+    def plan_with(refill_stored: list[float], missing: float) -> tuple[Plan, float, float]:
+        """The plan around one refill, what it costs in total, and what doing
+        nothing but that refill costs - both refill included."""
+        charge_stored[:] = refill_stored
+        discharge_stored[:] = [0.0] * n
+        export_stored[:] = [0.0] * n
+        warnings: list[str] = []
+        if debug:
+            for i in range(n):
+                if refill_stored[i] > 1e-9:
+                    _LOGGER.debug(
+                        "refill %s @ %.4f: %.3f kWh stored", label(i), prices[i], refill_stored[i]
+                    )
+        if missing > 1e-9:
+            warnings.append("reserve_refill_incomplete")
+            if debug:
+                _LOGGER.debug("Reserve refill incomplete: %.3f kWh missing", missing)
 
-    for i, slot in enumerate(slots):
-        action = ACTION_AUTO
-        charge_power = 0.0
-        delivered = (discharge_stored[i] + export_stored[i]) * eta_one_way
+        # --- discharge: the most valuable use of the battery first ------------
+        # Covering a slot's demand is worth its import price; in export mode,
+        # selling into the grid is worth the sell price. Both kinds of use compete
+        # for the same stored energy in one value-ordered list - visited one kind
+        # after the other, cheap self-consumption would drain the battery before
+        # an export peak worth far more is even looked at. An export ranks at its
+        # sell price minus the spread: a slot whose demand the battery can cover
+        # keeps that energy unless selling it elsewhere clearly pays more.
+        uses = [(prices[d], False, d) for d in range(n)]
+        if export_mode:
+            uses += [
+                (_export_sell_price(d) - config.spread_threshold, True, d)
+                for d in range(n)
+                if _export_sell_price(d) > config.spread_threshold
+            ]
+        # Most valuable first; on a tie, covering demand before selling.
+        uses.sort(key=lambda u: (-u[0], u[1]))
+        for _, export, d in uses:
+            if charge_stored[d] > 1e-9:
+                # A slot already paired as a cheap charge slot for a pricier hour
+                # will be force-charged. The inverter cannot serve the house from
+                # the battery or export at the same time, so that demand comes
+                # from the grid.
+                if debug and not export:
+                    _LOGGER.debug("%s: not discharged - already a charge slot", label(d))
+                continue
+            if export:
+                room = discharge_cap[d] - (discharge_stored[d] + export_stored[d]) * eta_one_way
+                want_stored = max(0.0, room) / eta_one_way
+                if want_stored <= 1e-9:
+                    continue
+                assign_discharge(d, want_stored, export_stored)
+                continue
+            if prices[d] <= 0:
+                # Import is paid (or free). Hold the energy for a later positive hour.
+                continue
+            # Energy delivered to the load is limited by demand and by the power an
+            # export in this slot has not already taken.
+            deliverable = min(demand[d], discharge_cap[d] - export_stored[d] * eta_one_way)
+            want_stored = max(0.0, deliverable) / eta_one_way
+            if want_stored <= 1e-9:
+                continue
+            assign_discharge(d, want_stored, discharge_stored)
 
-        if charge_stored[i] > 1e-9:
-            action = ACTION_CHARGE
-            grid_kwh = charge_stored[i] / eta_one_way
-            charge_power = charge_request_w(i, charge_stored[i])
-            plan.grid_charge_kwh += grid_kwh
-            if grid_limited[i] and (
-                charge_stored[i] + pv_surplus_stored[i] >= charge_cap[i] - 1e-6
-            ):
-                plan.grid_limited_slots += 1
-        elif export_stored[i] > 1e-9:
-            action = ACTION_EXPORT
-            if hours[i] > 0:
-                charge_power = min(
-                    delivered / hours[i] * 1000.0,
-                    battery.max_discharge_power_w,
-                )
-        elif discharge_stored[i] > 1e-9:
-            action = ACTION_AUTO
-        elif demand[i] > 1e-9 and levels[i] > 1e-9 and not blocked[i]:
-            # The battery holds energy and the house is drawing, so the
-            # inverter would discharge here - but the assignment did not spend
-            # this slot's energy, which means it is reserved for a pricier slot
-            # later (or the price here is negative, where importing pays).
-            # Blocking is what makes the rest of the plan come true; without it
-            # the cost model and the inverter disagree. Surplus slots (no
-            # demand) stay in auto mode: the inverter charges from PV and won't
-            # discharge anyway.
-            # A slot held for a car stays auto on purpose: the wallbox block or
-            # the other controller holds the battery exactly while the car
-            # really draws. An idle here would keep it blocked for a session
-            # that ends early or never starts.
-            action = ACTION_IDLE
-
-        if delivered > 0:
-            plan.battery_discharge_kwh += delivered
-
-        plan.slots.append(
-            PlanSlot(
-                start=slot.price_slot.start,
-                end=slot.price_slot.end,
-                action=action,
-                price=prices[i],
-                net_demand_kwh=slot.net_demand_kwh,
-                pv_kwh=slot.pv_kwh,
-                power_w=round(charge_power, 1),
-                discharge_kwh=round(delivered, 3),
-                soc_forecast=round(floor + levels[i] / capacity * 100.0, 1),
-                ev_kwh=round(slot.ev_kwh, 3),
-                battery_blocked=blocked[i],
-            )
+        export_spread_unreachable = export_mode and all(
+            _export_sell_price(i) <= config.spread_threshold for i in range(n)
         )
 
-    # --- savings: planned grid cost vs. doing nothing ------------------------
-    # The baseline is what the inverter does on its own - plain self
-    # consumption from whatever the battery happens to hold - not "buy
-    # everything from the grid". Otherwise an all-auto plan that changes
-    # nothing would still report a fat saving.
-    # It gets the same mandatory reserve refill, so both sides compare
-    # arbitrage against arbitrage.
-    baseline_delivered, baseline_levels = _simulate_self_consumption(
-        n, demand, discharge_cap, pv_surplus_stored, refill_stored, e_init, e_max, eta_one_way
-    )
-    cost_plan = 0.0
-    cost_baseline = 0.0
-    for i in range(n):
-        delivered_to_load = discharge_stored[i] * eta_one_way
-        cost_plan += (demand[i] - delivered_to_load) * prices[i]
-        cost_plan += charge_stored[i] / eta_one_way * prices[i]
-        if export_stored[i] > 1e-9:
-            cost_plan -= export_stored[i] * eta_one_way * _export_sell_price(i)
-        cost_baseline += (demand[i] - baseline_delivered[i]) * prices[i]
-    refill_kwh = sum(refill_stored) / eta_one_way
-    refill_cost = sum(refill_stored[i] / eta_one_way * prices[i] for i in range(n))
-    cost_plan -= refill_cost
-    savings = cost_baseline - cost_plan
+        # --- build plan slots -----------------------------------------------
+        if export_spread_unreachable:
+            warnings.append("export_spread_unreachable")
+        plan = Plan(warnings=list(warnings))
+        levels, _ = timeline()
 
-    if savings < -1e-9:
-        # Doing nothing is always available and is the very baseline the number
-        # is measured against, so a plan that loses money is never worth
-        # running. Should not happen - but a wrong plan costs the user money,
-        # while a needless fallback only costs an optimization.
-        warnings.append("plan_worse_than_baseline")
+        for i, slot in enumerate(slots):
+            action = ACTION_AUTO
+            charge_power = 0.0
+            delivered = (discharge_stored[i] + export_stored[i]) * eta_one_way
+
+            if charge_stored[i] > 1e-9:
+                action = ACTION_CHARGE
+                grid_kwh = charge_stored[i] / eta_one_way
+                charge_power = charge_request_w(i, charge_stored[i])
+                plan.grid_charge_kwh += grid_kwh
+                if grid_limited[i] and (
+                    charge_stored[i] + pv_surplus_stored[i] >= charge_cap[i] - 1e-6
+                ):
+                    plan.grid_limited_slots += 1
+            elif export_stored[i] > 1e-9:
+                action = ACTION_EXPORT
+                if hours[i] > 0:
+                    charge_power = min(
+                        delivered / hours[i] * 1000.0,
+                        battery.max_discharge_power_w,
+                    )
+            elif discharge_stored[i] > 1e-9:
+                action = ACTION_AUTO
+            elif demand[i] > 1e-9 and levels[i] > 1e-9 and not blocked[i]:
+                # The battery holds energy and the house is drawing, so the
+                # inverter would discharge here - but the assignment did not spend
+                # this slot's energy, which means it is reserved for a pricier slot
+                # later (or the price here is negative, where importing pays).
+                # Blocking is what makes the rest of the plan come true; without it
+                # the cost model and the inverter disagree. Surplus slots (no
+                # demand) stay in auto mode: the inverter charges from PV and won't
+                # discharge anyway.
+                # A slot held for a car stays auto on purpose: the wallbox block or
+                # the other controller holds the battery exactly while the car
+                # really draws. An idle here would keep it blocked for a session
+                # that ends early or never starts.
+                action = ACTION_IDLE
+
+            if delivered > 0:
+                plan.battery_discharge_kwh += delivered
+
+            plan.slots.append(
+                PlanSlot(
+                    start=slot.price_slot.start,
+                    end=slot.price_slot.end,
+                    action=action,
+                    price=prices[i],
+                    net_demand_kwh=slot.net_demand_kwh,
+                    pv_kwh=slot.pv_kwh,
+                    power_w=round(charge_power, 1),
+                    discharge_kwh=round(delivered, 3),
+                    soc_forecast=round(floor + levels[i] / capacity * 100.0, 1),
+                    ev_kwh=round(slot.ev_kwh, 3),
+                    battery_blocked=blocked[i],
+                )
+            )
+
+        # --- savings: planned grid cost vs. doing nothing --------------------
+        # The baseline is what the inverter does on its own - plain self
+        # consumption from whatever the battery happens to hold - not "buy
+        # everything from the grid". Otherwise an all-auto plan that changes
+        # nothing would still report a fat saving.
+        # It gets the same mandatory reserve refill, so both sides compare
+        # arbitrage against arbitrage.
+        baseline_delivered, baseline_levels = _simulate_self_consumption(
+            n, demand, discharge_cap, pv_surplus_stored, refill_stored, e_init, e_max, eta_one_way
+        )
+        cost_plan = 0.0
+        cost_baseline = 0.0
+        for i in range(n):
+            delivered_to_load = discharge_stored[i] * eta_one_way
+            cost_plan += (demand[i] - delivered_to_load) * prices[i]
+            cost_plan += charge_stored[i] / eta_one_way * prices[i]
+            if export_stored[i] > 1e-9:
+                cost_plan -= export_stored[i] * eta_one_way * _export_sell_price(i)
+            cost_baseline += (demand[i] - baseline_delivered[i]) * prices[i]
+        refill_kwh = sum(refill_stored) / eta_one_way
+        refill_cost = sum(refill_stored[i] / eta_one_way * prices[i] for i in range(n))
+        cost_plan -= refill_cost
+        savings = cost_baseline - cost_plan
+
+        if savings < -1e-9:
+            # Doing nothing is always available and is the very baseline the number
+            # is measured against, so a plan that loses money is never worth
+            # running. Should not happen - but a wrong plan costs the user money,
+            # while a needless fallback only costs an optimization.
+            warnings.append("plan_worse_than_baseline")
+            if debug:
+                _LOGGER.debug(
+                    "Plan cost %.4f EUR vs. baseline %.4f EUR - falling back to all-auto",
+                    cost_plan,
+                    cost_baseline,
+                )
+            # The refill stays: it was kept out of this check precisely so that
+            # "worse than doing nothing" cannot throw it away.
+            refill_power = [
+                charge_request_w(i, refill_stored[i]) if refill_stored[i] > 1e-9 else 0.0
+                for i in range(n)
+            ]
+            fallback = _auto_plan(
+                slots,
+                prices,
+                baseline_delivered,
+                baseline_levels,
+                battery,
+                floor,
+                warnings,
+                refill_power,
+            )
+            fallback.grid_charge_kwh = refill_kwh
+            fallback.reserve_refill_kwh = round(refill_kwh, 3)
+            fallback.reserve_refill_cost_eur = round(refill_cost, 2)
+            return fallback, cost_baseline + refill_cost, cost_baseline + refill_cost
+
+        plan.estimated_savings_eur = round(savings, 2)
+        plan.reserve_refill_kwh = round(refill_kwh, 3)
+        plan.reserve_refill_cost_eur = round(refill_cost, 2)
         if debug:
+            counts: dict[str, int] = {}
+            for planned in plan.slots:
+                counts[planned.action] = counts.get(planned.action, 0) + 1
             _LOGGER.debug(
-                "Plan cost %.4f EUR vs. baseline %.4f EUR - falling back to all-auto",
+                "Plan result: %s; grid charge %.3f kWh, battery delivers %.3f kWh, "
+                "cost %.4f EUR vs. baseline %.4f EUR (saves %.4f), warnings %s",
+                ", ".join(f"{k}={v}" for k, v in sorted(counts.items())),
+                plan.grid_charge_kwh,
+                plan.battery_discharge_kwh,
                 cost_plan,
                 cost_baseline,
+                savings,
+                plan.warnings or "none",
             )
-        # The refill stays: it was kept out of this check precisely so that
-        # "worse than doing nothing" cannot throw it away.
-        refill_power = [
-            charge_request_w(i, refill_stored[i]) if refill_stored[i] > 1e-9 else 0.0
-            for i in range(n)
-        ]
-        fallback = _auto_plan(
-            slots,
-            prices,
-            baseline_delivered,
-            baseline_levels,
-            battery,
-            floor,
-            warnings,
-            refill_power,
-        )
-        fallback.grid_charge_kwh = refill_kwh
-        fallback.reserve_refill_kwh = round(refill_kwh, 3)
-        fallback.reserve_refill_cost_eur = round(refill_cost, 2)
-        return fallback
+        return plan, cost_plan + refill_cost, cost_baseline + refill_cost
 
-    plan.estimated_savings_eur = round(savings, 2)
-    plan.reserve_refill_kwh = round(refill_kwh, 3)
-    plan.reserve_refill_cost_eur = round(refill_cost, 2)
-    if debug:
-        counts: dict[str, int] = {}
-        for planned in plan.slots:
-            counts[planned.action] = counts.get(planned.action, 0) + 1
+    if len(refill_options) == 1:
+        return plan_with(*refill_options[0])[0]
+    # Weigh the refill options quietly; only the chosen plan is logged.
+    verbose, debug = debug, False
+    results = [plan_with(*option) for option in refill_options]
+    costs = [cost for _, cost, _ in results]
+    do_nothing = [nothing for _, _, nothing in results]
+    debug = verbose
+    best = 0
+    for j, cost in enumerate(costs):
+        if cost < costs[best] - 1e-6:
+            best = j
+    if debug and best:
+        first = min(i for i in range(n) if refill_options[best][0][i] > 1e-9)
         _LOGGER.debug(
-            "Plan result: %s; grid charge %.3f kWh, battery delivers %.3f kWh, "
-            "cost %.4f EUR vs. baseline %.4f EUR (saves %.4f), warnings %s",
-            ", ".join(f"{k}={v}" for k, v in sorted(counts.items())),
-            plan.grid_charge_kwh,
-            plan.battery_discharge_kwh,
-            cost_plan,
-            cost_baseline,
-            savings,
-            plan.warnings or "none",
+            "Reserve refilled from %s on: the plan costs %.4f EUR instead of %.4f EUR",
+            label(first),
+            costs[best],
+            costs[0],
         )
+    plan = plan_with(*refill_options[best])[0]
+    if best:
+        # The refill itself stays out of the savings, but only the cheapest
+        # one is mandatory: what finishing earlier costs on top is the price
+        # of the arbitrage it opens up.
+        plan.estimated_savings_eur = round(do_nothing[0] - costs[best], 2)
     return plan
 
 

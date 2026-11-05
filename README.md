@@ -122,9 +122,10 @@ and are off until you switch them on:
   still asked for full power; the BMS does the throttling.
 * **Backup reserve** — SOC kept for a grid outage. Arbitrage never spends it,
   a SOC below it is refilled by a deadline (PV first, then the cheapest grid
-  slots), every control script receives it as `reserve_soc`, and an entity can
-  raise it at runtime (e.g. on a storm warning). An optional fallback blocks
-  discharging at the reserve for inverters without a reserve setting.
+  slots, or earlier ones when that lets the battery serve a price peak), every
+  control script receives it as `reserve_soc`, and an entity can raise it at
+  runtime (e.g. on a storm warning). An optional fallback blocks discharging
+  at the reserve for inverters without a reserve setting.
 * **EV charging & other controllers** — wallbox energy is taken out of the
   consumption history so the forecast learns the house without the car. While
   an EV charges, the pilot can block discharging, or pause entirely while

@@ -152,3 +152,52 @@ def test_the_all_auto_fallback_keeps_the_mandatory_refill(monkeypatch):
     assert plan.slots[3].power_w > 0
     assert plan.reserve_refill_kwh > 0
     assert plan.grid_charge_kwh == pytest.approx(plan.reserve_refill_kwh, abs=1e-3)
+
+
+# A morning peak before the cheapest refill slot: refilled there, the battery
+# stays under the reserve through the peak and the arbitrage is lost.
+PEAK_BEFORE_CHEAP_REFILL = [0.10, 0.10, 0.50, 0.50, 0.50, 0.30, 0.30, 0.30, 0.08, 0.30, 0.30, 0.30]
+
+
+def test_the_refill_moves_forward_when_the_arbitrage_it_unblocks_pays():
+    """The cheapest slot before the deadline is not the cheapest refill when it
+    blocks a peak in front of it: refilling a little dearer earlier, together
+    with the arbitrage charge, serves the peak."""
+    battery = replace(BATTERY, soc=20.0, reserve_soc=40.0)
+    plan = build_plan(make_slots(PEAK_BEFORE_CHEAP_REFILL, demand_kwh=1.0), battery, CONFIG)
+    assert plan.slots[1].soc_forecast > 40.0
+    assert all(plan.slots[i].discharge_kwh > 0 for i in (2, 3, 4))
+    assert _below_reserve(plan, 40.0) == []
+    assert plan.reserve_refill_kwh > 0
+    assert "reserve_refill_incomplete" not in plan.warnings
+
+
+def test_the_refill_stays_in_the_cheapest_slot_when_the_peak_does_not_pay():
+    battery = replace(BATTERY, soc=20.0, reserve_soc=40.0)
+    config = replace(CONFIG, spread_threshold=5.0)  # no arbitrage at all
+    plan = build_plan(make_slots(PEAK_BEFORE_CHEAP_REFILL, demand_kwh=1.0), battery, config)
+    assert _charges(plan) == [8]
+
+
+def _grid_cost(plan):
+    """What a plan pays the grid: demand the battery leaves, plus grid charge."""
+    cost = 0.0
+    for s in plan.slots:
+        hours = (s.end - s.start).total_seconds() / 3600.0
+        cost += (max(0.0, s.net_demand_kwh) - s.discharge_kwh) * s.price
+        if s.action == ACTION_CHARGE:
+            cost += s.power_w / 1000.0 * hours * s.price
+    return cost
+
+
+def test_the_dearer_early_refill_is_charged_to_the_savings():
+    """Savings count against doing nothing with the cheapest refill, so what
+    the earlier refill costs on top comes off the arbitrage gain."""
+    slots = make_slots(PEAK_BEFORE_CHEAP_REFILL, demand_kwh=1.0)
+    battery = replace(BATTERY, soc=20.0, reserve_soc=40.0)
+    plan = build_plan(slots, battery, CONFIG)
+    late = build_plan(slots, battery, replace(CONFIG, spread_threshold=5.0))
+    assert plan.reserve_refill_cost_eur > late.reserve_refill_cost_eur
+    do_nothing = _grid_cost(late) + late.estimated_savings_eur
+    assert plan.estimated_savings_eur == pytest.approx(do_nothing - _grid_cost(plan), abs=0.011)
+    assert plan.estimated_savings_eur > 0

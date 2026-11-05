@@ -27,7 +27,9 @@ same inputs always produce the same plan.
   first, the rest in the cheapest grid slots up to the deadline, regardless of
   the spread. The refill is mandatory, so its cost is excluded from the savings
   estimate, and the do-nothing baseline gets the same refill — both sides
-  compare arbitrage against arbitrage.
+  compare arbitrage against arbitrage. Finishing the refill earlier, at a higher
+  price, is weighed against the arbitrage it opens up (see step 0); what it
+  costs on top of the cheapest refill counts against the savings.
 * Planned EV sessions (off by default, evcc only): the energy the car is
   expected to draw per slot, and whether the EV policy holds the battery in
   that slot. See [EV sessions in the plan](#ev-sessions-in-the-plan).
@@ -41,7 +43,12 @@ cold-weather charge factor.
 
 0. **Refill the backup reserve** (only if the SOC is below it): forecast PV
    first, then the cheapest grid slots up to the refill deadline, regardless of
-   the spread. These become ordinary `charge` slots.
+   the spread. These become ordinary `charge` slots. Until the refill the
+   battery may spend nothing, so a cheap slot behind a price peak gives that
+   peak away. The planner therefore also tries finishing the refill earlier —
+   in front of each slot worth more, after losses, than the cheapest slot
+   before it — runs steps 1–3 for each of these refills, and keeps the
+   cheapest whole plan. On a tie it keeps the latest deadline.
 1. **Sort** the uses of battery energy by value, most valuable first. These
    are the discharge candidates. Covering a slot's net demand is worth its
    import price. In export mode, selling into the grid in a slot is a second
