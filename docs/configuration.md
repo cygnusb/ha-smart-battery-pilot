@@ -229,6 +229,13 @@ SOC window.
 > pilot runs the current action's script again, so the new value reaches the
 > inverter without waiting for the next action change.
 
+Below the reserve the plan counts on the battery not discharging, but it still
+shows those slots as `auto`: on an inverter that knows the reserve, `auto` can't
+go below it. If neither the inverter nor the fallback holds the reserve, `auto`
+keeps discharging. The pilot then says so under *Settings → Repairs*
+(*Battery discharges below the backup reserve*, see
+[consistency checks](#consistency-checks)).
+
 Refilling costs money, and that cost is **not** counted against the estimated
 savings — it is reported separately as `reserve_refill_kwh` and
 `reserve_refill_cost_eur` on the plan sensor. Only the cheapest refill is
@@ -284,6 +291,7 @@ such as limiting charging, use *Ignore* on the message.
 | Export slots don't discharge | under 50 % of the planned energy leaves, 3 days | SOC |
 | Battery doesn't cover the house | under 20 % of the measured deficit is delivered in auto slots, 3 days | Consumption, and live PV power or a slot with no forecast PV |
 | PV surplus doesn't reach the battery | under 20 % of the measured surplus arrives in auto slots, 3 days | Live PV power and consumption |
+| Battery discharges below the backup reserve | 3 % of the capacity leaves in auto slots at or below the reserve, at once | A backup reserve, with the discharge block fallback off |
 
 Good to know:
 
@@ -301,6 +309,12 @@ Good to know:
   without them they use the SOC. A live PV sensor that misses part of the PV
   underestimates the surplus, so the check stays quiet rather than raising a
   false message.
+* **The backup reserve check doesn't wait for 3 days:** the reserve is there for
+  an outage that may come tonight. It counts from the highest SOC the battery
+  reached below the reserve, so a SOC sensor flickering by one point moves
+  nothing, and PV lifting the SOC first hides nothing. The message clears at
+  the end of a day on which auto slots held the reserve for at least an hour,
+  or as soon as the discharge block fallback is on.
 * **Partial problems stay unreported.** A battery that takes half of the surplus
   passes. The limits are set to catch what is clearly broken.
 * The state of the checks is in the diagnostics download under `runtime.health`.

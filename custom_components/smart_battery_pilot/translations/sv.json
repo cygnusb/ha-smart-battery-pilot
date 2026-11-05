@@ -441,6 +441,10 @@
     "auto_not_capturing": {
       "title": "Solöverskott når inte batteriet i automatiska perioder",
       "description": "Under tre dagar tog batteriet bara emot {actual_kwh} kWh av {expected_kwh} kWh uppmätt överskott (senast), trots att det fanns plats. Planen räknar med den här energin, så dess SOC-prognos är för hög.\n\nAuto-skriptet måste låta batteriet ladda från överskott. Följer det bara kommandon måste något annat följa elmätaren, till exempel en automation. Begränsar du laddningen med flit kan du ignorera det här meddelandet."
+    },
+    "reserve_not_enforced": {
+      "title": "Batteriet laddar ur under reservnivån",
+      "description": "I automatiska perioder gav det {actual_kwh} kWh under reserven på {reserve} %. Ingenting håller batteriet där, men planen räknar med det.\n\nLåt auto- och vilo-skriptet skriva `reserve_soc` till växelriktarens egen minsta SOC, eller slå på \"Spärra urladdning vid reserven (reservlösning)\" i inställningarna. Meddelandet försvinner när reserven har hållit i en timme, eller när reservlösningen är på."
     }
   }
 }
