@@ -51,6 +51,7 @@ _WITHOUT_STEERING = frozenset(
 )
 
 STRIKES = 3  # days (or capacity windows) in a row before a check fires
+HISTORY_DAYS = 7  # daily verdicts kept for the diagnostics
 SCRIPT_FAILURES = 3
 PLAN_INVALID_AFTER = timedelta(hours=12)
 EXTERNAL_STUCK_AFTER = timedelta(hours=24)
@@ -135,6 +136,13 @@ def _kwh(value: float) -> str:
     return f"{value:.1f}"
 
 
+# What one closed day meant for a check's series.
+VERDICT_STRIKE = "strike"
+VERDICT_PASS = "pass"
+VERDICT_BETWEEN = "between"  # neither bad nor clearly good: the series stays
+VERDICT_TOO_LITTLE = "too_little"  # too little at stake to count either way
+
+
 def _delta(after: float | None, before: float | None) -> float | None:
     """What a cumulative meter moved; a reset or a gap tells nothing."""
     if after is None or before is None or after < before:
@@ -152,6 +160,7 @@ class HealthMonitor:
         self._strikes: dict[str, int] = {}
         self._day: str | None = None
         self._tally = _fresh_tally()
+        self._history: list[dict[str, Any]] = []
         self._pv_high: float | None = None
         self._pv_last: float | None = None
         self._cap_stored = 0.0
@@ -187,71 +196,126 @@ class HealthMonitor:
         if self._active.pop(check, None) is not None:
             _LOGGER.info("Consistency check '%s' passes again", check)
 
-    def _strike(self, check: str, placeholders: dict[str, str]) -> None:
+    def _strike(self, check: str, placeholders: dict[str, str]) -> str:
         self._strikes[check] = self._strikes.get(check, 0) + 1
-        _LOGGER.debug("Consistency check '%s': strike %d", check, self._strikes[check])
+        _LOGGER.info(
+            "Consistency check '%s': strike %d of %d (%s)",
+            check,
+            self._strikes[check],
+            STRIKES,
+            placeholders,
+        )
         if self._strikes[check] >= STRIKES:
             self._raise(check, placeholders)
+        return VERDICT_STRIKE
 
-    def _pass(self, check: str) -> None:
-        self._strikes.pop(check, None)
+    def _pass(self, check: str) -> str:
+        if self._strikes.pop(check, None) is not None:
+            _LOGGER.info("Consistency check '%s': a good day resets its strikes", check)
         self._clear(check)
+        return VERDICT_PASS
 
     def _judge_share(
         self, check: str, expected: float, actual: float, minimum: float, bad: float, good: float
-    ) -> None:
+    ) -> dict[str, Any] | None:
         """A day where `actual` should have reached `expected`; too little at
         stake, or a share between the bounds, leaves the series as it is."""
-        if expected < minimum or minimum <= 0:
-            return
-        share = actual / expected
-        if share < bad:
-            self._strike(check, {"expected_kwh": _kwh(expected), "actual_kwh": _kwh(actual)})
-        elif share >= good:
-            self._pass(check)
+        if expected <= 0 or minimum <= 0:
+            return None
+        if expected < minimum:
+            verdict = VERDICT_TOO_LITTLE
+        else:
+            share = actual / expected
+            if share < bad:
+                verdict = self._strike(
+                    check, {"expected_kwh": _kwh(expected), "actual_kwh": _kwh(actual)}
+                )
+            elif share >= good:
+                verdict = self._pass(check)
+            else:
+                verdict = VERDICT_BETWEEN
+        return {
+            "expected_kwh": round(expected, 3),
+            "actual_kwh": round(actual, 3),
+            "verdict": verdict,
+        }
 
     def _close_day(self) -> None:
         tally = self._tally
         capacity = self._capacity
         auto_min = MIN_AUTO_SHARE * capacity
         forced_min = MIN_FORCED_SHARE * capacity
-        self._judge_share(
-            CHECK_CAPTURE, tally["surplus"], tally["taken"], auto_min, AUTO_BAD, AUTO_GOOD
-        )
-        self._judge_share(
-            CHECK_COVER, tally["deficit"], tally["given"], auto_min, AUTO_BAD, AUTO_GOOD
-        )
-        self._judge_share(
-            CHECK_CHARGE,
-            tally["charge_expected"],
-            tally["charge_taken"],
-            forced_min,
-            FORCED_BAD,
-            FORCED_GOOD,
-        )
-        self._judge_share(
-            CHECK_EXPORT,
-            tally["export_expected"],
-            tally["export_given"],
-            forced_min,
-            FORCED_BAD,
-            FORCED_GOOD,
-        )
-        if tally["idle_hours"] >= IDLE_MIN_HOURS and capacity > 0:
-            if tally["idle_leak"] >= IDLE_LEAK_BAD * capacity:
-                self._strike(CHECK_IDLE, {"actual_kwh": _kwh(tally["idle_leak"])})
+        verdicts: dict[str, dict[str, Any] | None] = {
+            CHECK_CAPTURE: self._judge_share(
+                CHECK_CAPTURE, tally["surplus"], tally["taken"], auto_min, AUTO_BAD, AUTO_GOOD
+            ),
+            CHECK_COVER: self._judge_share(
+                CHECK_COVER, tally["deficit"], tally["given"], auto_min, AUTO_BAD, AUTO_GOOD
+            ),
+            CHECK_CHARGE: self._judge_share(
+                CHECK_CHARGE,
+                tally["charge_expected"],
+                tally["charge_taken"],
+                forced_min,
+                FORCED_BAD,
+                FORCED_GOOD,
+            ),
+            CHECK_EXPORT: self._judge_share(
+                CHECK_EXPORT,
+                tally["export_expected"],
+                tally["export_given"],
+                forced_min,
+                FORCED_BAD,
+                FORCED_GOOD,
+            ),
+        }
+        if tally["idle_hours"] > 0 and capacity > 0:
+            if tally["idle_hours"] < IDLE_MIN_HOURS:
+                verdict = VERDICT_TOO_LITTLE
+            elif tally["idle_leak"] >= IDLE_LEAK_BAD * capacity:
+                verdict = self._strike(CHECK_IDLE, {"actual_kwh": _kwh(tally["idle_leak"])})
             elif tally["idle_leak"] <= IDLE_LEAK_GOOD * capacity:
-                self._pass(CHECK_IDLE)
-        if self._pv_high is not None and self._pv_high >= PV_MIN_HIGH_KWH:
+                verdict = self._pass(CHECK_IDLE)
+            else:
+                verdict = VERDICT_BETWEEN
+            verdicts[CHECK_IDLE] = {
+                "hours": round(tally["idle_hours"], 2),
+                "actual_kwh": round(tally["idle_leak"], 3),
+                "verdict": verdict,
+            }
+        if self._pv_high is not None and self._pv_high > 0:
             last = self._pv_last or 0.0
-            if last < PV_LAST_BAD * self._pv_high:
-                self._strike(
+            if self._pv_high < PV_MIN_HIGH_KWH:
+                verdict = VERDICT_TOO_LITTLE
+            elif last < PV_LAST_BAD * self._pv_high:
+                verdict = self._strike(
                     CHECK_PV_REMAINING, {"high_kwh": _kwh(self._pv_high), "last_kwh": _kwh(last)}
                 )
             elif last >= PV_LAST_GOOD * self._pv_high:
-                self._pass(CHECK_PV_REMAINING)
+                verdict = self._pass(CHECK_PV_REMAINING)
+            else:
+                verdict = VERDICT_BETWEEN
+            verdicts[CHECK_PV_REMAINING] = {
+                "high_kwh": round(self._pv_high, 3),
+                "last_kwh": round(last, 3),
+                "verdict": verdict,
+            }
+        self._record_day(verdicts)
         self._tally = _fresh_tally()
         self._pv_high = self._pv_last = None
+
+    def _record_day(self, verdicts: dict[str, dict[str, Any] | None]) -> None:
+        """Keep what each check made of the day, with its series afterwards, so
+        a strike that a later good day reset can still be seen."""
+        checks = {
+            check: {**verdict, "strikes": self._strikes.get(check, 0)}
+            for check, verdict in verdicts.items()
+            if verdict is not None
+        }
+        if not checks:
+            return
+        self._history.append({"day": self._day, **checks})
+        del self._history[:-HISTORY_DAYS]
 
     # --- inputs --------------------------------------------------------------------
 
@@ -447,6 +511,7 @@ class HealthMonitor:
             "strikes": self._strikes,
             "day": self._day,
             "tally": {key: round(value, 3) for key, value in self._tally.items()},
+            "history": list(self._history),
             "capacity_kwh": self._capacity,
             "pv_high": self._pv_high,
             "pv_last": self._pv_last,
@@ -480,6 +545,9 @@ class HealthMonitor:
                 if key in _fresh_tally()
             },
         }
+        history = data.get("history")
+        if isinstance(history, list):
+            monitor._history = [day for day in history if isinstance(day, dict)][-HISTORY_DAYS:]
         monitor._capacity = float(data.get("capacity_kwh", 0.0))
         for name in ("pv_high", "pv_last"):
             if data.get(name) is not None:

@@ -301,6 +301,10 @@ Good to know:
 * **Partial problems stay unreported.** A battery that takes half of the surplus
   passes. The limits are set to catch what is clearly broken.
 * The state of the checks is in the diagnostics download under `runtime.health`.
+  `history` lists the last 7 days: per check what was expected and what
+  happened, the day's verdict (`strike`, `pass`, `between` or `too_little`)
+  and the strikes after it. A series that a good day reset shows up there too;
+  a check missing from a day had nothing to judge on it.
 
 ## Troubleshooting
 
