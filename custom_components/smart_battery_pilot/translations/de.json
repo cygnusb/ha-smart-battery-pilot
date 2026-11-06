@@ -441,6 +441,10 @@
     "auto_not_capturing": {
       "title": "PV-Überschuss kommt in Auto-Slots nicht in der Batterie an",
       "description": "An drei Tagen nahm die Batterie nur {actual_kwh} kWh von {expected_kwh} kWh gemessenem Überschuss auf (zuletzt), obwohl sie Platz hatte. Der Plan rechnet mit dieser Energie, seine SOC-Prognose ist also zu hoch.\n\nDas Auto-Skript muss die Batterie aus Überschuss laden lassen. Folgt sie nur Befehlen, muss etwas dem Netzzähler folgen, zum Beispiel eine Automation. Begrenzt du das Laden absichtlich, ignoriere diesen Hinweis."
+    },
+    "reserve_not_enforced": {
+      "title": "Die Batterie entlädt unter die Notstrom-Reserve",
+      "description": "In Auto-Slots gab sie {actual_kwh} kWh unterhalb der Reserve von {reserve} % ab. Nichts hält die Batterie dort, der Plan geht aber davon aus.\n\nLass das Auto- und das Idle-Skript `reserve_soc` in den Mindest-SOC des Wechselrichters schreiben, oder schalte in den Optionen \"Entladen an der Reserve sperren (Rückfall)\" ein. Die Meldung verschwindet, sobald die Reserve eine Stunde lang hält oder der Rückfall eingeschaltet ist."
     }
   }
 }

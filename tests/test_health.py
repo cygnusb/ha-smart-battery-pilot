@@ -23,6 +23,7 @@ from smart_battery_pilot.health import (
     CHECK_IDLE,
     CHECK_PLAN_INVALID,
     CHECK_PV_REMAINING,
+    CHECK_RESERVE,
     CHECK_SCRIPT_FAILING,
     CHECK_SOC_FROZEN,
     HealthMonitor,
@@ -586,3 +587,118 @@ def test_flow_samples_across_a_gap_settle_nothing():
     monitor.observe(_obs(START + timedelta(hours=4), **dull))
     monitor.observe(_obs(START + timedelta(hours=4) + STEP, **dull))
     assert monitor.to_dict()["tally"]["surplus"] == 0.0
+
+
+# --- backup reserve not enforced -------------------------------------------------
+
+RESERVE = {"reserve_soc": 30.0, "floor_soc": 30.0}
+
+
+def _below_reserve(monitor, socs, day: int = 0, **kwargs) -> None:
+    """Auto samples half an hour apart, SOC as given, at or below a 30 % reserve."""
+    start = START + timedelta(days=day)
+    for i, soc in enumerate(socs):
+        monitor.observe(_obs(start + STEP * i, soc=soc, **{**RESERVE, **kwargs}))
+
+
+def test_auto_discharging_below_the_reserve_fires_at_once():
+    """One morning is enough: a reserve that is not enforced is a fact, not a trend."""
+    monitor = HealthMonitor()
+    _below_reserve(monitor, [22.0, 21.0, 20.0, 19.0])
+    placeholders = monitor.issues(enabled=True, dry_run=False)[CHECK_RESERVE]
+    assert placeholders == {"reserve": "30", "actual_kwh": "0.3"}
+
+
+def test_an_enforced_reserve_stays_quiet():
+    monitor = HealthMonitor()
+    _below_reserve(monitor, [22.0, 22.0, 21.0, 22.0, 22.0, 22.0])
+    assert CHECK_RESERVE not in _shown(monitor)
+
+
+def test_the_meters_count_net_below_the_reserve():
+    """With PV around, an inverter may trade a little in and out at the reserve."""
+    monitor = HealthMonitor()
+    start = START
+    for i in range(5):
+        monitor.observe(
+            _obs(
+                start + STEP * i,
+                soc=29.0,
+                charge_kwh=100.0 + 0.2 * i,
+                discharge_kwh=100.0 + 0.25 * i,
+                **RESERVE,
+            )
+        )
+    assert CHECK_RESERVE not in _shown(monitor)
+
+
+def test_the_fallback_block_enforces_the_reserve():
+    monitor = HealthMonitor()
+    _below_reserve(monitor, [22.0, 21.0, 20.0, 19.0], reserve_block=True)
+    assert CHECK_RESERVE not in _shown(monitor)
+
+
+def test_turning_on_the_fallback_clears_the_message():
+    monitor = HealthMonitor()
+    _below_reserve(monitor, [22.0, 21.0, 20.0, 19.0])
+    assert CHECK_RESERVE in _shown(monitor)
+    monitor.observe(
+        _obs(START + STEP * 4, soc=19.0, action=ACTION_IDLE, reserve_block=True, **RESERVE)
+    )
+    assert CHECK_RESERVE not in _shown(monitor)
+
+
+def test_a_held_hour_below_the_reserve_clears_the_message_at_day_end():
+    monitor = HealthMonitor()
+    _below_reserve(monitor, [22.0, 21.0, 20.0, 19.0])
+    _below_reserve(monitor, [19.0, 19.0, 19.0, 19.0], day=1)
+    assert CHECK_RESERVE in _shown(monitor)  # the day is still open
+    monitor.observe(_obs(START + timedelta(days=2), soc=19.0, **RESERVE))
+    assert CHECK_RESERVE not in _shown(monitor)
+
+
+def test_only_auto_slots_below_the_reserve_count():
+    monitor = HealthMonitor()
+    # Above the reserve the battery may discharge, and idle has its own check.
+    _below_reserve(monitor, [60.0, 55.0, 50.0, 45.0])
+    _below_reserve(monitor, [22.0, 21.0, 20.0, 19.0], day=1, action=ACTION_IDLE)
+    assert CHECK_RESERVE not in _shown(monitor)
+
+
+def test_no_reserve_no_check():
+    monitor = HealthMonitor()
+    _below_reserve(monitor, [22.0, 21.0, 20.0, 19.0], reserve_soc=None, floor_soc=10.0)
+    assert CHECK_RESERVE not in _shown(monitor)
+
+
+def test_dry_run_hides_the_reserve_check():
+    monitor = HealthMonitor()
+    _below_reserve(monitor, [22.0, 21.0, 20.0, 19.0], steering=False, action=None)
+    assert CHECK_RESERVE not in _shown(monitor)
+
+
+def test_the_reserve_day_is_in_the_history():
+    monitor = HealthMonitor()
+    _below_reserve(monitor, [22.0, 21.0, 20.0, 19.0])
+    monitor.observe(_obs(START + timedelta(days=1), soc=19.0, **RESERVE))
+    [day] = monitor.to_dict()["history"]
+    assert day[CHECK_RESERVE] == {
+        "hours": 1.5,
+        "actual_kwh": 0.3,
+        "verdict": "strike",
+        "strikes": 0,
+    }
+
+
+def test_a_flickering_soc_at_the_reserve_stays_quiet():
+    """An integer SOC sensor toggling between two values moves nothing."""
+    monitor = HealthMonitor()
+    _below_reserve(monitor, [22.0, 21.0, 22.0, 21.0, 22.0, 21.0, 22.0, 21.0, 22.0, 21.0])
+    assert CHECK_RESERVE not in _shown(monitor)
+
+
+def test_pv_then_a_discharge_below_the_reserve_fires():
+    """Counted from the highest point: PV first lifting the SOC hides nothing."""
+    monitor = HealthMonitor()
+    _below_reserve(monitor, [20.0, 23.0, 26.0, 23.0, 20.0])
+    assert monitor.issues(enabled=True, dry_run=False)[CHECK_RESERVE]["actual_kwh"] == "0.6"

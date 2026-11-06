@@ -441,6 +441,10 @@
     "auto_not_capturing": {
       "title": "Zonne-overschot bereikt de batterij niet in automatische periodes",
       "description": "Op drie dagen nam de batterij maar {actual_kwh} kWh van {expected_kwh} kWh gemeten overschot op (laatste keer), hoewel er ruimte was. Het plan rekent op deze energie, dus de SOC-prognose is te hoog.\n\nHet auto-script moet de batterij uit overschot laten laden. Volgt ze alleen opdrachten, dan moet iets anders de netmeter volgen, bijvoorbeeld een automatisering. Beperk je het laden bewust, negeer deze melding dan."
+    },
+    "reserve_not_enforced": {
+      "title": "De batterij ontlaadt onder de noodreserve",
+      "description": "In automatische periodes leverde ze {actual_kwh} kWh onder de reserve van {reserve} %. Niets houdt de batterij daar, maar het plan rekent erop.\n\nLaat het auto- en het rust-script `reserve_soc` in de minimale SOC van de omvormer schrijven, of zet \"Ontladen bij de reserve blokkeren (terugvaloptie)\" aan in de opties. De melding verdwijnt zodra de reserve een uur standhoudt, of als de terugvaloptie aan staat."
     }
   }
 }

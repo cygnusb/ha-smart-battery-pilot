@@ -441,6 +441,10 @@
     "auto_not_capturing": {
       "title": "Saulės energijos perteklius automatiniais laikotarpiais nepasiekia akumuliatoriaus",
       "description": "Per tris dienas akumuliatorius iš išmatuoto {expected_kwh} kWh pertekliaus priėmė tik {actual_kwh} kWh (paskutinį kartą), nors vietos buvo. Planas skaičiuoja su šia energija, todėl jo SOC prognozė per didelė.\n\nAutomatinis scenarijus turi leisti akumuliatoriui krautis iš pertekliaus. Jei jis vykdo tik komandas, tinklo skaitiklį turi sekti kas nors kita, pavyzdžiui, automatizacija. Jei įkrovimą ribojate sąmoningai, nepaisykite šio pranešimo."
+    },
+    "reserve_not_enforced": {
+      "title": "Akumuliatorius išsikrauna žemiau atsarginio rezervo",
+      "description": "Automatiniais laikotarpiais jis atidavė {actual_kwh} kWh žemiau {reserve} % rezervo. Niekas jo ten nelaiko, nors planas tuo remiasi.\n\nLeiskite automatiniam ir budėjimo scenarijui įrašyti `reserve_soc` į paties inverterio mažiausią SOC arba nustatymuose įjunkite \"Blokuoti iškrovimą ties rezervu (atsarginis)\". Pranešimas dings, kai rezervas išsilaikys valandą arba kai atsarginis variantas bus įjungtas."
     }
   }
 }

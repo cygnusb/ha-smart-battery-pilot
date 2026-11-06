@@ -1609,6 +1609,8 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                     if reserve is not None
                     else float(self.conf(CONF_MIN_SOC, DEFAULT_MIN_SOC))
                 ),
+                reserve_soc=reserve,
+                reserve_block=self.reserve_block_enabled(),
                 max_soc=float(self.conf(CONF_MAX_SOC, DEFAULT_MAX_SOC)),
                 eta_one_way=math.sqrt(max(0.5, min(1.0, efficiency))),
                 max_charge_w=float(self.conf(CONF_MAX_CHARGE_POWER_W, 5000)),

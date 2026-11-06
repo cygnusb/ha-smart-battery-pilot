@@ -441,6 +441,10 @@
     "auto_not_capturing": {
       "title": "PV surplus doesn't reach the battery in auto slots",
       "description": "On three days the battery took only {actual_kwh} kWh of {expected_kwh} kWh measured surplus (last time), even though it had room. The plan counts on this energy, so its SOC forecast is too high.\n\nThe auto script must leave the battery charging from surplus. If the battery only follows commands, something has to follow the grid meter, such as an automation. If you limit charging on purpose, ignore this message."
+    },
+    "reserve_not_enforced": {
+      "title": "The battery discharges below the backup reserve",
+      "description": "In auto slots it gave {actual_kwh} kWh below the backup reserve of {reserve} %. Nothing holds the battery there, but the plan counts on it.\n\nHave the auto and idle scripts write `reserve_soc` into the inverter's own minimum SOC, or turn on \"Block discharging at the reserve (fallback)\" in the options. The message goes away once the reserve holds for an hour, or when the fallback is on."
     }
   }
 }

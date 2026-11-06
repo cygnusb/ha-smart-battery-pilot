@@ -441,6 +441,10 @@
     "auto_not_capturing": {
       "title": "Aurinkoylijäämä ei päädy akkuun automaattijaksoilla",
       "description": "Kolmena päivänä akku otti vain {actual_kwh} kWh mitatusta {expected_kwh} kWh:n ylijäämästä (viimeksi), vaikka tilaa oli. Suunnitelma laskee tämän energian varaan, joten sen SOC-ennuste on liian korkea.\n\nAutomaattiskriptin on annettava akun latautua ylijäämästä. Jos akku noudattaa vain komentoja, jonkin muun on seurattava sähkömittaria, esimerkiksi automaation. Jos rajoitat latausta tarkoituksella, ohita tämä ilmoitus."
+    },
+    "reserve_not_enforced": {
+      "title": "Akku purkautuu varavoimareservin alle",
+      "description": "Automaattijaksoilla se antoi {actual_kwh} kWh {reserve} %:n reservin alapuolella. Mikään ei pidä akkua siinä, mutta suunnitelma olettaa niin.\n\nAnna automaatti- ja leposkriptin kirjoittaa `reserve_soc` invertterin omaan vähimmäis-SOC:hen, tai ota asetuksista käyttöön \"Estä purku reservin kohdalla (varakeino)\". Ilmoitus poistuu, kun reservi on pitänyt tunnin, tai kun varakeino on käytössä."
     }
   }
 }

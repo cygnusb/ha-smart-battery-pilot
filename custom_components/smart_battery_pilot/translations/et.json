@@ -441,6 +441,10 @@
     "auto_not_capturing": {
       "title": "Päikeseenergia ülejääk ei jõua automaatperioodidel akusse",
       "description": "Kolmel päeval võttis aku mõõdetud {expected_kwh} kWh ülejäägist vastu ainult {actual_kwh} kWh (viimati), kuigi ruumi oli. Plaan arvestab selle energiaga, seega on selle SOC-i prognoos liiga kõrge.\n\nAutomaatskript peab laskma akul ülejäägist laadida. Kui aku järgib ainult käske, peab midagi muud järgima võrguarvestit, näiteks automatiseering. Kui piirad laadimist meelega, eira seda teadet."
+    },
+    "reserve_not_enforced": {
+      "title": "Aku tühjeneb alla varureservi",
+      "description": "Automaatperioodidel andis see {actual_kwh} kWh alla {reserve} % reservi. Miski ei hoia akut seal, kuid plaan eeldab seda.\n\nLase automaat- ja ooteskriptil kirjutada `reserve_soc` inverteri enda minimaalsesse SOC-i või lülita seadetes sisse \"Keela tühjendamine reservi juures (varuvariant)\". Teade kaob, kui reserv on tund aega püsinud või kui varuvariant on sees."
     }
   }
 }

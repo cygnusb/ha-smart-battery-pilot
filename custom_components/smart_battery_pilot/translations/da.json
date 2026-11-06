@@ -441,6 +441,10 @@
     "auto_not_capturing": {
       "title": "PV-overskud når ikke batteriet i automatiske perioder",
       "description": "På tre dage modtog batteriet kun {actual_kwh} kWh af {expected_kwh} kWh målt overskud (seneste gang), selvom der var plads. Planen regner med denne energi, så dens SOC-prognose er for høj.\n\nAuto-scriptet skal lade batteriet lade fra overskud. Følger det kun kommandoer, må noget andet følge elmåleren, for eksempel en automatisering. Begrænser du opladningen med vilje, så ignorer denne besked."
+    },
+    "reserve_not_enforced": {
+      "title": "Batteriet aflader under backup-reserven",
+      "description": "I automatiske perioder afgav det {actual_kwh} kWh under reserven på {reserve} %. Intet holder batteriet der, men planen regner med det.\n\nLad auto- og hvile-scriptet skrive `reserve_soc` ind i vekselretterens egen minimum-SOC, eller slå \"Spær afladning ved reserven (fallback)\" til i indstillingerne. Meddelelsen forsvinder, når reserven har holdt i en time, eller når fallback er slået til."
     }
   }
 }

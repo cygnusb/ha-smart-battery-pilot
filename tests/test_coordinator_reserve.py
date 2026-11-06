@@ -158,3 +158,12 @@ def test_an_incomplete_refill_warns_once_while_it_persists(caplog):
     assert "reserve_refill_incomplete" in first.plan.warnings
     warnings = [r for r in caplog.records if "cannot be refilled" in r.getMessage()]
     assert [r.levelno for r in warnings] == [logging.WARNING, logging.DEBUG]
+
+
+def test_the_consistency_checks_see_the_reserve_and_the_fallback():
+    coord = _coordinator(_hass(), **{CONF_BACKUP_RESERVE: 30, CONF_RESERVE_BLOCK_DISCHARGE: True})
+    result = _run(coord._async_update_data())
+    seen = []
+    coord.health.observe = seen.append
+    coord._note_conditions(result.plan, result.plan.slots[0].start)
+    assert (seen[0].reserve_soc, seen[0].reserve_block) == (30.0, True)

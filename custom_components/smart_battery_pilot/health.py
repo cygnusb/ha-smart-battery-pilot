@@ -33,6 +33,7 @@ CHECK_IDLE = "idle_discharges"
 CHECK_EXPORT = "export_ineffective"
 CHECK_COVER = "auto_not_covering"
 CHECK_CAPTURE = "auto_not_capturing"
+CHECK_RESERVE = "reserve_not_enforced"
 
 ALL_CHECKS = (
     CHECK_SCRIPT_FAILING,
@@ -46,6 +47,7 @@ ALL_CHECKS = (
     CHECK_EXPORT,
     CHECK_COVER,
     CHECK_CAPTURE,
+    CHECK_RESERVE,
 )
 # These say something about the sensors or the plan, so they hold in dry-run too.
 _WITHOUT_STEERING = frozenset(
@@ -72,6 +74,11 @@ FORCED_GOOD = 0.75
 IDLE_MIN_HOURS = 1.0
 IDLE_LEAK_BAD = 0.05  # of capacity
 IDLE_LEAK_GOOD = 0.02
+# Auto below the backup reserve: what the battery gives there, from its
+# highest point, so an integer SOC flickering by one point moves nothing.
+RESERVE_LEAK_BAD = 0.03  # of capacity
+RESERVE_LEAK_GOOD = 0.01
+RESERVE_MIN_HOURS = 1.0
 
 FROZEN_MIN_TIME = timedelta(hours=2)
 FROZEN_MIN_MOVED = 0.10  # of capacity
@@ -113,6 +120,8 @@ class Observation:
     pv_today_kwh: float | None = None  # only set in daylight, when the plan uses it
     capacity_kwh: float = 0.0
     floor_soc: float = 0.0  # min SOC, or the reserve above it
+    reserve_soc: float | None = None  # the backup reserve in force
+    reserve_block: bool = False  # the pilot's fallback discharge block is on
     max_soc: float = 100.0
     eta_one_way: float = 1.0
     max_charge_w: float = 0.0
@@ -132,6 +141,12 @@ def _fresh_tally() -> dict[str, float]:
         "export_given": 0.0,
         "idle_hours": 0.0,
         "idle_leak": 0.0,
+        # Net energy into the battery over auto spans below the reserve, its
+        # highest value, and the furthest it fell from there.
+        "reserve_hours": 0.0,
+        "reserve_level": 0.0,
+        "reserve_peak": 0.0,
+        "reserve_leak": 0.0,
     }
 
 
@@ -311,6 +326,8 @@ class HealthMonitor:
                 "actual_kwh": round(tally["idle_leak"], 3),
                 "verdict": verdict,
             }
+        if tally["reserve_hours"] > 0 and capacity > 0:
+            verdicts[CHECK_RESERVE] = self._judge_reserve(tally, capacity)
         if self._pv_high is not None and self._pv_high > 0:
             last = self._pv_last or 0.0
             if self._pv_high < PV_MIN_HIGH_KWH:
@@ -331,6 +348,25 @@ class HealthMonitor:
         self._record_day(verdicts)
         self._tally = _fresh_tally()
         self._pv_high = self._pv_last = None
+
+    def _judge_reserve(self, tally: dict[str, float], capacity: float) -> dict[str, Any]:
+        """A bad day already raised the check; a day that held the reserve
+        long enough clears it."""
+        leak = tally["reserve_leak"]
+        if leak >= RESERVE_LEAK_BAD * capacity - 1e-9:
+            verdict = VERDICT_STRIKE
+        elif tally["reserve_hours"] < RESERVE_MIN_HOURS:
+            verdict = VERDICT_TOO_LITTLE
+        elif leak <= RESERVE_LEAK_GOOD * capacity:
+            verdict = VERDICT_PASS
+            self._clear(CHECK_RESERVE)
+        else:
+            verdict = VERDICT_BETWEEN
+        return {
+            "hours": round(tally["reserve_hours"], 2),
+            "actual_kwh": round(leak, 3),
+            "verdict": verdict,
+        }
 
     def _record_day(self, verdicts: dict[str, dict[str, Any] | None]) -> None:
         """Keep what each check made of the day, with its series afterwards, so
@@ -396,6 +432,9 @@ class HealthMonitor:
             self._pv_high = max(self._pv_high or 0.0, obs.pv_today_kwh)
             self._pv_last = obs.pv_today_kwh
         self._check_external(obs)
+        if obs.reserve_soc is None or obs.reserve_block:
+            # Nothing to enforce, or the pilot enforces it itself.
+            self._clear(CHECK_RESERVE)
         prev, self._prev = self._prev, obs
         flow, self._flow = self._flow, []
         if prev is not None and timedelta(0) < obs.at - prev.at <= MAX_SEGMENT:
@@ -477,7 +516,33 @@ class HealthMonitor:
             tally["idle_hours"] += hours
             tally["idle_leak"] += max(0.0, given - taken)
         elif a.action == ACTION_AUTO:
+            self._settle_reserve(a, b, hours, taken, given)
             self._settle_auto(a, b, flow, taken, given, room_above, room_below)
+
+    def _settle_reserve(
+        self, a: Observation, b: Observation, hours: float, taken: float, given: float
+    ) -> None:
+        """An auto span that starts at or below the reserve may not discharge:
+        the plan counts on something holding it there - the inverter's own
+        minimum SOC, written from `reserve_soc`, or the fallback block."""
+        reserve = a.reserve_soc
+        tally = self._tally
+        if reserve is None or a.reserve_block or b.reserve_block or a.soc is None:
+            return
+        if a.soc > reserve:
+            # Above the reserve the battery may discharge: a new excursion
+            # starts when it falls under it again.
+            tally["reserve_level"] = tally["reserve_peak"] = 0.0
+            return
+        tally["reserve_hours"] += hours
+        tally["reserve_level"] += taken - given
+        tally["reserve_peak"] = max(tally["reserve_peak"], tally["reserve_level"])
+        drop = tally["reserve_peak"] - tally["reserve_level"]
+        tally["reserve_leak"] = max(tally["reserve_leak"], drop)
+        if b.capacity_kwh > 0 and drop >= RESERVE_LEAK_BAD * b.capacity_kwh - 1e-9:
+            # Not a trend over days: the reserve is there for an outage that
+            # may come tonight.
+            self._raise(CHECK_RESERVE, {"reserve": f"{reserve:g}", "actual_kwh": _kwh(drop)})
 
     def _settle_auto(
         self,
