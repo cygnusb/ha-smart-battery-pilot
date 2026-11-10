@@ -138,14 +138,20 @@ sbp_block_discharge:
     # sits above the SOC and triggers a grid top-up), at least the backup
     # reserve, at most 98 %. Always rewritten, so a preceding 99 % reserve
     # cannot leak into idle hours.
+    # The SOC is the inverter's own ChaState (40351, seventh field of
+    # `sensor.reading_battery_settings`), with the battery's SOC sensor as
+    # fallback: see "Which SOC the idle script reads" below.
     - service: modbus.write_register
       data:
         hub: gen24
         slave: 1
         address: 40350
         value: >-
-          {{ [[states('sensor.byd_battery_box_premium_hv_ladezustand') | int(5),
-               reserve_soc | default(5) | int] | max, 98] | min * 100 }}
+          {%- set raw = states('sensor.reading_battery_settings').split(',') -%}
+          {%- set inv = (raw[6] | float(0)) / 100 if raw | length > 6 else 0 -%}
+          {%- set soc = (inv | int) if 0 < inv <= 100
+                else (states('sensor.byd_battery_box_premium_hv_ladezustand') | int(5)) -%}
+          {{ [[soc, reserve_soc | default(5) | int] | max, 98] | min * 100 }}
 
 sbp_auto_mode:
   alias: "SBP: Auto-Modus"
@@ -181,6 +187,22 @@ sbp_force_discharge:
     - service: modbus.write_register
       data: { hub: gen24, slave: 1, address: 40348, value: 1 }
 ```
+
+### Which SOC the idle script reads
+
+The hold is only as good as the SOC it is built from. A battery integration
+that polls once a minute still reports the old value when an idle slot follows
+a charge slot: the floor then lands a percent or more below the real SOC, and
+the battery discharges down to it during the first idle minutes — energy that
+was bought a moment ago. The inverter's own ChaState register updates every
+few seconds and is the value MinRsvPct is compared against anyway, so the
+script reads that one and only falls back to the battery's sensor when the
+register sensor has no usable value.
+
+The pilot's *battery discharges in idle slots* check reports this kind of leak once it
+has seen it on several days.
+
+### EVCC next to the pilot
 
 `sbp_block_discharge` holds the battery through `MinRsvPct`, which EVCC never
 touches. The alternative, StorCtl_Mod `2` with OutWRte `0` (EVCC's *hold*),
