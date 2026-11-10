@@ -17,8 +17,10 @@ with the cheapest earlier grid-charge slots whose price plus efficiency
 losses and the configured spread still undercut the discharge price.
 All assignments are validated against SOC and power limits over time -
 including PV curtailment, which makes energy spent before a full battery
-free to spend. A plan that still comes out worse than doing nothing is
-discarded in favour of leaving the inverter alone.
+free to spend. Energy held for a late slot is handed to an earlier one when
+a charge slot in between can buy it back within the spread. A plan that still
+comes out worse than doing nothing is discarded in favour of leaving the
+inverter alone.
 """
 
 from __future__ import annotations
@@ -531,6 +533,74 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
             if want_stored <= 1e-9:
                 continue
             assign_discharge(d, want_stored, discharge_stored)
+
+        # --- reroute: held energy for an earlier slot, a later charge instead ------
+        # Stored energy went to the dearest slots first, wherever they lie. A
+        # slot before them then only finds charge slots *earlier* than itself, and
+        # stays on the grid when those are dear - while the battery carries energy
+        # right through it, to a slot that a cheap charge in between could serve
+        # just as well. Classic case: an evening at a middling price, a cheap
+        # night, a dear morning. Covering the evening from the held energy and
+        # charging that much more in the night leaves every level from the charge
+        # slot on untouched, so nothing planned later is affected.
+        for u in sorted(range(n), key=lambda i: -prices[i]):
+            if prices[u] <= 0 or charge_stored[u] > 1e-9:
+                continue
+            deliverable = min(demand[u], discharge_cap[u] - export_stored[u] * eta_one_way)
+            want = max(0.0, deliverable) / eta_one_way - discharge_stored[u]
+            if want <= 1e-9:
+                continue
+            levels, curtailed = timeline()
+            # The energy must be carried through every slot from u up to the
+            # charge slot: the first empty level ends the search.
+            reach = u
+            while reach < n and levels[reach] > 1e-9:
+                reach += 1
+            candidates = sorted(
+                (
+                    c
+                    for c in range(u + 1, min(reach, n - 1) + 1)
+                    if charge_cap[c] - charge_stored[c] - pv_surplus_stored[c] > 1e-9
+                    and not _delivers(c)
+                ),
+                key=lambda c: prices[c],
+            )
+            for c in candidates:
+                if want <= 1e-9:
+                    break
+                if prices[c] / eta + config.spread_threshold >= prices[u]:
+                    break  # price-sorted: none cheaper left
+                q = min(
+                    want,
+                    charge_cap[c] - charge_stored[c] - pv_surplus_stored[c],
+                    min(levels[u:c]),
+                )
+                if q <= 1e-9:
+                    continue
+                discharge_stored[u] += q
+                charge_stored[c] += q
+                new_levels, new_curtailed = timeline()
+                # PV curtailed between u and c would refill the gap by itself, and
+                # the charge at c would then spill over max SOC: paid for, wasted.
+                if (
+                    sum(new_curtailed) > sum(curtailed) + 1e-9
+                    or min(new_levels[u:c]) < -1e-9
+                    or any(new_levels[j] < levels[j] - 1e-9 for j in range(c, n))
+                ):
+                    discharge_stored[u] -= q
+                    charge_stored[c] -= q
+                    continue
+                levels, curtailed = new_levels, new_curtailed
+                want -= q
+                if debug:
+                    _LOGGER.debug(
+                        "reroute %s @ %.4f: %.3f kWh from held energy, refilled at %s @ %.4f",
+                        label(u),
+                        prices[u],
+                        q,
+                        label(c),
+                        prices[c],
+                    )
 
         export_spread_unreachable = export_mode and all(
             _export_sell_price(i) <= config.spread_threshold for i in range(n)

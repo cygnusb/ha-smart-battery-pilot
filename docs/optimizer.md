@@ -82,21 +82,30 @@ cold-weather charge factor.
    a morning peak on a sunny day displaces free midday PV with energy bought
    from the grid, and the plan ends the day having delivered *less* to the
    house than an untouched inverter.
-5. Slots that have real demand but whose stored energy the assignment did not
+5. **Held energy is rerouted when a later charge can replace it.** Free
+   energy went to the most valuable slots first, wherever they lie. An earlier
+   slot then only finds charge slots *before* itself, and stays on the grid
+   when those are expensive — while the battery carries energy straight
+   through it. Typical case: an evening at a middling price, a cheap night, an
+   expensive morning. If a charge slot in between satisfies the same spread
+   rule against the earlier slot, that slot is covered from the held energy
+   and the charge slot buys the same amount back. Every SOC level from the
+   charge slot on stays as it was, so nothing planned later changes.
+6. Slots that have real demand but whose stored energy the assignment did not
    spend are marked **idle** (discharge blocked): the energy is reserved for
    a later, more expensive slot, so the battery must not be drained early.
    The label follows from the assignment rather than being re-derived beside
    it, which is what keeps the inverter's behaviour and the cost model in
    agreement. Slots with PV surplus stay in **auto** — the inverter charges
    from PV and won't discharge anyway.
-6. In **export mode**, the export candidates from step 1 turn peak slots
+7. In **export mode**, the export candidates from step 1 turn peak slots
    into `export` slots. Export is valued at the feed-in tariff (or the raw
    market price if 0 — the configured import offset is not counted as export
    revenue). An export
    script is required for this mode; the options flow refuses to select it
    without one. What the cost model assumes of that script is spelled out
    under [Export slots](#what-an-export-slot-assumes) below.
-7. **Never worse than doing nothing.** If the finished plan's estimated
+8. **Never worse than doing nothing.** If the finished plan's estimated
    savings still come out negative, it is discarded and the all-`auto` plan
    is returned instead, carrying a `plan_worse_than_baseline` warning in the
    plan sensor's attributes. Leaving the inverter alone is always available
