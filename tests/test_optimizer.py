@@ -450,3 +450,139 @@ def test_charge_slots_never_discharge_across_random_price_curves():
         plan = build_plan(slots, battery, config)
 
         assert not [s for s in plan.slots if s.action == ACTION_CHARGE and s.discharge_kwh > 1e-9]
+
+
+def _evening_hold_slots() -> list[InputSlot]:
+    """Evening at a middling price, a cheap night, a dear morning."""
+    prices = [0.70] * 2 + [0.48] * 6 + [0.80] * 3
+    return make_slots(prices, demand_kwh=1.0)
+
+
+def test_held_energy_serves_the_evening_when_the_night_can_refill_it():
+    """Stored energy goes to the dearest slots first - here the morning. The
+    evening then finds no cheap charge slot *before* it and would stay on the
+    grid, although the night in between could refill the battery for the
+    morning at 0.48 / 0.9 + 0.10 = 0.63 < 0.70."""
+    battery = BatteryState(
+        capacity_kwh=12.8,
+        soc=10.0 + 2.2 / 12.8 * 100.0,  # ~2.2 kWh stored, 2 h of demand
+        min_soc=10.0,
+        max_soc=95.0,
+        max_charge_power_w=6000,
+        max_discharge_power_w=6000,
+        efficiency=90,
+    )
+    plan = build_plan(_evening_hold_slots(), battery, CONFIG)
+    actions = [s.action for s in plan.slots]
+
+    assert actions[:2] == [ACTION_AUTO, ACTION_AUTO]
+    assert plan.slots[0].discharge_kwh == pytest.approx(1.0, abs=0.01)
+    assert plan.slots[1].discharge_kwh == pytest.approx(1.0, abs=0.01)
+    # The morning is still fully covered - now from the night's charge.
+    assert all(a == ACTION_AUTO for a in actions[8:])
+    assert sum(s.discharge_kwh for s in plan.slots[8:]) == pytest.approx(3.0, abs=0.01)
+    assert ACTION_CHARGE in actions[2:8]
+    assert min(s.soc_forecast for s in plan.slots) >= 10.0 - 0.05
+    assert max(s.soc_forecast for s in plan.slots) <= 95.0 + 0.05
+
+
+def test_held_energy_stays_held_when_the_refill_does_not_beat_the_spread():
+    """Evening at 0.60: 0.48 / 0.9 + 0.10 = 0.63 is not below it, so the
+    energy stays reserved for the morning and the evening is held."""
+    prices = [0.60] * 2 + [0.48] * 6 + [0.80] * 3
+    battery = BatteryState(
+        capacity_kwh=12.8,
+        soc=10.0 + 2.2 / 12.8 * 100.0,
+        min_soc=10.0,
+        max_soc=95.0,
+        max_charge_power_w=6000,
+        max_discharge_power_w=6000,
+        efficiency=90,
+    )
+    plan = build_plan(make_slots(prices, demand_kwh=1.0), battery, CONFIG)
+    assert [s.action for s in plan.slots[:2]] == [ACTION_IDLE, ACTION_IDLE]
+    assert sum(s.discharge_kwh for s in plan.slots[:2]) == 0
+
+
+def test_rerouting_keeps_random_plans_inside_the_battery_window():
+    """Seeded random days with PV, stored energy and a cold battery: the
+    reroute must never push the SOC out of its window, charge and discharge
+    in one slot, or produce a plan that loses against doing nothing."""
+    import random
+
+    rng = random.Random(20261110)
+    for _ in range(300):
+        n = rng.choice([24, 36, 48])
+        slots = []
+        for i in range(n):
+            start = T0 + timedelta(hours=i)
+            pv = rng.choice([0.0, 0.0, rng.uniform(0.0, 4.0)]) if 8 <= i % 24 <= 16 else 0.0
+            slots.append(
+                InputSlot(
+                    price_slot=PriceSlot(
+                        start=start,
+                        end=start + timedelta(hours=1),
+                        price=round(rng.uniform(0.05, 0.90), 3),
+                    ),
+                    net_demand_kwh=rng.uniform(0.2, 3.0) - pv,
+                    pv_kwh=pv,
+                )
+            )
+        battery = BatteryState(
+            capacity_kwh=12.8,
+            soc=rng.uniform(10.0, 95.0),
+            min_soc=10.0,
+            max_soc=95.0,
+            max_charge_power_w=6000,
+            max_discharge_power_w=6000,
+            efficiency=90,
+            charge_factor=rng.choice([1.0, 0.5]),
+            reserve_soc=rng.choice([None, 30.0]),
+        )
+        config = OptimizerConfig(
+            spread_threshold=rng.choice([0.0, 0.10, 0.20]),
+            discharge_mode=DISCHARGE_MODE_SELF_CONSUMPTION,
+        )
+        plan = build_plan(slots, battery, config)
+        floor = min(battery.soc, battery.reserve_soc or battery.min_soc)
+        assert "plan_worse_than_baseline" not in plan.warnings
+        for planned in plan.slots:
+            assert floor - 0.05 <= planned.soc_forecast <= 95.0 + 0.05
+            if planned.action == ACTION_CHARGE:
+                assert planned.discharge_kwh == 0
+
+
+def test_held_energy_is_not_rerouted_onto_a_night_another_controller_holds():
+    """A planned car session under the "external" EV policy: the other
+    controller holds the battery all night and the pilot calls no charge
+    script there. The refill the reroute would count on cannot happen, so the
+    energy stays held for the morning."""
+    slots = []
+    for i, slot in enumerate(_evening_hold_slots()):
+        night = 2 <= i < 8
+        slots.append(
+            InputSlot(
+                price_slot=slot.price_slot,
+                net_demand_kwh=slot.net_demand_kwh,
+                ev_kwh=11.0 if night else 0.0,
+                battery_blocked=night,
+            )
+        )
+    battery = BatteryState(
+        capacity_kwh=12.8,
+        soc=10.0 + 2.2 / 12.8 * 100.0,
+        min_soc=10.0,
+        max_soc=95.0,
+        max_charge_power_w=6000,
+        max_discharge_power_w=6000,
+        efficiency=90,
+    )
+    config = OptimizerConfig(
+        spread_threshold=0.10,
+        discharge_mode=DISCHARGE_MODE_SELF_CONSUMPTION,
+        ev_no_grid_charge=True,
+    )
+    plan = build_plan(slots, battery, config)
+    assert all(s.action != ACTION_CHARGE for s in plan.slots)
+    assert sum(s.discharge_kwh for s in plan.slots[:2]) == 0
+    assert sum(s.discharge_kwh for s in plan.slots[8:]) == pytest.approx(2.2 * 0.9**0.5, abs=0.02)
