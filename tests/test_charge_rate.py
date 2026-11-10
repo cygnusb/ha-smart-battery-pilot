@@ -176,8 +176,10 @@ def test_bands_summary_for_diagnostics():
         "saturated": 6,
         "learned": 0.4,
         "curve": 0.15,
+        "in_use": "learned",
     }
     assert bands[1]["band_c"] == 10.0
+    assert bands[1]["in_use"] == "curve"
     assert bands[1]["learned"] is None
     assert model.learned_band_count == 1
 
@@ -202,3 +204,54 @@ def test_loading_applies_the_cap_and_the_age_limit():
     model = ChargeRateModel.from_dict({"samples": rows}, DEFAULT)
     assert len(model.samples) == MAX_SAMPLES
     assert min(s.at for s in model.samples) == AT + timedelta(minutes=5)
+
+
+# --- the learned values under the user's control ------------------------------
+
+
+def test_switched_off_the_curve_plans_but_the_learned_value_stays_visible():
+    model = _model_with([_sample(3.0, 0.4)] * 6)
+    model.use_learned = False
+    assert model.factor(2.5) == pytest.approx(0.15)  # the slider curve
+    assert model.source(2.5) == "curve"
+    band = model.bands()[0]
+    assert band["learned"] == 0.4
+    assert band["in_use"] == "curve"
+    assert model.measured_factor(2.5) == pytest.approx(0.4)
+
+
+def test_bands_can_list_bands_nothing_was_measured_in():
+    model = _model_with([_sample(12.0, 0.7)])
+    bands = model.bands(include=(0.0, 5.0, 10.0, 15.0))
+    assert [b["band_c"] for b in bands] == [0.0, 5.0, 10.0, 15.0]
+    assert bands[0]["samples"] == 0
+    assert bands[0]["learned"] is None
+
+
+def test_adopting_turns_the_learned_bands_into_slider_values():
+    """Band 10-15 °C learned at 74 %: its centre is 12.5 °C, the sliders sit
+    at 10 and 15 °C and take the measured factor there."""
+    model = _model_with([_sample(12.0, 0.74)] * 6)
+    adopted = model.adopted_percentages()
+    assert adopted is not None
+    assert adopted == [round(model.measured_factor(t) * 100) for t in (0, 5, 10, 15, 20)]
+    assert adopted[2] > 50  # the 10 °C slider moved up from the default curve
+    assert adopted == sorted(adopted)
+
+
+def test_adopted_values_never_fall_with_rising_temperature():
+    # A cold band learned far above the curve of the warmer ones.
+    model = _model_with([_sample(3.0, 0.95)] * 6)
+    adopted = model.adopted_percentages()
+    assert adopted == sorted(adopted)
+
+
+def test_nothing_learned_means_nothing_to_adopt():
+    assert _model_with([_sample(3.0, 0.4)] * 5).adopted_percentages() is None
+
+
+def test_clear_forgets_every_observation():
+    model = _model_with([_sample(3.0, 0.4)] * 6)
+    model.clear()
+    assert model.samples == ()
+    assert model.factor(2.5) == pytest.approx(0.15)

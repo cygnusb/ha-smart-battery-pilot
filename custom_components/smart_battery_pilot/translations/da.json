@@ -215,6 +215,7 @@
       },
       "derating": {
         "title": "Opladning i kulde",
+        "description": "Lært indtil nu, pr. temperaturbånd for batteriet: skyderkurve → **målt værdi** (målte ladeslots / heraf med mindre effekt end anmodet). Et bånd regnes som lært efter seks begrænsede slots.\n\n{bands}",
         "data": {
           "charge_derating": "Planlæg med reduceret ladeeffekt i kulde",
           "battery_temperature_entity": "Entitet for batteritemperatur",
@@ -222,7 +223,9 @@
           "derating_5c": "Ladeeffekt ved 5 °C",
           "derating_10c": "Ladeeffekt ved 10 °C",
           "derating_15c": "Ladeeffekt ved 15 °C",
-          "derating_20c": "Ladeeffekt ved 20 °C og derover"
+          "derating_20c": "Ladeeffekt ved 20 °C og derover",
+          "derating_use_learned": "Planlæg med de lærte værdier",
+          "derating_action": "Lærte værdier"
         },
         "data_description": {
           "charge_derating": "Planlæggeren regner med, at et koldt batteri modtager mindre end den maksimale ladeeffekt, og planlægger flere billige ladeperioder. En periode, der er planlagt op til kuldegrænsen, beder stadig ladescriptet om fuld effekt; batteriets BMS står for begrænsningen, ikke piloten.",
@@ -231,7 +234,9 @@
           "derating_5c": "Procent af den maksimale ladeeffekt, som batteriet modtager ved 5 °C.",
           "derating_10c": "Procent af den maksimale ladeeffekt, som batteriet modtager ved 10 °C.",
           "derating_15c": "Procent af den maksimale ladeeffekt, som batteriet modtager ved 15 °C.",
-          "derating_20c": "Procent af den maksimale ladeeffekt ved 20 °C og varmere. Normalt 100 %."
+          "derating_20c": "Procent af den maksimale ladeeffekt ved 20 °C og varmere. Normalt 100 %.",
+          "derating_use_learned": "Til: et lært bånd erstatter skyderkurven for den temperatur. Fra: kun skyderne tæller; der måles fortsat, og værdierne vises stadig her.",
+          "derating_action": "“Overtag” skriver de målte værdier ind i skyderne, hvor du stadig kan justere dem, før du gemmer. “Kassér” sletter alle målinger, når du gemmer, f.eks. efter et batteriskift eller en forkert temperatursensor."
         }
       },
       "reserve": {
@@ -284,7 +289,8 @@
       "ev_external_needs_entity": "Politikken 'Ekstern' kræver en entitet for ekstern styring.",
       "evcc_url_required": "Indtast evcc-adressen.",
       "evcc_unreachable": "evcc svarede ikke på denne adresse. Kontrollér adressen, og at evcc kører.",
-      "currency_mismatch": "Denne sensor rapporterer priser i {sensor_currency}, men Home Assistants valuta er {ha_currency}. Priser omregnes ikke, så alt ville blive mærket og dimensioneret som {ha_currency}. Skift først valutaen under Indstillinger → System → Generelt, eller indsend igen for at fortsætte alligevel."
+      "currency_mismatch": "Denne sensor rapporterer priser i {sensor_currency}, men Home Assistants valuta er {ha_currency}. Priser omregnes ikke, så alt ville blive mærket og dimensioneret som {ha_currency}. Skift først valutaen under Indstillinger → System → Generelt, eller indsend igen for at fortsætte alligevel.",
+      "derating_nothing_learned": "Der er endnu ikke lært noget: intet temperaturbånd har seks ladeslots, hvor batteriet tog mindre end anmodet."
     }
   },
   "selector": {
@@ -305,6 +311,13 @@
       "options": {
         "none": "Ingen",
         "evcc": "evcc"
+      }
+    },
+    "derating_action": {
+      "options": {
+        "keep": "Lad dem være",
+        "adopt": "Overtag i skyderne",
+        "reset": "Kassér alle målinger"
       }
     }
   },

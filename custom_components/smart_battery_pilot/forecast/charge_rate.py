@@ -91,8 +91,11 @@ class ChargeSample:
 class ChargeRateModel:
     """Curve plus learned bands; answers "which share of max charge power"."""
 
-    def __init__(self, curve: Curve) -> None:
+    def __init__(self, curve: Curve, use_learned: bool = True) -> None:
         self.curve: Curve = sorted(curve)
+        # Off: the curve alone plans. Observations are still collected and
+        # shown, so the user can compare before trusting them.
+        self.use_learned = use_learned
         self._samples: list[ChargeSample] = []
 
     @property
@@ -102,6 +105,10 @@ class ChargeRateModel:
     def add_sample(self, sample: ChargeSample) -> None:
         self._samples.append(sample)
         self._prune()
+
+    def clear(self) -> None:
+        """Forget every observation - after a battery swap or a wrong sensor."""
+        self._samples = []
 
     def _prune(self) -> None:
         """Drop samples past the age limit (from the newest one) and the cap."""
@@ -136,6 +143,13 @@ class ChargeRateModel:
         """
         if temperature is None:
             return 1.0
+        if not self.use_learned:
+            return curve_factor(self.curve, temperature)
+        return self.measured_factor(temperature)
+
+    def measured_factor(self, temperature: float) -> float:
+        """The factor with every learned band applied, whatever `use_learned`
+        says - what the planner would use, and what "adopt" writes back."""
         half = BAND_WIDTH / 2
         centre_lo = band_of(temperature - half) + half
         centre_hi = centre_lo + BAND_WIDTH
@@ -151,14 +165,14 @@ class ChargeRateModel:
     def source(self, temperature: float | None) -> str:
         if temperature is None:
             return SOURCE_OFF
-        if self.learned(band_of(temperature)) is not None:
+        if self.use_learned and self.learned(band_of(temperature)) is not None:
             return SOURCE_LEARNED
         return SOURCE_CURVE
 
-    def bands(self) -> list[dict[str, Any]]:
-        """Per-band summary for the diagnostics dump."""
+    def bands(self, include: Sequence[float] = ()) -> list[dict[str, Any]]:
+        """Per-band summary: every band with observations, plus `include`."""
         summary = []
-        for band in sorted({band_of(s.temperature) for s in self._samples}):
+        for band in sorted({band_of(s.temperature) for s in self._samples} | set(include)):
             in_band = self._in_band(band)
             learned = self.learned(band)
             summary.append(
@@ -168,9 +182,28 @@ class ChargeRateModel:
                     "saturated": sum(1 for s in in_band if s.saturated),
                     "learned": round(learned, 3) if learned is not None else None,
                     "curve": round(curve_factor(self.curve, band + BAND_WIDTH / 2), 3),
+                    "in_use": (
+                        SOURCE_LEARNED if self.use_learned and learned is not None else SOURCE_CURVE
+                    ),
                 }
             )
         return summary
+
+    def adopted_percentages(self) -> list[int] | None:
+        """Slider values that reproduce what was learned, or None if nothing was.
+
+        The sliders sit at fixed temperatures, the bands in between: each
+        slider takes the measured factor at its own temperature. A warmer
+        battery never takes less, so a value below its colder neighbour is
+        lifted to it - the flow would refuse a falling curve anyway.
+        """
+        if not any(band["learned"] is not None for band in self.bands()):
+            return None
+        values: list[int] = []
+        for temperature in CURVE_TEMPERATURES:
+            percent = round(self.measured_factor(temperature) * 100.0)
+            values.append(max(percent, values[-1]) if values else percent)
+        return values
 
     @property
     def learned_band_count(self) -> int:
@@ -190,9 +223,11 @@ class ChargeRateModel:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any], curve: Curve) -> ChargeRateModel:
-        """Restore the samples; the curve always comes from the current options."""
-        model = cls(curve)
+    def from_dict(
+        cls, data: dict[str, Any], curve: Curve, use_learned: bool = True
+    ) -> ChargeRateModel:
+        """Restore the samples; curve and switch come from the current options."""
+        model = cls(curve, use_learned)
         model._samples = [
             ChargeSample(
                 temperature=float(row["temperature"]),

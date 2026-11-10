@@ -202,10 +202,25 @@ tapers because it is full), shorter than 10 minutes, with requests below
 (too close to the resolution of typical energy meters) are ignored. Dry-run
 learns nothing, because no charge actually happens.
 
+**Seeing and steering what was learned.** The section in the options dialog
+lists every 5 °C band: the value of the slider curve, the measured value once
+the band is learned, and how many charge slots were measured (and in how many
+of them the battery took less than requested).
+
+| Setting | Default | Meaning |
+|---|---|---|
+| Plan with the learned values | on | On: a learned band replaces the slider curve for that temperature. Off: only the sliders count. Measuring continues either way, and the values stay visible. |
+| Learned values | Leave as they are | **Adopt into the sliders** writes the measured values into the five sliders and shows the form again, so you can still adjust them before saving. Each slider takes the measured factor at its own temperature; a value below its colder neighbour is lifted to it. **Discard all measurements** deletes every observation when you save the dialog — use it after a battery swap or when the temperature sensor was wrong. |
+
+With learning on, adopting changes nothing about the plan: the learned bands
+apply either way. It is the way to freeze a measured curve — adopt, then
+switch "Plan with the learned values" off.
+
 The configuration sensor shows `charge_factor`, its source (`curve`,
 `learned`, `no_temperature`), whether learning is `active` or has
-`no_charge_meter`, and the number of learned bands. The diagnostics dump lists
-every band with its sample count, learned value and curve value.
+`no_charge_meter`, whether the learned values are used, the number of learned
+bands and the bands themselves (`charge_rate_bands`). The diagnostics dump
+lists the same bands.
 
 ### Backup reserve
 

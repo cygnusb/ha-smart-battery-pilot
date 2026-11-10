@@ -24,6 +24,8 @@ from .const import (
     CONF_CAPACITY_KWH,
     CONF_CHARGE_DERATING,
     CONF_CONSUMPTION_ENTITY,
+    CONF_DERATING_ACTION,
+    CONF_DERATING_USE_LEARNED,
     CONF_DISCHARGE_MODE,
     CONF_DRY_RUN,
     CONF_EFFICIENCY,
@@ -59,6 +61,7 @@ from .const import (
     DEFAULT_BACKUP_RESERVE,
     DEFAULT_CHARGE_DERATING,
     DEFAULT_DERATING_CURVE,
+    DEFAULT_DERATING_USE_LEARNED,
     DEFAULT_DISCHARGE_MODE,
     DEFAULT_DRY_RUN,
     DEFAULT_EFFICIENCY,
@@ -73,6 +76,9 @@ from .const import (
     DEFAULT_RESERVE_REFILL_HOURS,
     DEFAULT_SPREAD_THRESHOLD,
     DEFAULT_TRAINING_DAYS,
+    DERATING_ACTION_ADOPT,
+    DERATING_ACTION_KEEP,
+    DERATING_ACTION_RESET,
     DERATING_CURVE_KEYS,
     DISCHARGE_MODE_EXPORT,
     DISCHARGE_MODE_SELF_CONSUMPTION,
@@ -91,7 +97,12 @@ from .currency import (
     scaled,
 )
 from .evcc import EvccError, async_fetch_state, normalize_url
-from .forecast.charge_rate import is_non_decreasing
+from .forecast.charge_rate import (
+    BAND_WIDTH,
+    CURVE_TEMPERATURES,
+    ChargeRateModel,
+    is_non_decreasing,
+)
 from .price_adapters import detect_adapter
 from .pv_sources import async_energy_dashboard_forecast_entries, async_solar_forecast_entries
 
@@ -314,7 +325,43 @@ def schema_derating(d: dict[str, Any]) -> vol.Schema:
     }
     for key, default in zip(DERATING_CURVE_KEYS, DEFAULT_DERATING_CURVE, strict=True):
         fields[vol.Required(key, default=d.get(key, default))] = _percent_slider()
+    fields[
+        vol.Required(
+            CONF_DERATING_USE_LEARNED,
+            default=d.get(CONF_DERATING_USE_LEARNED, DEFAULT_DERATING_USE_LEARNED),
+        )
+    ] = selector.BooleanSelector()
+    # Always opens on "keep": an action is chosen once, never remembered.
+    fields[vol.Required(CONF_DERATING_ACTION, default=DERATING_ACTION_KEEP)] = (
+        selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=[DERATING_ACTION_KEEP, DERATING_ACTION_ADOPT, DERATING_ACTION_RESET],
+                translation_key="derating_action",
+            )
+        )
+    )
     return vol.Schema(fields)
+
+
+def derating_overview(model: ChargeRateModel | None) -> str:
+    """The learned bands as Markdown lines for the dialog, "-" when unknown.
+
+    One line per 5 °C band: slider curve -> learned value, then how many
+    charge slots were measured and how many of them hit the battery's limit.
+    Numbers only, so it reads the same in every language; the step's
+    description explains the columns.
+    """
+    if model is None:
+        return "-"
+    lines = []
+    for band in model.bands(include=CURVE_TEMPERATURES[:-1]):
+        low = band["band_c"]
+        learned = f"{band['learned'] * 100:.0f} %" if band["learned"] is not None else "-"
+        lines.append(
+            f"- {low:.0f}..{low + BAND_WIDTH:.0f} °C: {band['curve'] * 100:.0f} % → "
+            f"**{learned}** ({band['samples']} / {band['saturated']})"
+        )
+    return "\n".join(lines)
 
 
 def schema_reserve(d: dict[str, Any]) -> vol.Schema:
@@ -413,7 +460,12 @@ STEP_FIELDS: dict[str, list[str]] = {
         CONF_PV_POWER_ENTITY,
     ],
     "tuning": [CONF_SPREAD_THRESHOLD, CONF_DISCHARGE_MODE, CONF_TRAINING_DAYS],
-    "derating": [CONF_CHARGE_DERATING, CONF_BATTERY_TEMPERATURE_ENTITY, *DERATING_CURVE_KEYS],
+    "derating": [
+        CONF_CHARGE_DERATING,
+        CONF_BATTERY_TEMPERATURE_ENTITY,
+        *DERATING_CURVE_KEYS,
+        CONF_DERATING_USE_LEARNED,
+    ],
     "reserve": [
         CONF_BACKUP_RESERVE,
         CONF_BACKUP_RESERVE_ENTITY,
@@ -668,6 +720,9 @@ class SBPOptionsFlow(OptionsFlow):
 
     def __init__(self, config_entry: ConfigEntry) -> None:
         self._pending: dict[str, Any] = {}
+        # "Discard what was learned" was chosen; carried out on apply, like
+        # every other change in this dialog.
+        self._reset_charge_rate = False
         # Price entity whose currency mismatch was shown once already.
         self._currency_confirmed: str | None = None
         # Our own name on purpose. Home Assistant 2024.11 never sets
@@ -715,7 +770,17 @@ class SBPOptionsFlow(OptionsFlow):
         self._pending.update(self._step_values(step, user_input))
         return await self.async_step_init()
 
+    def _coordinator(self) -> Any | None:
+        """The running coordinator, or None while the entry is not loaded."""
+        runtime = getattr(self._entry, "runtime_data", None)
+        return getattr(runtime, "coordinator", None)
+
     async def async_step_apply(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        coordinator = self._coordinator()
+        if self._reset_charge_rate and coordinator is not None:
+            # Before the entry is created: that reloads the integration, and
+            # the new coordinator reads its observations back from the store.
+            await coordinator.async_reset_charge_observations()
         return self.async_create_entry(data={**self._entry.options, **self._pending})
 
     async def async_step_prices(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -789,14 +854,35 @@ class SBPOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         errors: dict[str, str] = {}
+        coordinator = self._coordinator()
+        model: ChargeRateModel | None = getattr(coordinator, "charge_model", None)
         if user_input is not None:
-            error = _derating_error(self._would_be("derating", user_input))
+            action = user_input.get(CONF_DERATING_ACTION, DERATING_ACTION_KEEP)
+            adopted = None
+            if action == DERATING_ACTION_ADOPT:
+                adopted = model.adopted_percentages() if model is not None else None
+                if adopted is None:
+                    errors["base"] = "derating_nothing_learned"
+                else:
+                    user_input = {
+                        **user_input,
+                        **dict(zip(DERATING_CURVE_KEYS, adopted, strict=True)),
+                    }
+            error = errors.get("base") or _derating_error(self._would_be("derating", user_input))
             if error:
                 errors["base"] = error
+            elif adopted is not None:
+                # Back to the form rather than the menu: the sliders now show
+                # what was adopted, and can still be adjusted before saving.
+                self._pending.update(self._step_values("derating", user_input))
             else:
+                self._reset_charge_rate = action == DERATING_ACTION_RESET
                 return await self._save_step("derating", user_input)
         return self.async_show_form(
-            step_id="derating", data_schema=schema_derating(self._merged), errors=errors
+            step_id="derating",
+            data_schema=schema_derating(self._merged),
+            errors=errors,
+            description_placeholders={"bands": derating_overview(model)},
         )
 
     async def async_step_reserve(

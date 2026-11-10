@@ -35,6 +35,7 @@ from .const import (
     CONF_CAPACITY_KWH,
     CONF_CHARGE_DERATING,
     CONF_CONSUMPTION_ENTITY,
+    CONF_DERATING_USE_LEARNED,
     CONF_DISCHARGE_MODE,
     CONF_DRY_RUN,
     CONF_EFFICIENCY,
@@ -67,6 +68,7 @@ from .const import (
     DEFAULT_BACKUP_RESERVE,
     DEFAULT_CHARGE_DERATING,
     DEFAULT_DERATING_CURVE,
+    DEFAULT_DERATING_USE_LEARNED,
     DEFAULT_DISCHARGE_MODE,
     DEFAULT_DRY_RUN,
     DEFAULT_EFFICIENCY,
@@ -290,7 +292,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         )
         self.entry = entry
         self.forecaster = ConsumptionForecaster()
-        self.charge_model = ChargeRateModel(self._derating_curve())
+        self.charge_model = ChargeRateModel(self._derating_curve(), self._use_learned())
         # Battery temperature entity already warned about as unreadable; reset
         # once it reads again, so a later outage is reported afresh.
         self._warned_battery_temperature = False
@@ -388,6 +390,16 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
     def derating_enabled(self) -> bool:
         return bool(self.conf(CONF_CHARGE_DERATING, DEFAULT_CHARGE_DERATING))
 
+    def _use_learned(self) -> bool:
+        return bool(self.conf(CONF_DERATING_USE_LEARNED, DEFAULT_DERATING_USE_LEARNED))
+
+    async def async_reset_charge_observations(self) -> None:
+        """Forget what forced charge slots have shown, and say so on disk -
+        the options dialog reloads the entry right after."""
+        self.charge_model.clear()
+        self._open_charge = None
+        await self.async_persist()
+
     def _derating_curve(self) -> Curve:
         return curve_from_percentages(
             [
@@ -426,7 +438,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         if stored and stored.get("charge_rate"):
             try:
                 self.charge_model = ChargeRateModel.from_dict(
-                    stored["charge_rate"], self._derating_curve()
+                    stored["charge_rate"], self._derating_curve(), self._use_learned()
                 )
             except (AttributeError, KeyError, TypeError, ValueError) as err:
                 _LOGGER.warning("Could not restore charge rate observations: %s", err)

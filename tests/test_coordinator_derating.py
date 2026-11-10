@@ -15,6 +15,7 @@ from smart_battery_pilot.const import (
     CONF_CHARGE_DERATING,
     CONF_DERATING_0C,
     CONF_DERATING_5C,
+    CONF_DERATING_USE_LEARNED,
 )
 from smart_battery_pilot.forecast.charge_rate import ChargeSample
 
@@ -386,3 +387,26 @@ def test_the_planning_inputs_line_carries_the_charge_factor(caplog):
         r.getMessage() for r in caplog.records if r.getMessage().startswith("Planning inputs")
     ]
     assert "charge factor 0.150 (curve) at battery 2.5 °C" in line
+
+
+def test_switching_the_learned_values_off_plans_with_the_curve_again():
+    samples = [ChargeSample(3.0, 0.4, True, datetime(2026, 1, 10, tzinfo=UTC))] * 6
+    on = _coordinator(_hass_with_prices(temp=2.5), **DERATING)
+    off = _coordinator(
+        _hass_with_prices(temp=2.5), **DERATING, **{CONF_DERATING_USE_LEARNED: False}
+    )
+    for coordinator in (on, off):
+        for sample in samples:
+            coordinator.charge_model.add_sample(sample)
+    assert on.charge_factor()[:2] == (pytest.approx(0.4), "learned")
+    assert off.charge_factor()[:2] == (pytest.approx(0.15), "curve")
+
+
+def test_resetting_forgets_the_observations_and_writes_the_store():
+    coordinator = _coordinator(_hass_with_prices(temp=2.5), **DERATING)
+    coordinator.charge_model.add_sample(
+        ChargeSample(3.0, 0.4, True, datetime(2026, 1, 10, tzinfo=UTC))
+    )
+    _run(coordinator.async_reset_charge_observations())
+    assert coordinator.charge_model.samples == ()
+    assert coordinator._store_payload()["charge_rate"] == {"samples": []}

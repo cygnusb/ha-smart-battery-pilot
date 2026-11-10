@@ -215,6 +215,7 @@
       },
       "derating": {
         "title": "Laden bij kou",
+        "description": "Tot nu toe geleerd, per temperatuurband van de batterij: schuifcurve → **gemeten waarde** (gemeten laadslots / waarvan met minder vermogen dan gevraagd). Een band geldt als geleerd na zes begrensde slots.\n\n{bands}",
         "data": {
           "charge_derating": "Plannen met verlaagd laadvermogen bij kou",
           "battery_temperature_entity": "Entiteit voor batterijtemperatuur",
@@ -222,7 +223,9 @@
           "derating_5c": "Laadvermogen bij 5 °C",
           "derating_10c": "Laadvermogen bij 10 °C",
           "derating_15c": "Laadvermogen bij 15 °C",
-          "derating_20c": "Laadvermogen bij 20 °C en hoger"
+          "derating_20c": "Laadvermogen bij 20 °C en hoger",
+          "derating_use_learned": "Plannen met de geleerde waarden",
+          "derating_action": "Geleerde waarden"
         },
         "data_description": {
           "charge_derating": "De planner gaat ervan uit dat een koude batterij minder dan het maximale laadvermogen opneemt en plant meer goedkope laadperiodes in. Een periode die tot de koudegrens is gepland, vraagt het laadscript nog steeds om het volle vermogen; het BMS van de batterij begrenst, niet de piloot.",
@@ -231,7 +234,9 @@
           "derating_5c": "Percentage van het maximale laadvermogen dat de batterij opneemt bij 5 °C.",
           "derating_10c": "Percentage van het maximale laadvermogen dat de batterij opneemt bij 10 °C.",
           "derating_15c": "Percentage van het maximale laadvermogen dat de batterij opneemt bij 15 °C.",
-          "derating_20c": "Percentage van het maximale laadvermogen bij 20 °C en warmer. Meestal 100 %."
+          "derating_20c": "Percentage van het maximale laadvermogen bij 20 °C en warmer. Meestal 100 %.",
+          "derating_use_learned": "Aan: een geleerde band vervangt de schuifcurve voor die temperatuur. Uit: alleen de schuifregelaars tellen; het meten gaat door en de waarden blijven hier zichtbaar.",
+          "derating_action": "“Overnemen” schrijft de gemeten waarden in de schuifregelaars, waar je ze vóór het opslaan nog kunt aanpassen. “Verwerpen” wist bij het opslaan alle metingen, bijvoorbeeld na een batterijwissel of een verkeerde temperatuursensor."
         }
       },
       "reserve": {
@@ -284,7 +289,8 @@
       "ev_external_needs_entity": "Het beleid 'Extern' heeft een entiteit voor externe regeling nodig.",
       "evcc_url_required": "Voer het evcc-adres in.",
       "evcc_unreachable": "evcc antwoordde niet op dit adres. Controleer het adres en of evcc draait.",
-      "currency_mismatch": "Deze sensor levert prijzen in {sensor_currency}, maar de valuta van Home Assistant is {ha_currency}. Prijzen worden niet omgerekend, dus alles zou als {ha_currency} worden gelabeld en gedimensioneerd. Wijzig eerst de valuta onder Instellingen → Systeem → Algemeen, of verstuur opnieuw om toch door te gaan."
+      "currency_mismatch": "Deze sensor levert prijzen in {sensor_currency}, maar de valuta van Home Assistant is {ha_currency}. Prijzen worden niet omgerekend, dus alles zou als {ha_currency} worden gelabeld en gedimensioneerd. Wijzig eerst de valuta onder Instellingen → Systeem → Algemeen, of verstuur opnieuw om toch door te gaan.",
+      "derating_nothing_learned": "Er is nog niets geleerd: geen enkele temperatuurband heeft zes laadslots waarin de batterij minder opnam dan gevraagd."
     }
   },
   "selector": {
@@ -305,6 +311,13 @@
       "options": {
         "none": "Geen",
         "evcc": "evcc"
+      }
+    },
+    "derating_action": {
+      "options": {
+        "keep": "Laten zoals ze zijn",
+        "adopt": "Overnemen in de schuifregelaars",
+        "reset": "Alle metingen verwerpen"
       }
     }
   },

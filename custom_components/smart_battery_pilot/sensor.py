@@ -385,6 +385,8 @@ class ConfigSensor(SBPEntity, SensorEntity):
             "charge_factor_source": self._derating().get("source"),
             "charge_rate_learning": self._learning_state(),
             "learned_bands": self.coordinator.charge_model.learned_band_count,
+            "use_learned_charge_rate": self.coordinator.charge_model.use_learned,
+            "charge_rate_bands": self.coordinator.charge_model.bands(),
             "reserve_soc": self._reserve().get("soc"),
             "reserve_source": self._reserve().get("source", "off"),
             "reserve_block_discharge": self.coordinator.reserve_block_enabled(),

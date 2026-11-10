@@ -215,6 +215,7 @@
       },
       "derating": {
         "title": "Lataus kylmällä",
+        "description": "Tähän mennessä opittu, akun lämpötila-alueittain: liukusäädinkäyrä → **mitattu arvo** (mitatut latausjaksot / joista akku otti pyydettyä vähemmän). Alue katsotaan opituksi kuuden rajoitetun jakson jälkeen.\n\n{bands}",
         "data": {
           "charge_derating": "Suunnittele kylmällä alennetulla latausteholla",
           "battery_temperature_entity": "Akun lämpötilan entiteetti",
@@ -222,7 +223,9 @@
           "derating_5c": "Latausteho 5 °C:ssa",
           "derating_10c": "Latausteho 10 °C:ssa",
           "derating_15c": "Latausteho 15 °C:ssa",
-          "derating_20c": "Latausteho 20 °C:ssa ja yli"
+          "derating_20c": "Latausteho 20 °C:ssa ja yli",
+          "derating_use_learned": "Suunnittele opituilla arvoilla",
+          "derating_action": "Opitut arvot"
         },
         "data_description": {
           "charge_derating": "Suunnittelija olettaa, että kylmä akku ottaa vastaan vähemmän kuin suurimman lataustehon, ja suunnittelee enemmän edullisia latausjaksoja. Kylmärajaan asti suunniteltu jakso pyytää latausskriptiltä edelleen täyttä tehoa; rajoituksen hoitaa akun BMS, ei pilotti.",
@@ -231,7 +234,9 @@
           "derating_5c": "Prosentti suurimmasta lataustehosta, jonka akku ottaa vastaan 5 °C:ssa.",
           "derating_10c": "Prosentti suurimmasta lataustehosta, jonka akku ottaa vastaan 10 °C:ssa.",
           "derating_15c": "Prosentti suurimmasta lataustehosta, jonka akku ottaa vastaan 15 °C:ssa.",
-          "derating_20c": "Prosentti suurimmasta lataustehosta 20 °C:ssa ja lämpimämmässä. Yleensä 100 %."
+          "derating_20c": "Prosentti suurimmasta lataustehosta 20 °C:ssa ja lämpimämmässä. Yleensä 100 %.",
+          "derating_use_learned": "Päällä: opittu alue korvaa liukusäädinkäyrän kyseisessä lämpötilassa. Pois: vain liukusäätimet ratkaisevat; mittaus jatkuu ja arvot näkyvät edelleen tässä.",
+          "derating_action": "”Ota käyttöön” kirjoittaa mitatut arvot liukusäätimiin, joissa voit vielä muuttaa niitä ennen tallennusta. ”Hylkää” poistaa tallennettaessa kaikki mittaukset, esimerkiksi akun vaihdon tai väärän lämpötila-anturin jälkeen."
         }
       },
       "reserve": {
@@ -284,7 +289,8 @@
       "ev_external_needs_entity": "'Ulkoinen'-käytäntö tarvitsee ulkoisen ohjauksen entiteetin.",
       "evcc_url_required": "Anna evcc-osoite.",
       "evcc_unreachable": "evcc ei vastannut tässä osoitteessa. Tarkista osoite ja että evcc on käynnissä.",
-      "currency_mismatch": "Tämä sensori ilmoittaa hinnat valuutassa {sensor_currency}, mutta Home Assistantin valuutta on {ha_currency}. Hintoja ei muunneta, joten kaikki merkittäisiin ja mitoitettaisiin valuutassa {ha_currency}. Vaihda ensin valuutta kohdassa Asetukset → Järjestelmä → Yleiset tai lähetä uudelleen jatkaaksesi silti."
+      "currency_mismatch": "Tämä sensori ilmoittaa hinnat valuutassa {sensor_currency}, mutta Home Assistantin valuutta on {ha_currency}. Hintoja ei muunneta, joten kaikki merkittäisiin ja mitoitettaisiin valuutassa {ha_currency}. Vaihda ensin valuutta kohdassa Asetukset → Järjestelmä → Yleiset tai lähetä uudelleen jatkaaksesi silti.",
+      "derating_nothing_learned": "Mitään ei ole vielä opittu: millään lämpötila-alueella ei ole kuutta latausjaksoa, joissa akku otti pyydettyä vähemmän."
     }
   },
   "selector": {
@@ -305,6 +311,13 @@
       "options": {
         "none": "Ei mitään",
         "evcc": "evcc"
+      }
+    },
+    "derating_action": {
+      "options": {
+        "keep": "Jätä ennalleen",
+        "adopt": "Ota liukusäätimiin",
+        "reset": "Hylkää kaikki mittaukset"
       }
     }
   },

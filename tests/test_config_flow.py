@@ -9,7 +9,7 @@ pinning down.
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from types import SimpleNamespace
 
 from homeassistant.config_entries import AbortFlow, ConfigEntry
@@ -23,6 +23,8 @@ from smart_battery_pilot.const import (
     CONF_CAPACITY_KWH,
     CONF_CHARGE_DERATING,
     CONF_CONSUMPTION_ENTITY,
+    CONF_DERATING_ACTION,
+    CONF_DERATING_USE_LEARNED,
     CONF_DISCHARGE_MODE,
     CONF_DRY_RUN,
     CONF_EFFICIENCY,
@@ -55,6 +57,9 @@ from smart_battery_pilot.const import (
     CONF_TRAINING_DAYS,
     DEFAULT_DERATING_CURVE,
     DEFAULT_TRAINING_DAYS,
+    DERATING_ACTION_ADOPT,
+    DERATING_ACTION_KEEP,
+    DERATING_ACTION_RESET,
     DERATING_CURVE_KEYS,
     DISCHARGE_MODE_EXPORT,
     DISCHARGE_MODE_SELF_CONSUMPTION,
@@ -577,6 +582,127 @@ def test_a_battery_temperature_without_device_class_can_be_picked():
 
 
 # --- backup reserve -------------------------------------------------------------
+
+
+class _FakeCoordinator:
+    """Just what the derating step and apply touch."""
+
+    def __init__(self, samples=()):
+        from smart_battery_pilot.forecast.charge_rate import (
+            ChargeRateModel,
+            curve_from_percentages,
+        )
+
+        self.charge_model = ChargeRateModel(curve_from_percentages(DEFAULT_DERATING_CURVE))
+        for sample in samples:
+            self.charge_model.add_sample(sample)
+        self.resets = 0
+
+    async def async_reset_charge_observations(self):
+        self.resets += 1
+        self.charge_model.clear()
+
+
+def _learned_samples(count=6, temperature=12.0, ratio=0.74):
+    from smart_battery_pilot.forecast.charge_rate import ChargeSample
+
+    at = datetime(2026, 1, 10, 3, 0, tzinfo=UTC)
+    return [ChargeSample(temperature, ratio, True, at) for _ in range(count)]
+
+
+def _entry_with_coordinator(coordinator, **options) -> ConfigEntry:
+    entry = _entry(**options)
+    entry.runtime_data = SimpleNamespace(coordinator=coordinator)
+    return entry
+
+
+def test_the_derating_form_shows_what_was_learned():
+    entry = _entry_with_coordinator(_FakeCoordinator(_learned_samples()))
+    form = _run(_options_flow(_FakeHass(), entry).async_step_derating())
+    bands = form["description_placeholders"]["bands"]
+    assert "10..15 °C: 65 % → **74 %** (6 / 6)" in bands
+    # Bands without a single measurement are listed too, as not learned.
+    assert "0..5 °C: 15 % → **-** (0 / 0)" in bands
+
+
+def test_the_derating_form_works_without_a_loaded_entry():
+    form = _run(_options_flow(_FakeHass(), _entry()).async_step_derating())
+    assert form["description_placeholders"] == {"bands": "-"}
+
+
+def test_using_the_learned_values_is_on_by_default_and_can_be_switched_off():
+    defaults = {
+        str(m): m.default()
+        for m in cf.schema_derating({}).schema
+        if callable(getattr(m, "default", None))
+    }
+    assert defaults[CONF_DERATING_USE_LEARNED] is True
+    assert defaults[CONF_DERATING_ACTION] == DERATING_ACTION_KEEP
+
+    flow = _options_flow(_FakeHass(), _entry())
+    _run(flow.async_step_derating({**_derating_input(), CONF_DERATING_USE_LEARNED: False}))
+    assert _run(flow.async_step_apply())["data"][CONF_DERATING_USE_LEARNED] is False
+
+
+def test_the_chosen_action_is_never_stored():
+    flow = _options_flow(_FakeHass(), _entry())
+    _run(flow.async_step_derating({**_derating_input(), CONF_DERATING_ACTION: "keep"}))
+    assert CONF_DERATING_ACTION not in _run(flow.async_step_apply())["data"]
+
+
+def test_adopting_fills_the_sliders_and_shows_the_form_again():
+    coordinator = _FakeCoordinator(_learned_samples())
+    flow = _options_flow(_FakeHass(), _entry_with_coordinator(coordinator))
+    result = _run(
+        flow.async_step_derating({**_derating_input(), CONF_DERATING_ACTION: DERATING_ACTION_ADOPT})
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {}
+    adopted = coordinator.charge_model.adopted_percentages()
+    shown = {
+        str(m): m.default()
+        for m in result["data_schema"].schema
+        if callable(getattr(m, "default", None))
+    }
+    assert [shown[k] for k in DERATING_CURVE_KEYS] == adopted
+    assert shown[CONF_DERATING_ACTION] == DERATING_ACTION_KEEP
+    applied = _run(flow.async_step_apply())["data"]
+    assert [applied[k] for k in DERATING_CURVE_KEYS] == adopted
+    assert coordinator.resets == 0
+
+
+def test_adopting_with_nothing_learned_is_refused():
+    flow = _options_flow(_FakeHass(), _entry_with_coordinator(_FakeCoordinator()))
+    result = _run(
+        flow.async_step_derating({**_derating_input(), CONF_DERATING_ACTION: DERATING_ACTION_ADOPT})
+    )
+    assert result["errors"] == {"base": "derating_nothing_learned"}
+
+
+def test_discarding_happens_on_apply_not_before():
+    coordinator = _FakeCoordinator(_learned_samples())
+    flow = _options_flow(_FakeHass(), _entry_with_coordinator(coordinator))
+    result = _run(
+        flow.async_step_derating({**_derating_input(), CONF_DERATING_ACTION: DERATING_ACTION_RESET})
+    )
+    assert result["type"] == "menu"
+    assert coordinator.resets == 0
+    _run(flow.async_step_apply())
+    assert coordinator.resets == 1
+    assert coordinator.charge_model.samples == ()
+
+
+def test_changing_ones_mind_cancels_the_discard():
+    coordinator = _FakeCoordinator(_learned_samples())
+    flow = _options_flow(_FakeHass(), _entry_with_coordinator(coordinator))
+    _run(
+        flow.async_step_derating({**_derating_input(), CONF_DERATING_ACTION: DERATING_ACTION_RESET})
+    )
+    _run(
+        flow.async_step_derating({**_derating_input(), CONF_DERATING_ACTION: DERATING_ACTION_KEEP})
+    )
+    _run(flow.async_step_apply())
+    assert coordinator.resets == 0
 
 
 def test_the_reserve_section_sits_between_derating_and_apply():

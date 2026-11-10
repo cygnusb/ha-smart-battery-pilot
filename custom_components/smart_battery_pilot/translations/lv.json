@@ -215,6 +215,7 @@
       },
       "derating": {
         "title": "Uzlāde aukstumā",
+        "description": "Līdz šim apgūtais pa akumulatora temperatūras joslām: slīdņu līkne → **izmērītā vērtība** (izmērītie uzlādes intervāli / no tiem ar mazāku jaudu nekā prasīts). Josla tiek uzskatīta par apgūtu pēc sešiem ierobežotiem intervāliem.\n\n{bands}",
         "data": {
           "charge_derating": "Plānot ar samazinātu uzlādes jaudu aukstumā",
           "battery_temperature_entity": "Akumulatora temperatūras entītija",
@@ -222,7 +223,9 @@
           "derating_5c": "Uzlādes jauda pie 5 °C",
           "derating_10c": "Uzlādes jauda pie 10 °C",
           "derating_15c": "Uzlādes jauda pie 15 °C",
-          "derating_20c": "Uzlādes jauda pie 20 °C un augstāk"
+          "derating_20c": "Uzlādes jauda pie 20 °C un augstāk",
+          "derating_use_learned": "Plānot ar apgūtajām vērtībām",
+          "derating_action": "Apgūtās vērtības"
         },
         "data_description": {
           "charge_derating": "Plānotājs pieņem, ka auksts akumulators pieņem mazāk nekā maksimālo uzlādes jaudu, un ieplāno vairāk lētu uzlādes periodu. Līdz aukstuma robežai ieplānots periods joprojām pieprasa uzlādes skriptam pilnu jaudu; ierobežošanu veic akumulatora BMS, nevis pilots.",
@@ -231,7 +234,9 @@
           "derating_5c": "Procenti no maksimālās uzlādes jaudas, ko akumulators pieņem pie 5 °C.",
           "derating_10c": "Procenti no maksimālās uzlādes jaudas, ko akumulators pieņem pie 10 °C.",
           "derating_15c": "Procenti no maksimālās uzlādes jaudas, ko akumulators pieņem pie 15 °C.",
-          "derating_20c": "Procenti no maksimālās uzlādes jaudas pie 20 °C un siltākā laikā. Parasti 100 %."
+          "derating_20c": "Procenti no maksimālās uzlādes jaudas pie 20 °C un siltākā laikā. Parasti 100 %.",
+          "derating_use_learned": "Ieslēgts: apgūta josla šai temperatūrai aizstāj slīdņu līkni. Izslēgts: tiek ņemti vērā tikai slīdņi; mērīšana turpinās, un vērtības joprojām ir redzamas šeit.",
+          "derating_action": "„Pārņemt“ ieraksta izmērītās vērtības slīdņos, kur tās pirms saglabāšanas vēl var pielāgot. „Atmest“ saglabājot izdzēš visus mērījumus, piemēram, pēc akumulatora nomaiņas vai nepareiza temperatūras sensora."
         }
       },
       "reserve": {
@@ -284,7 +289,8 @@
       "ev_external_needs_entity": "Politikai 'Ārējā' nepieciešama ārējās vadības entītija.",
       "evcc_url_required": "Ievadi evcc adresi.",
       "evcc_unreachable": "evcc neatbildēja šajā adresē. Pārbaudi adresi un vai evcc darbojas.",
-      "currency_mismatch": "Šis sensors norāda cenas valūtā {sensor_currency}, bet Home Assistant valūta ir {ha_currency}. Cenas netiek konvertētas, tāpēc viss tiktu apzīmēts un mērogots kā {ha_currency}. Vispirms nomainiet valūtu sadaļā Iestatījumi → Sistēma → Vispārīgi vai iesniedziet vēlreiz, lai tomēr turpinātu."
+      "currency_mismatch": "Šis sensors norāda cenas valūtā {sensor_currency}, bet Home Assistant valūta ir {ha_currency}. Cenas netiek konvertētas, tāpēc viss tiktu apzīmēts un mērogots kā {ha_currency}. Vispirms nomainiet valūtu sadaļā Iestatījumi → Sistēma → Vispārīgi vai iesniedziet vēlreiz, lai tomēr turpinātu.",
+      "derating_nothing_learned": "Vēl nekas nav apgūts: nevienā temperatūras joslā nav sešu uzlādes intervālu, kuros akumulators uzņēma mazāk nekā prasīts."
     }
   },
   "selector": {
@@ -305,6 +311,13 @@
       "options": {
         "none": "Nav",
         "evcc": "evcc"
+      }
+    },
+    "derating_action": {
+      "options": {
+        "keep": "Atstāt, kā ir",
+        "adopt": "Pārņemt slīdņos",
+        "reset": "Atmest visus mērījumus"
       }
     }
   },
