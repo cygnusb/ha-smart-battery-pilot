@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 import logging
 import math
 from typing import Any, NamedTuple
@@ -606,32 +606,50 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             if ev_forecast is not None
             else [(0.0, None)] * len(slots)
         )
+
+        def forecast(start: datetime, end: datetime, hours: float) -> tuple[float, float, bool]:
+            """Consumption and PV in kWh for one interval; True if PV is from the curve.
+
+            Shared by the price slots and by the hours of the 24 h totals that
+            lie beyond them, so both are forecast the same way.
+            """
+            # Hour of day and weekday are read in local time: a price source
+            # that stamps its slots in UTC would otherwise shift the
+            # consumption profile and the PV curve by the UTC offset.
+            local_start = start.astimezone(now.tzinfo)
+            consumption = self.forecaster.predict_kwh(local_start, hours, temperature)
+            if pv_hourly is not None and pv_hourly.covers(start, end):
+                return consumption, pv_hourly.kwh(start, end), True
+            pv = pv_kwh_for_slot(
+                local_start,
+                hours,
+                pv_today,
+                pv_tomorrow,
+                now,
+                sunrise_hour=sunrise_hour,
+                sunset_hour=sunset_hour,
+            )
+            return consumption, pv, False
+
+        # The 24 h totals cover 24 real hours from the start of the first
+        # slot. Timestamps, not datetimes: adding a timedelta to a datetime in
+        # a DST-observing zone is wall-clock arithmetic, an hour off across a
+        # switch.
+        window_end = slots[0].start.timestamp() + 24 * 3600.0
         input_slots: list[InputSlot] = []
         consumption_24h = 0.0
         pv_24h = 0.0
         hourly_slots = 0
         for index, slot in enumerate(slots):
-            # Hour of day and weekday are read in local time: a price source
-            # that stamps its slots in UTC would otherwise shift the
-            # consumption profile and the PV curve by the UTC offset.
-            local_start = slot.start.astimezone(now.tzinfo)
-            consumption = self.forecaster.predict_kwh(local_start, slot.hours, temperature)
-            if pv_hourly is not None and pv_hourly.covers(slot.start, slot.end):
-                pv = pv_hourly.kwh(slot.start, slot.end)
+            consumption, pv, from_curve = forecast(slot.start, slot.end, slot.hours)
+            if from_curve:
                 hourly_slots += 1
-            else:
-                pv = pv_kwh_for_slot(
-                    local_start,
-                    slot.hours,
-                    pv_today,
-                    pv_tomorrow,
-                    now,
-                    sunrise_hour=sunrise_hour,
-                    sunset_hour=sunset_hour,
-                )
-            if slot.start < now + timedelta(hours=24):
-                consumption_24h += consumption
-                pv_24h += pv
+            slot_start, slot_end = slot.start.timestamp(), slot.end.timestamp()
+            if slot_start < window_end and slot_end > slot_start:
+                # A slot reaching past the window counts with the part inside.
+                share = (min(slot_end, window_end) - slot_start) / (slot_end - slot_start)
+                consumption_24h += consumption * share
+                pv_24h += pv * share
             ev_kwh = ev_per_slot[index][0]
             input_slots.append(
                 InputSlot(
@@ -642,6 +660,26 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
                     battery_blocked=self._ev_blocks_battery(ev_kwh, slot.hours, ev_forecast),
                 )
             )
+
+        # Tomorrow's day-ahead prices only arrive in the early afternoon. Until
+        # then the price horizon ends at midnight, and totals summed over price
+        # slots alone would read about half a day every morning and jump when
+        # the prices come in. The rest of the window is forecast the same way,
+        # in steps of the last slot's length; the planner never sees it.
+        step = slots[-1].hours * 3600.0
+        if step <= 0:
+            step = 3600.0
+        cursor = slots[-1].end.timestamp()
+        while cursor < window_end:
+            until = min(cursor + step, window_end)
+            consumption, pv, _ = forecast(
+                datetime.fromtimestamp(cursor, UTC),
+                datetime.fromtimestamp(until, UTC),
+                (until - cursor) / 3600.0,
+            )
+            consumption_24h += consumption
+            pv_24h += pv
+            cursor = until
 
         battery = BatteryState(
             capacity_kwh=float(self.conf(CONF_CAPACITY_KWH, 10.0)),
