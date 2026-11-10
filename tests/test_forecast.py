@@ -1,9 +1,11 @@
 """Tests for consumption and PV forecasting."""
 
 from datetime import datetime, timedelta, timezone
+import math
 
 import pytest
 
+from smart_battery_pilot.forecast import consumption
 from smart_battery_pilot.forecast.consumption import (
     MIN_REGRESSION_SAMPLES,
     ConsumptionForecaster,
@@ -12,6 +14,10 @@ from smart_battery_pilot.forecast.consumption import (
 from smart_battery_pilot.forecast.pv import pv_kwh_for_slot
 
 TZ = timezone(timedelta(hours=2))
+
+# Enough history for the ridge regression, too little to hold two weeks back
+# and compare it with the profile: these tests are about the ridge itself.
+RIDGE_ONLY_DAYS = 20
 
 
 def _synthetic_samples(days: int, with_temp: bool = False) -> list[TrainingSample]:
@@ -46,7 +52,7 @@ def test_profile_fallback_with_few_days():
 
 def test_ridge_with_enough_days():
     forecaster = ConsumptionForecaster()
-    forecaster.train(_synthetic_samples(days=30))
+    forecaster.train(_synthetic_samples(days=RIDGE_ONLY_DAYS))
     assert forecaster.model_type == "ridge_regression"
 
     evening = forecaster.predict_kwh(datetime(2026, 6, 8, 19, 30, tzinfo=TZ), 1.0)
@@ -75,7 +81,7 @@ def test_empty_training_uses_default():
 
 def test_heat_pump_flag_uses_sparse_temperature():
     """has_heat_pump forces the heating-demand feature even with few temp samples."""
-    samples = _synthetic_samples(days=30, with_temp=False)
+    samples = _synthetic_samples(days=RIDGE_ONLY_DAYS, with_temp=False)
     for i, s in enumerate(samples):
         if i % 5 == 0:
             samples[i] = TrainingSample(start=s.start, kwh=s.kwh, temperature=5.0)
@@ -90,7 +96,7 @@ def test_heat_pump_flag_uses_sparse_temperature():
 
 def test_roundtrip_serialization():
     forecaster = ConsumptionForecaster()
-    forecaster.train(_synthetic_samples(days=30, with_temp=True))
+    forecaster.train(_synthetic_samples(days=RIDGE_ONLY_DAYS, with_temp=True))
     restored = ConsumptionForecaster.from_dict(forecaster.to_dict())
     when = datetime(2026, 6, 8, 19, 0, tzinfo=TZ)
     assert restored.predict_kwh(when, 1.0, temperature=5.0) == pytest.approx(
@@ -139,8 +145,8 @@ def test_frozen_meter_samples_are_dropped():
     the inverter data keeps flowing; those hours reach training as genuine
     zeroes and the model learns an afternoon hole that is not there.
     """
-    clean = _synthetic_samples(days=30)
-    poisoned = _with_frozen_hours(clean, range(13, 18), days=20)
+    clean = _synthetic_samples(days=RIDGE_ONLY_DAYS)
+    poisoned = _with_frozen_hours(clean, range(13, 18), days=13)
 
     good = ConsumptionForecaster()
     good.train(clean)
@@ -159,7 +165,7 @@ def test_frozen_meter_samples_are_dropped():
 
 def test_exact_zero_samples_never_train():
     forecaster = ConsumptionForecaster()
-    samples = _synthetic_samples(days=30)
+    samples = _synthetic_samples(days=RIDGE_ONLY_DAYS)
     forecaster.train(samples + [TrainingSample(s.start, 0.0, None) for s in samples])
     assert forecaster.sample_count == len(samples)
 
@@ -181,7 +187,7 @@ def test_retraining_on_a_shorter_history_drops_the_ridge_model():
     prediction kept answering from a model fitted to the old sensor.
     """
     forecaster = ConsumptionForecaster()
-    forecaster.train(_synthetic_samples(days=30))
+    forecaster.train(_synthetic_samples(days=RIDGE_ONLY_DAYS))
     assert forecaster.model_type == "ridge_regression"
 
     # New entity: five days of a household drawing twice as much.
@@ -196,9 +202,169 @@ def test_retraining_on_a_shorter_history_drops_the_ridge_model():
 def test_restored_model_ignores_weights_that_its_sample_count_cannot_justify():
     """Stored weights below the regression threshold are stale by definition."""
     forecaster = ConsumptionForecaster()
-    forecaster.train(_synthetic_samples(days=30))
+    forecaster.train(_synthetic_samples(days=RIDGE_ONLY_DAYS))
     stored = forecaster.to_dict()
     stored["sample_count"] = MIN_REGRESSION_SAMPLES - 1
 
     restored = ConsumptionForecaster.from_dict(stored)
     assert restored.model_type == "hourly_profile"
+
+
+# --- model selection by holdout skill ---------------------------------------------
+
+
+def _history(days: int, kwh_at, temp_at=None) -> list[TrainingSample]:
+    start = datetime(2026, 4, 1, 0, 0, tzinfo=TZ)
+    samples = []
+    for d in range(days):
+        for h in range(24):
+            temp = temp_at(d, h) if temp_at else None
+            samples.append(
+                TrainingSample(start + timedelta(days=d, hours=h), kwh_at(d, h, temp), temp)
+            )
+    return samples
+
+
+def _block_history(days: int = 40) -> list[TrainingSample]:
+    """Flat base load plus a two-hour appliance run at 13:00 every day."""
+    return _history(days, lambda d, h, temp: 0.3 + (2.0 if h in (13, 14) else 0.0))
+
+
+def _temperature_history(days: int = 40) -> list[TrainingSample]:
+    """Smooth daily wave plus heating that grows as the weeks get colder."""
+
+    def temp_at(d: int, h: int) -> float:
+        slow = 12.0 - 0.35 * d + 3.0 * math.sin(2 * math.pi * d / 9)
+        return slow + 2.0 * math.sin(2 * math.pi * (h - 9) / 24)
+
+    def kwh_at(d: int, h: int, temp: float) -> float:
+        wave = 0.2 * math.sin(2 * math.pi * (h - 6) / 24)
+        return 0.6 + wave + 0.15 * max(0.0, 15.0 - temp)
+
+    return _history(days, kwh_at, temp_at)
+
+
+def _ridge_of(forecaster: ConsumptionForecaster, when: datetime) -> float:
+    """What the fitted ridge says, whichever model is selected."""
+    return consumption._ridge_kwh_per_hour(
+        forecaster._weights, forecaster._uses_temperature, when, None
+    )
+
+
+def test_a_sharp_daily_block_selects_the_profile():
+    """Two harmonics cannot draw a two-hour block; the profile can."""
+    forecaster = ConsumptionForecaster()
+    forecaster.train(_block_history())
+
+    assert forecaster.model_type == "hourly_profile"
+    errors = forecaster.holdout_mae
+    assert errors["hourly_profile"] < errors["ridge_regression"]
+
+    block = datetime(2026, 6, 8, 13, 0, tzinfo=TZ)
+    before = datetime(2026, 6, 8, 10, 0, tzinfo=TZ)
+    assert forecaster.predict_kwh(block, 1.0) == pytest.approx(2.3, abs=0.05)
+    assert forecaster.predict_kwh(before, 1.0) == pytest.approx(0.3, abs=0.05)
+    # The ridge is still fitted, and smears the block over the hours around it.
+    assert abs(_ridge_of(forecaster, block) - 2.3) > 0.5
+    assert abs(_ridge_of(forecaster, before) - 0.3) > 0.2
+
+
+def test_a_temperature_driven_load_keeps_the_ridge():
+    """The profile only knows the hour; a cold spell needs the temperature."""
+    forecaster = ConsumptionForecaster()
+    forecaster.train(_temperature_history())
+
+    assert forecaster.model_type == "ridge_regression"
+    errors = forecaster.holdout_mae
+    assert errors["ridge_regression"] < errors["hourly_profile"]
+
+    when = datetime(2026, 6, 8, 12, 0, tzinfo=TZ)
+    cold = forecaster.predict_kwh(when, 1.0, temperature=-5.0)
+    mild = forecaster.predict_kwh(when, 1.0, temperature=14.0)
+    assert cold > mild + 1.0
+
+
+def test_no_comparison_without_two_weeks_to_hold_back():
+    """Below the comparison threshold the ridge is used exactly as before."""
+    forecaster = ConsumptionForecaster()
+    forecaster.train(_block_history(days=27))
+
+    assert forecaster.model_type == "ridge_regression"
+    assert forecaster.holdout_mae is None
+
+
+def test_a_tie_keeps_the_ridge(monkeypatch):
+    monkeypatch.setattr(consumption, "_mean_abs_error", lambda predict, samples: 0.1)
+    forecaster = ConsumptionForecaster()
+    forecaster.train(_block_history())
+
+    assert forecaster.holdout_mae == {"ridge_regression": 0.1, "hourly_profile": 0.1}
+    assert forecaster.model_type == "ridge_regression"
+
+
+def test_out_of_order_samples_are_split_by_time():
+    ordered = ConsumptionForecaster()
+    ordered.train(_block_history())
+    shuffled = ConsumptionForecaster()
+    shuffled.train(list(reversed(_block_history())))
+
+    assert shuffled.model_type == ordered.model_type
+    assert shuffled.holdout_mae == pytest.approx(ordered.holdout_mae)
+
+
+def test_retraining_on_a_shorter_history_drops_the_selection():
+    forecaster = ConsumptionForecaster()
+    forecaster.train(_block_history())
+    assert forecaster.model_type == "hourly_profile"
+
+    forecaster.train(_block_history(days=RIDGE_ONLY_DAYS))
+
+    assert forecaster.model_type == "ridge_regression"
+    assert forecaster.holdout_mae is None
+
+
+def test_selection_survives_a_round_trip():
+    forecaster = ConsumptionForecaster()
+    forecaster.train(_block_history())
+
+    restored = ConsumptionForecaster.from_dict(forecaster.to_dict())
+
+    assert restored.model_type == "hourly_profile"
+    assert restored.holdout_mae == forecaster.holdout_mae
+    block = datetime(2026, 6, 8, 13, 0, tzinfo=TZ)
+    assert restored.predict_kwh(block, 1.0) == pytest.approx(forecaster.predict_kwh(block, 1.0))
+
+    ridge = ConsumptionForecaster()
+    ridge.train(_temperature_history())
+    restored = ConsumptionForecaster.from_dict(ridge.to_dict())
+    assert restored.model_type == "ridge_regression"
+    assert restored.holdout_mae == ridge.holdout_mae
+
+
+def test_stored_model_without_a_selection_loads_as_ridge():
+    """A model stored before the comparison existed keeps predicting as it did."""
+    forecaster = ConsumptionForecaster()
+    forecaster.train(_block_history())
+    stored = forecaster.to_dict()
+    del stored["selected_model"]
+    del stored["holdout_mae"]
+
+    restored = ConsumptionForecaster.from_dict(stored)
+
+    assert restored.model_type == "ridge_regression"
+    assert restored.holdout_mae is None
+    block = datetime(2026, 6, 8, 13, 0, tzinfo=TZ)
+    assert restored.predict_kwh(block, 1.0) == pytest.approx(_ridge_of(forecaster, block))
+
+
+def test_unknown_stored_selection_is_ignored():
+    forecaster = ConsumptionForecaster()
+    forecaster.train(_block_history())
+    stored = forecaster.to_dict()
+    stored["selected_model"] = "something_else"
+    stored["holdout_mae"] = "nonsense"
+
+    restored = ConsumptionForecaster.from_dict(stored)
+
+    assert restored.model_type == "ridge_regression"
+    assert restored.holdout_mae is None

@@ -108,7 +108,17 @@ The forecast model:
 * **Day 1+**: weighted hourly profile (weekday/weekend, recent days count more).
 * **After ~14 days of history**: ridge regression with cyclic hour-of-day,
   weekend and temperature features (pure Python, no extra dependencies).
-* Retrained automatically every 24 h; the model is persisted across restarts.
+* **After ~4 weeks of history**: whichever of the two forecasts better. Both
+  are fitted on everything but the last 14 days and scored on those days by
+  their mean absolute error per hour; the lower error wins, the regression on
+  a tie. A load that follows the outdoor temperature favours the regression,
+  a sharp block at the same time every day (an appliance on a timer) favours
+  the profile, which the regression's smooth daily curve cannot draw. The
+  `model_type` attribute of the plan status and consumption forecast sensors
+  names the model in use; the plan status sensor and the diagnostics dump
+  also carry both errors as `model_holdout_mae`.
+* Retrained automatically every 24 h, which repeats the comparison; the model
+  is persisted across restarts.
 * Pointing the integration at a different consumption sensor starts the history
   over, so the forecast falls back to the profile until the new sensor has ~14
   days of its own — the regression is never carried over from the old one.
