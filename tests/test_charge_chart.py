@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from xml.etree import ElementTree
 
 from smart_battery_pilot.forecast.charge_chart import (
+    INK,
     LEARNED,
     SLIDERS,
     derating_image_markdown,
@@ -54,10 +55,10 @@ def test_a_learned_model_adds_its_curve_and_one_dot_per_slot():
     # Bold between 4 and 12 °C where it was measured, thin on either side.
     widths = [p.get("stroke-width") for p in _curves(root, LEARNED)]
     assert widths == ["1.25", "3.0", "1.25"]
-    dots = root.findall(f".//{SVG}circle")
-    assert len(dots) == 7
-    # Slots the battery took in full are hollow: they only bound the limit.
-    assert sum(1 for dot in dots if dot.get("fill") == "none") == 1
+    # One dot per slot the battery limited. The slot it took in full is a
+    # triangle: it only says the limit lies at least there.
+    assert len(root.findall(f".//{SVG}circle")) == 6
+    assert len(_curves(root, INK)) == 1
 
 
 def test_observations_without_a_fit_are_drawn_without_a_learned_curve():
@@ -75,7 +76,7 @@ def test_the_battery_temperature_is_marked_when_known():
 
 
 def test_the_window_widens_to_cold_and_hot_observations():
-    samples = [ChargeSample(-12.0, 0.1, True, AT), ChargeSample(38.0, 1.0, False, AT)]
+    samples = [ChargeSample(-12.0, 0.1, True, AT), ChargeSample(38.0, 1.0, True, AT)]
     root = _parse(derating_svg(_model(samples), -15.0))
     width = float(root.get("width"))
     for dot in root.findall(f".//{SVG}circle"):
@@ -90,3 +91,10 @@ def test_the_markdown_image_carries_the_svg():
     assert svg == derating_svg(_learned())
     # No whitespace or bracket that would end the Markdown link early.
     assert not set(markdown[len(prefix) : -1]) & set(" \n()")
+
+
+def test_no_learned_curve_is_drawn_when_the_temperature_explains_nothing():
+    limited = [ChargeSample(t, 0.70, True, AT) for t in (8.0, 10.0, 11.0, 12.0, 12.5, 13.0)]
+    model = _model([*limited, ChargeSample(9.0, 0.90, False, AT)])
+    assert model.ranges()
+    assert _curves(_parse(derating_svg(model)), LEARNED) == []

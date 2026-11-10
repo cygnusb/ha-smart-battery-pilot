@@ -215,7 +215,7 @@
       },
       "derating": {
         "title": "Laadimine külmaga",
-        "description": "**Sinine joon:** millega planeerija õpitud väärtuste põhjal arvestab, peenike seal, kus midagi pole veel mõõdetud ja väärtus on hinnatud sinu liugurite põhjal. **Oranž, katkendlik:** sinu liugurid. **Punktid:** mõõdetud laadimisvahemikud; täidetud, kui aku võttis nõutust vähem, tühjad, kui aku võttis kõik. **Püstjoon:** aku praegune temperatuur.\n\n{chart}\n\nSeni mõõdetud: {measured} laadimisvahemikku, neist {limited} aku poolt piiratud. Õppimine algab kuuest piiratud vahemikust. Õpitud temperatuurivahemikud (laadimiste arv):\n\n{bands}",
+        "description": "**Sinine joon:** millega planeerija õpitud väärtuste põhjal arvestab, peenike seal, kus midagi pole veel mõõdetud ja väärtus on hinnatud sinu liugurite põhjal. **Oranž, katkendlik:** sinu liugurid. **Punktid:** laadimisvahemikud, mida aku piiras. **Kolmnurgad:** vahemikud, kus aku võttis kõik nõutu, seega on piir vähemalt seal. **Püstjoon:** aku praegune temperatuur.\n\n{chart}\n\nSeni mõõdetud: {measured} laadimisvahemikku, neist {limited} aku poolt piiratud. Õppimine algab kuuest piiratud vahemikust. Õpitud temperatuurivahemikud (laadimiste arv):\n\n{bands}\n\n{flag}Piiratud vahemikud, millele räägib vastu külmem vahemik, mis võttis selgelt rohkem: {conflicts}/{limited}. Alates kolmest ja vähemalt poolest ei selgita temperatuur piiri. Piloot planeerib siis sinu liugurite järgi ega joonista sinist joont.",
         "data": {
           "charge_derating": "Arvesta külmaga vähendatud laadimisvõimsusega",
           "battery_temperature_entity": "Aku temperatuuri olem",

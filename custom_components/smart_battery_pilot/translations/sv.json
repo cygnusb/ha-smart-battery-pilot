@@ -215,7 +215,7 @@
       },
       "derating": {
         "title": "Laddning i kyla",
-        "description": "**Blå linje:** vad planeraren räknar med utifrån de inlärda värdena, tunn där inget har mätts ännu och värdet är uppskattat utifrån dina reglage. **Orange, streckad:** dina reglage. **Punkter:** uppmätta laddpass; fyllda där batteriet tog mindre än begärt, ihåliga där det tog allt. **Lodrät linje:** batteriets temperatur just nu.\n\n{chart}\n\nUppmätt hittills: {measured} laddpass, varav {limited} begränsade av batteriet. Inlärningen börjar vid sex begränsade pass. Inlärda temperaturområden (antal pass):\n\n{bands}",
+        "description": "**Blå linje:** vad planeraren räknar med utifrån de inlärda värdena, tunn där inget har mätts ännu och värdet är uppskattat utifrån dina reglage. **Orange, streckad:** dina reglage. **Punkter:** laddpass som batteriet begränsade. **Trianglar:** pass där det tog allt som begärdes, så gränsen ligger minst där. **Lodrät linje:** batteriets temperatur just nu.\n\n{chart}\n\nUppmätt hittills: {measured} laddpass, varav {limited} begränsade av batteriet. Inlärningen börjar vid sex begränsade pass. Inlärda temperaturområden (antal pass):\n\n{bands}\n\n{flag}Begränsade pass som motsägs av ett kallare pass som tog tydligt mer: {conflicts} av {limited}. Från tre, och minst hälften, förklarar temperaturen inte gränsen. Piloten planerar då med dina reglage och ritar ingen blå linje.",
         "data": {
           "charge_derating": "Planera med reducerad laddeffekt i kyla",
           "battery_temperature_entity": "Entitet för batteritemperatur",

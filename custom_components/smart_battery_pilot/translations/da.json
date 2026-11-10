@@ -215,7 +215,7 @@
       },
       "derating": {
         "title": "Opladning i kulde",
-        "description": "**Blå linje:** det, planlæggeren regner med ud fra de lærte værdier, tynd hvor der endnu ikke er målt noget og værdien er anslået ud fra dine skydere. **Orange, stiplet:** dine skydere. **Punkter:** målte ladeslots; udfyldt, hvor batteriet tog mindre end anmodet, hule, hvor det tog det hele. **Lodret linje:** batteriets temperatur lige nu.\n\n{chart}\n\nMålt indtil nu: {measured} ladeslots, heraf {limited} begrænset af batteriet. Læringen begynder ved seks begrænsede slots. Lærte temperaturområder (antal slots):\n\n{bands}",
+        "description": "**Blå linje:** det, planlæggeren regner med ud fra de lærte værdier, tynd hvor der endnu ikke er målt noget og værdien er anslået ud fra dine skydere. **Orange, stiplet:** dine skydere. **Punkter:** ladeslots, som batteriet begrænsede. **Trekanter:** slots, hvor det tog alt det anmodede, så grænsen ligger mindst der. **Lodret linje:** batteriets temperatur lige nu.\n\n{chart}\n\nMålt indtil nu: {measured} ladeslots, heraf {limited} begrænset af batteriet. Læringen begynder ved seks begrænsede slots. Lærte temperaturområder (antal slots):\n\n{bands}\n\n{flag}Begrænsede slots, som modsiges af en koldere slot, der tog tydeligt mere: {conflicts} af {limited}. Fra tre, og mindst halvdelen, forklarer temperaturen ikke grænsen. Piloten planlægger da med dine skydere og tegner ingen blå linje.",
         "data": {
           "charge_derating": "Planlæg med reduceret ladeeffekt i kulde",
           "battery_temperature_entity": "Entitet for batteritemperatur",

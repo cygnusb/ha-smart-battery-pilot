@@ -160,6 +160,19 @@ def test_the_config_sensor_says_when_the_curve_stays_for_good():
     assert _config_attributes(coord_off)["charge_rate_learning"] == "off"
 
 
+def test_the_config_sensor_says_when_the_temperature_explains_nothing():
+    coord = _coordinator(_hass_with_prices(temp=12.0), **DERATING)
+    at = datetime(2026, 1, 15, tzinfo=UTC)
+    for t in (8.0, 10.0, 11.0, 12.0, 12.5, 13.0):
+        coord.charge_model.add_sample(ChargeSample(t, 0.70, True, at))
+    coord.charge_model.add_sample(ChargeSample(9.0, 0.90, False, at))
+    attrs = _config_attributes(coord)
+    assert attrs["charge_rate_learning"] == "temperature_mismatch"
+    assert attrs["charge_rate_conflicts"] == 5
+    # The sliders plan: 62 % at 12 °C, not the 70 % that was fitted.
+    assert coord.charge_factor()[:2] == (pytest.approx(0.62), "curve")
+
+
 # --- observations -----------------------------------------------------------------
 
 from datetime import timedelta  # noqa: E402

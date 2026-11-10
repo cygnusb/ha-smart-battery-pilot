@@ -234,11 +234,26 @@ A single slot can form a range of its own when it lies colder and lower, or
 warmer and higher, than all others - the number behind each range tells how
 much stands behind it.
 
+**When the temperature does not explain the limit.** Some batteries limit
+the charge power by something the configured sensor does not show - the
+coldest cell rather than the average, for instance. The measurements then
+contradict each other: the same limit at 8 and at 13 °C, and full power at
+9 °C. A limited slot counts as contradicted when a slot at the same or a lower
+temperature took at least 10 percentage points more. With three contradicted
+slots that are at least half of the limited ones, the pilot stops planning
+with the learned curve and uses the sliders. The dialog marks the count with a
+warning sign and draws no learned curve; the configuration sensor shows
+`charge_rate_learning: temperature_mismatch`. Measuring continues, and the
+verdict lifts on its own once the contradicted slots are a minority. After
+switching to a better temperature sensor, discard the measurements: the old
+ones carry the old sensor's temperatures.
+
 **Seeing and steering what was learned.** The section in the options dialog
 draws it: the learned curve as a blue line (bold where it was measured, thin
 where the sliders stand in), the sliders as a dashed
-orange line, one dot per measured charge slot (filled: the battery took less
-than requested, hollow: it took everything) and a vertical line at the
+orange line, a dot for every charge slot the battery limited, a small
+triangle for every slot in which it took all that was asked (the limit lies
+at least there) and a vertical line at the
 current battery temperature. Below the chart the learned ranges are listed
 with their limit and the number of slots behind each.
 
@@ -252,8 +267,8 @@ applies either way. It is the way to freeze a measured curve — adopt, then
 switch "Plan with the learned values" off.
 
 The configuration sensor shows `charge_factor`, its source (`curve`,
-`learned`, `no_temperature`), whether learning is `active` or has
-`no_charge_meter`, whether the learned values are used, the number of learned
+`learned`, `no_temperature`), whether learning is `active`, has
+`no_charge_meter` or found a `temperature_mismatch`, whether the learned values are used, the number of learned
 ranges (`learned_bands`) and the ranges themselves (`charge_rate_bands`, each
 with `from_c`, `to_c`, the learned limit and its number of slots). The
 diagnostics dump lists the same ranges.

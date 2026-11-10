@@ -386,6 +386,7 @@ class ConfigSensor(SBPEntity, SensorEntity):
             "charge_factor_source": self._derating().get("source"),
             "charge_rate_learning": self._learning_state(),
             "learned_bands": self.coordinator.charge_model.learned_band_count,
+            "charge_rate_conflicts": self.coordinator.charge_model.conflicts(),
             "use_learned_charge_rate": self.coordinator.charge_model.use_learned,
             "charge_rate_bands": self.coordinator.charge_model.bands(),
             "reserve_soc": self._reserve().get("soc"),
@@ -399,10 +400,17 @@ class ConfigSensor(SBPEntity, SensorEntity):
         }
 
     def _learning_state(self) -> str:
-        """off | active | no_charge_meter (the curve then stays for good)."""
+        """off | active | temperature_mismatch | no_charge_meter.
+
+        temperature_mismatch: slots are measured, but the temperature does
+        not explain them, so the sliders plan. no_charge_meter: nothing can
+        be measured, the sliders stay for good.
+        """
         if not self.coordinator.derating_enabled():
             return "off"
         if self.coordinator.conf(CONF_BATTERY_CHARGE_ENERGY_ENTITY):
+            if not self.coordinator.charge_model.explained:
+                return "temperature_mismatch"
             return "active"
         return "no_charge_meter"
 

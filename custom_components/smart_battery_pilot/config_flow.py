@@ -348,6 +348,8 @@ def derating_placeholders(
     `bands`: one Markdown line per learned temperature range, a dash while
     nothing is learned. `measured` / `limited`: how many charge slots were
     observed and in how many the battery took less than requested.
+    `conflicts`: limited slots a colder slot contradicts; `flag` marks the
+    sentence about them once the temperature no longer explains the limit.
 
     The sliders are the ones the dialog currently holds, saved or not, so the
     picture follows an adoption or an edit made a moment ago.
@@ -371,6 +373,8 @@ def derating_placeholders(
         "bands": "\n".join(lines) or "\\-",
         "measured": str(measured),
         "limited": str(limited),
+        "conflicts": str(shown.conflicts()),
+        "flag": "" if shown.explained else "⚠️ ",
     }
 
 

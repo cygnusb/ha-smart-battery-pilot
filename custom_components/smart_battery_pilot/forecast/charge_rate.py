@@ -40,6 +40,14 @@ CURVE_TEMPERATURES: tuple[float, ...] = (0.0, 5.0, 10.0, 15.0, 20.0)
 MIN_LEARNED_SAMPLES = 6
 # Neighbouring ranges this close are one range: the difference is noise.
 MERGE_TOLERANCE = 0.03
+# A limited slot is contradicted when a slot at the same or a lower temperature
+# took this much more of the max charge power: a colder battery never takes
+# more, so something other than this temperature set the limit.
+CONFLICT_MARGIN = 0.10
+# This many contradicted slots, and at least half of the limited ones, and the
+# temperature does not explain the limit. One slot that started late is
+# contradicted on its own, hence the floor.
+MIN_CONFLICTS = 3
 MAX_SAMPLES = 400
 # Batteries age, and so does their cold behaviour.
 MAX_SAMPLE_AGE = timedelta(days=730)
@@ -156,6 +164,7 @@ class ChargeRateModel:
         self._samples: list[ChargeSample] = []
         # The fit is asked for many times per plan and per chart.
         self._ranges: list[LearnedRange] | None = None
+        self._conflicts: int | None = None
 
     @property
     def samples(self) -> tuple[ChargeSample, ...]:
@@ -169,10 +178,12 @@ class ChargeRateModel:
         """Forget every observation - after a battery swap or a wrong sensor."""
         self._samples = []
         self._ranges = None
+        self._conflicts = None
 
     def _prune(self) -> None:
         """Drop samples past the age limit (from the newest one) and the cap."""
         self._ranges = None
+        self._conflicts = None
         if not self._samples:
             return
         self._samples.sort(key=lambda s: s.at)
@@ -211,7 +222,7 @@ class ChargeRateModel:
         """Share of the max charge power the battery takes at `temperature`."""
         if temperature is None:
             return 1.0
-        if not self.use_learned:
+        if not self.applies:
             return curve_factor(self.curve, temperature)
         return self.measured_factor(temperature)
 
@@ -237,10 +248,42 @@ class ChargeRateModel:
             return max(warmest.factor, curve_factor(self.curve, temperature))
         return _step_value(ranges, temperature)
 
+    def conflicts(self) -> int:
+        """Limited slots contradicted by a colder slot that took clearly more."""
+        if self._conflicts is None:
+            self._conflicts = sum(
+                1
+                for limited in self._samples
+                if limited.saturated
+                and any(
+                    other.temperature <= limited.temperature
+                    and min(1.0, other.ratio) >= limited.ratio + CONFLICT_MARGIN
+                    for other in self._samples
+                )
+            )
+        return self._conflicts
+
+    @property
+    def explained(self) -> bool:
+        """Whether the temperature explains what was measured.
+
+        A battery that limits to the same power at 8 and 13 °C and takes full
+        power at 9 °C is limited by something this sensor does not show. A
+        curve over the temperature would then be a guess with a confident
+        face, so the planner falls back to the sliders.
+        """
+        found = self.conflicts()
+        return not (found >= MIN_CONFLICTS and found * 2 >= self.counts()[1])
+
+    @property
+    def applies(self) -> bool:
+        """Whether the planner uses what was learned."""
+        return self.use_learned and self.explained
+
     def source(self, temperature: float | None) -> str:
         if temperature is None:
             return SOURCE_OFF
-        ranges = self.ranges() if self.use_learned else []
+        ranges = self.ranges() if self.applies else []
         if not ranges:
             return SOURCE_CURVE
         if ranges[0].low <= temperature <= ranges[-1].high:
@@ -252,7 +295,7 @@ class ChargeRateModel:
 
     def bands(self) -> list[dict[str, Any]]:
         """The learned ranges for the sensor attributes and the diagnostics."""
-        in_use = SOURCE_LEARNED if self.use_learned else SOURCE_CURVE
+        in_use = SOURCE_LEARNED if self.applies else SOURCE_CURVE
         return [
             {
                 "from_c": r.low,
