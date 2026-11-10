@@ -215,7 +215,7 @@
       },
       "derating": {
         "title": "Laden bei Kälte",
-        "description": "Bisher gelernt, je Temperaturband der Batterie: Reglerkurve → **Messwert** (gemessene Ladeslots / davon mit weniger Leistung als angefordert). Ein Band gilt nach sechs begrenzten Slots als gelernt.\n\n{bands}",
+        "description": "**Blaue Linie:** womit der Planer mit den gelernten Werten rechnet, dünn dort, wo noch nichts gemessen wurde und aus deinen Reglern geschätzt wird. **Orange, gestrichelt:** deine Regler. **Punkte:** gemessene Ladeslots; gefüllt, wenn die Batterie weniger als angefordert aufgenommen hat, hohl, wenn sie alles aufgenommen hat. **Senkrechte Linie:** die aktuelle Batterietemperatur.\n\n{chart}\n\nBisher gemessen: {measured} Ladeslots, davon {limited} von der Batterie begrenzt. Gelernt wird ab sechs begrenzten Slots. Gelernte Temperaturbereiche (Anzahl Slots):\n\n{bands}",
         "data": {
           "charge_derating": "Reduzierte Ladeleistung bei Kälte einplanen",
           "battery_temperature_entity": "Batterietemperatur-Entität",
@@ -235,7 +235,7 @@
           "derating_10c": "Prozent der maximalen Ladeleistung, die die Batterie bei 10 °C aufnimmt.",
           "derating_15c": "Prozent der maximalen Ladeleistung, die die Batterie bei 15 °C aufnimmt.",
           "derating_20c": "Prozent der maximalen Ladeleistung bei 20 °C und wärmer. Meist 100 %.",
-          "derating_use_learned": "An: Ein gelerntes Band ersetzt für diese Temperatur die Reglerkurve. Aus: Es zählen nur die Regler; gemessen wird weiter, und die Werte bleiben hier sichtbar.",
+          "derating_use_learned": "An: Der Planer rechnet mit der gelernten Kurve (blau). Aus: Es zählen nur die Regler; gemessen wird weiter, und die Werte bleiben hier sichtbar.",
           "derating_action": "„Übernehmen“ schreibt die Messwerte in die Regler, wo du sie vor dem Speichern noch anpassen kannst. „Verwerfen“ löscht beim Speichern alle Messungen, etwa nach einem Batterietausch oder einem falschen Temperatursensor."
         }
       },
@@ -290,7 +290,7 @@
       "evcc_url_required": "Gib die evcc-Adresse ein.",
       "evcc_unreachable": "evcc hat unter dieser Adresse nicht geantwortet. Prüfe die Adresse und ob evcc läuft.",
       "currency_mismatch": "Dieser Sensor liefert Preise in {sensor_currency}, Home Assistant ist aber auf {ha_currency} eingestellt. Preise werden nicht umgerechnet, daher wäre alles als {ha_currency} beschriftet und bemessen. Ändere zuerst die Währung unter Einstellungen → System → Allgemein oder sende das Formular erneut ab, um trotzdem fortzufahren.",
-      "derating_nothing_learned": "Noch nichts gelernt: Kein Temperaturband hat sechs Ladeslots, in denen die Batterie weniger als angefordert aufgenommen hat."
+      "derating_nothing_learned": "Noch nichts gelernt: weniger als sechs Ladeslots, in denen die Batterie weniger als angefordert aufgenommen hat."
     }
   },
   "selector": {

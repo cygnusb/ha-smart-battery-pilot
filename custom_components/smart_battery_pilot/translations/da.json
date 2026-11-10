@@ -215,7 +215,7 @@
       },
       "derating": {
         "title": "Opladning i kulde",
-        "description": "Lært indtil nu, pr. temperaturbånd for batteriet: skyderkurve → **målt værdi** (målte ladeslots / heraf med mindre effekt end anmodet). Et bånd regnes som lært efter seks begrænsede slots.\n\n{bands}",
+        "description": "**Blå linje:** det, planlæggeren regner med ud fra de lærte værdier, tynd hvor der endnu ikke er målt noget og værdien er anslået ud fra dine skydere. **Orange, stiplet:** dine skydere. **Punkter:** målte ladeslots; udfyldt, hvor batteriet tog mindre end anmodet, hule, hvor det tog det hele. **Lodret linje:** batteriets temperatur lige nu.\n\n{chart}\n\nMålt indtil nu: {measured} ladeslots, heraf {limited} begrænset af batteriet. Læringen begynder ved seks begrænsede slots. Lærte temperaturområder (antal slots):\n\n{bands}",
         "data": {
           "charge_derating": "Planlæg med reduceret ladeeffekt i kulde",
           "battery_temperature_entity": "Entitet for batteritemperatur",
@@ -235,7 +235,7 @@
           "derating_10c": "Procent af den maksimale ladeeffekt, som batteriet modtager ved 10 °C.",
           "derating_15c": "Procent af den maksimale ladeeffekt, som batteriet modtager ved 15 °C.",
           "derating_20c": "Procent af den maksimale ladeeffekt ved 20 °C og varmere. Normalt 100 %.",
-          "derating_use_learned": "Til: et lært bånd erstatter skyderkurven for den temperatur. Fra: kun skyderne tæller; der måles fortsat, og værdierne vises stadig her.",
+          "derating_use_learned": "Til: planlæggeren bruger den lærte kurve (blå). Fra: kun skyderne tæller; der måles fortsat, og værdierne vises stadig her.",
           "derating_action": "“Overtag” skriver de målte værdier ind i skyderne, hvor du stadig kan justere dem, før du gemmer. “Kassér” sletter alle målinger, når du gemmer, f.eks. efter et batteriskift eller en forkert temperatursensor."
         }
       },
@@ -290,7 +290,7 @@
       "evcc_url_required": "Indtast evcc-adressen.",
       "evcc_unreachable": "evcc svarede ikke på denne adresse. Kontrollér adressen, og at evcc kører.",
       "currency_mismatch": "Denne sensor rapporterer priser i {sensor_currency}, men Home Assistants valuta er {ha_currency}. Priser omregnes ikke, så alt ville blive mærket og dimensioneret som {ha_currency}. Skift først valutaen under Indstillinger → System → Generelt, eller indsend igen for at fortsætte alligevel.",
-      "derating_nothing_learned": "Der er endnu ikke lært noget: intet temperaturbånd har seks ladeslots, hvor batteriet tog mindre end anmodet."
+      "derating_nothing_learned": "Der er endnu ikke lært noget: færre end seks ladeslots, hvor batteriet tog mindre end anmodet."
     }
   },
   "selector": {

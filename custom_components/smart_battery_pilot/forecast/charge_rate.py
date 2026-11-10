@@ -1,11 +1,24 @@
 """Charge power a cold battery actually accepts.
 
-Two sources per 5 °C band: the curve the user set with five sliders, and what
-forced charge slots have shown the battery to take. A band switches from the
-curve to the learned value once it holds enough observations in which the
-battery took clearly less than it was asked for - only those measure the
-limit. Observations where it took everything are lower bounds: they can raise
-a learned band but never learn one on their own.
+Two sources: the curve the user set with five sliders, and what forced charge
+slots have shown the battery to take.
+
+The learned curve is fitted to the single observations, not to fixed
+temperature bands. A BMS often limits in steps - one current limit up to some
+cell temperature, full power above it - and a 5 °C grid blurs exactly the edge
+that matters. The fit is the best curve that never falls with rising
+temperature (isotonic regression on medians, so one bad slot does not bend
+it); where it is flat it yields a temperature range with one value, and those
+ranges begin and end where the observations do.
+
+Only slots in which the battery took clearly less than it was asked for
+measure the limit. A slot in which it took everything is a lower bound: it
+counts where it lies *above* what the limited slots say, and never learns
+anything on its own.
+
+Outside the observed temperatures the sliders stay in charge; the fit only
+bounds them (never more than the coldest learned limit below it, never less
+than the warmest above it).
 
 The factor is a planning assumption only. The pilot never asks the battery for
 less power because of it; the BMS does the throttling.
@@ -19,17 +32,17 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from itertools import pairwise
-import math
 import statistics
 from typing import Any
 
 CURVE_TEMPERATURES: tuple[float, ...] = (0.0, 5.0, 10.0, 15.0, 20.0)
-BAND_WIDTH = 5.0
-MIN_BAND_SAMPLES = 6
+# Limited slots needed before anything counts as learned.
+MIN_LEARNED_SAMPLES = 6
+# Neighbouring ranges this close are one range: the difference is noise.
+MERGE_TOLERANCE = 0.03
 MAX_SAMPLES = 400
 # Batteries age, and so does their cold behaviour.
 MAX_SAMPLE_AGE = timedelta(days=730)
-LOWER_BOUND_QUANTILE = 0.75
 
 SOURCE_OFF = "off"
 SOURCE_CURVE = "curve"
@@ -65,17 +78,61 @@ def curve_factor(curve: Curve, temperature: float) -> float:
     return curve[-1][1]
 
 
-def band_of(temperature: float) -> float:
-    """Lower bound of the 5 °C band the temperature falls into."""
-    return math.floor(temperature / BAND_WIDTH) * BAND_WIDTH
+@dataclass(frozen=True, slots=True)
+class LearnedRange:
+    """A stretch of battery temperature with one learned factor."""
+
+    low: float  # °C, coldest observation in the range
+    high: float  # °C, warmest observation in the range
+    factor: float  # share of the max charge power
+    samples: int
 
 
-def _quantile(values: list[float], q: float) -> float:
-    ordered = sorted(values)
-    position = q * (len(ordered) - 1)
-    low = math.floor(position)
-    high = min(low + 1, len(ordered) - 1)
-    return ordered[low] + (ordered[high] - ordered[low]) * (position - low)
+def _isotonic_medians(points: list[tuple[float, float]]) -> list[LearnedRange]:
+    """Best non-decreasing step curve through (temperature, ratio) points.
+
+    Pool-adjacent-violators on medians: wherever a warmer group reads lower
+    than a colder one, the two are pooled and share the median of all their
+    values. The median makes it the least-absolute-error fit, so a single
+    slot that started late or was cut short moves nothing.
+    """
+    blocks: list[tuple[float, float, list[float]]] = []
+    for temperature, ratio in sorted(points):
+        if blocks and blocks[-1][1] == temperature:
+            low, high, values = blocks[-1]
+            blocks[-1] = (low, high, [*values, ratio])
+        else:
+            blocks.append((temperature, temperature, [ratio]))
+        while len(blocks) >= 2 and (
+            statistics.median(blocks[-2][2]) > statistics.median(blocks[-1][2])
+        ):
+            low, _, colder = blocks[-2]
+            _, high, warmer = blocks[-1]
+            blocks[-2:] = [(low, high, colder + warmer)]
+    ranges: list[LearnedRange] = []
+    for low, high, values in blocks:
+        factor = max(0.0, min(1.0, statistics.median(values)))
+        if ranges and factor - ranges[-1].factor <= MERGE_TOLERANCE:
+            previous = ranges[-1]
+            total = previous.samples + len(values)
+            merged = (previous.factor * previous.samples + factor * len(values)) / total
+            ranges[-1] = LearnedRange(previous.low, high, merged, total)
+        else:
+            ranges.append(LearnedRange(low, high, factor, len(values)))
+    return ranges
+
+
+def _step_value(ranges: list[LearnedRange], temperature: float) -> float:
+    """The fitted curve at `temperature`: flat outside, linear between ranges."""
+    if temperature <= ranges[0].low:
+        return ranges[0].factor
+    for colder, warmer in pairwise(ranges):
+        if temperature <= colder.high:
+            return colder.factor
+        if temperature < warmer.low:
+            share = (temperature - colder.high) / (warmer.low - colder.high)
+            return colder.factor + (warmer.factor - colder.factor) * share
+    return ranges[-1].factor
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,6 +154,8 @@ class ChargeRateModel:
         # shown, so the user can compare before trusting them.
         self.use_learned = use_learned
         self._samples: list[ChargeSample] = []
+        # The fit is asked for many times per plan and per chart.
+        self._ranges: list[LearnedRange] | None = None
 
     @property
     def samples(self) -> tuple[ChargeSample, ...]:
@@ -109,38 +168,47 @@ class ChargeRateModel:
     def clear(self) -> None:
         """Forget every observation - after a battery swap or a wrong sensor."""
         self._samples = []
+        self._ranges = None
 
     def _prune(self) -> None:
         """Drop samples past the age limit (from the newest one) and the cap."""
+        self._ranges = None
         if not self._samples:
             return
         self._samples.sort(key=lambda s: s.at)
         cutoff = self._samples[-1].at - MAX_SAMPLE_AGE
         self._samples = [s for s in self._samples if s.at >= cutoff][-MAX_SAMPLES:]
 
-    def _in_band(self, band: float) -> list[ChargeSample]:
-        return [s for s in self._samples if band_of(s.temperature) == band]
+    def ranges(self) -> list[LearnedRange]:
+        """The learned curve as temperature ranges, coldest first; empty while
+        too few slots have shown the battery's limit."""
+        if self._ranges is None:
+            self._ranges = self._fit()
+        return list(self._ranges)
 
-    def learned(self, band: float) -> float | None:
-        """The band's learned factor, or None while it lacks observations."""
-        in_band = self._in_band(band)
-        saturated = [s.ratio for s in in_band if s.saturated]
-        if len(saturated) < MIN_BAND_SAMPLES:
-            return None
-        value = statistics.median(saturated)
-        bounds = [s.ratio for s in in_band if not s.saturated]
-        if bounds:
-            value = max(value, _quantile(bounds, LOWER_BOUND_QUANTILE))
-        return max(0.0, min(1.0, value))
+    def _fit(self) -> list[LearnedRange]:
+        limited = [(s.temperature, s.ratio) for s in self._samples if s.saturated]
+        if len(limited) < MIN_LEARNED_SAMPLES:
+            return []
+        first = _isotonic_medians(limited)
+        # A slot in which the battery took everything says "at least this
+        # much" - and a warmer battery takes no less, so each such slot also
+        # holds for every warmer one: a small request met in full at 12 °C
+        # must not pull down full power seen at 11 °C. Below the fit a bound
+        # is no news; above it, it is evidence the limit lies higher there,
+        # and it joins the fit as a point of its own.
+        bounds: list[tuple[float, float]] = []
+        least = 0.0
+        for sample in sorted(self._samples, key=lambda s: s.temperature):
+            if sample.saturated:
+                continue
+            least = max(least, min(1.0, sample.ratio))
+            if least > _step_value(first, sample.temperature):
+                bounds.append((sample.temperature, least))
+        return _isotonic_medians(limited + bounds) if bounds else first
 
     def factor(self, temperature: float | None) -> float:
-        """Share of the max charge power the battery takes at `temperature`.
-
-        Interpolates between band centres. Where neither neighbouring band is
-        learned the curve applies unchanged, so an empty model is exactly the
-        curve; a learned centre is joined to the curve value at the next one,
-        which keeps the factor continuous.
-        """
+        """Share of the max charge power the battery takes at `temperature`."""
         if temperature is None:
             return 1.0
         if not self.use_learned:
@@ -148,56 +216,70 @@ class ChargeRateModel:
         return self.measured_factor(temperature)
 
     def measured_factor(self, temperature: float) -> float:
-        """The factor with every learned band applied, whatever `use_learned`
-        says - what the planner would use, and what "adopt" writes back."""
-        half = BAND_WIDTH / 2
-        centre_lo = band_of(temperature - half) + half
-        centre_hi = centre_lo + BAND_WIDTH
-        learned_lo = self.learned(band_of(centre_lo))
-        learned_hi = self.learned(band_of(centre_hi))
-        if learned_lo is None and learned_hi is None:
+        """The factor with everything learned applied, whatever `use_learned`
+        says - what the planner would use, and what "adopt" writes back.
+
+        Inside the observed temperatures: the fitted curve. Outside them
+        nothing was measured, so the sliders stay in charge and the fit only
+        bounds them the way physics does: a colder battery never takes more
+        than the coldest learned limit, a warmer one never less than the
+        warmest. That leaves a step at the edge of the measurements - honest
+        about where knowledge ends, and never more optimistic in the cold
+        than what the user set.
+        """
+        ranges = self.ranges()
+        if not ranges:
             return curve_factor(self.curve, temperature)
-        lo = learned_lo if learned_lo is not None else curve_factor(self.curve, centre_lo)
-        hi = learned_hi if learned_hi is not None else curve_factor(self.curve, centre_hi)
-        share = (temperature - centre_lo) / BAND_WIDTH
-        return max(0.0, min(1.0, lo + (hi - lo) * share))
+        coldest, warmest = ranges[0], ranges[-1]
+        if temperature < coldest.low:
+            return min(coldest.factor, curve_factor(self.curve, temperature))
+        if temperature > warmest.high:
+            return max(warmest.factor, curve_factor(self.curve, temperature))
+        return _step_value(ranges, temperature)
 
     def source(self, temperature: float | None) -> str:
         if temperature is None:
             return SOURCE_OFF
-        if self.use_learned and self.learned(band_of(temperature)) is not None:
+        ranges = self.ranges() if self.use_learned else []
+        if not ranges:
+            return SOURCE_CURVE
+        if ranges[0].low <= temperature <= ranges[-1].high:
             return SOURCE_LEARNED
-        return SOURCE_CURVE
+        # Outside the observed temperatures the sliders give the shape; the
+        # value still counts as learned wherever the fit moved it.
+        moved = abs(self.measured_factor(temperature) - curve_factor(self.curve, temperature))
+        return SOURCE_LEARNED if moved > 1e-9 else SOURCE_CURVE
 
-    def bands(self, include: Sequence[float] = ()) -> list[dict[str, Any]]:
-        """Per-band summary: every band with observations, plus `include`."""
-        summary = []
-        for band in sorted({band_of(s.temperature) for s in self._samples} | set(include)):
-            in_band = self._in_band(band)
-            learned = self.learned(band)
-            summary.append(
-                {
-                    "band_c": band,
-                    "samples": len(in_band),
-                    "saturated": sum(1 for s in in_band if s.saturated),
-                    "learned": round(learned, 3) if learned is not None else None,
-                    "curve": round(curve_factor(self.curve, band + BAND_WIDTH / 2), 3),
-                    "in_use": (
-                        SOURCE_LEARNED if self.use_learned and learned is not None else SOURCE_CURVE
-                    ),
-                }
-            )
-        return summary
+    def bands(self) -> list[dict[str, Any]]:
+        """The learned ranges for the sensor attributes and the diagnostics."""
+        in_use = SOURCE_LEARNED if self.use_learned else SOURCE_CURVE
+        return [
+            {
+                "from_c": r.low,
+                "to_c": r.high,
+                "learned": round(r.factor, 3),
+                "samples": r.samples,
+                "curve": round(curve_factor(self.curve, (r.low + r.high) / 2), 3),
+                "in_use": in_use,
+            }
+            for r in self.ranges()
+        ]
+
+    def counts(self) -> tuple[int, int]:
+        """(charge slots measured, of which the battery limited)."""
+        return len(self._samples), sum(1 for s in self._samples if s.saturated)
 
     def adopted_percentages(self) -> list[int] | None:
-        """Slider values that reproduce what was learned, or None if nothing was.
+        """Slider values that come closest to what was learned, or None if
+        nothing was.
 
-        The sliders sit at fixed temperatures, the bands in between: each
-        slider takes the measured factor at its own temperature. A warmer
+        Each slider takes the measured factor at its own temperature. A warmer
         battery never takes less, so a value below its colder neighbour is
-        lifted to it - the flow would refuse a falling curve anyway.
+        lifted to it - the flow would refuse a falling curve anyway. Five
+        points cannot draw a step exactly; that is what planning with the
+        learned values is for.
         """
-        if not any(band["learned"] is not None for band in self.bands()):
+        if not self.ranges():
             return None
         values: list[int] = []
         for temperature in CURVE_TEMPERATURES:
@@ -207,7 +289,7 @@ class ChargeRateModel:
 
     @property
     def learned_band_count(self) -> int:
-        return sum(1 for band in self.bands() if band["learned"] is not None)
+        return len(self.ranges())
 
     def to_dict(self) -> dict[str, Any]:
         return {

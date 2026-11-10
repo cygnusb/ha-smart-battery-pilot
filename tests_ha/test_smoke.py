@@ -252,7 +252,9 @@ async def test_learned_charge_rates_show_up_adopt_and_reset(sbp_hass: HomeAssist
 
     menu = await options.async_init(entry.entry_id)
     form = await options.async_configure(menu["flow_id"], {"next_step_id": "derating"})
-    assert "10..15 °C: 65 % → **74 %** (6 / 6)" in form["description_placeholders"]["bands"]
+    shown = form["description_placeholders"]
+    assert shown["bands"] == "- 12 °C: **74 %** (6)"
+    assert shown["chart"].startswith("![](data:image/svg+xml;base64,")
 
     adopted = await options.async_configure(form["flow_id"], {**curve, "derating_action": "adopt"})
     assert adopted["type"] == "form"

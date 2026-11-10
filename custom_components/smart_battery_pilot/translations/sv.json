@@ -215,7 +215,7 @@
       },
       "derating": {
         "title": "Laddning i kyla",
-        "description": "Hittills inlärt, per temperaturband för batteriet: reglagekurva → **uppmätt värde** (uppmätta laddpass / varav med lägre effekt än begärt). Ett band räknas som inlärt efter sex begränsade pass.\n\n{bands}",
+        "description": "**Blå linje:** vad planeraren räknar med utifrån de inlärda värdena, tunn där inget har mätts ännu och värdet är uppskattat utifrån dina reglage. **Orange, streckad:** dina reglage. **Punkter:** uppmätta laddpass; fyllda där batteriet tog mindre än begärt, ihåliga där det tog allt. **Lodrät linje:** batteriets temperatur just nu.\n\n{chart}\n\nUppmätt hittills: {measured} laddpass, varav {limited} begränsade av batteriet. Inlärningen börjar vid sex begränsade pass. Inlärda temperaturområden (antal pass):\n\n{bands}",
         "data": {
           "charge_derating": "Planera med reducerad laddeffekt i kyla",
           "battery_temperature_entity": "Entitet för batteritemperatur",
@@ -235,7 +235,7 @@
           "derating_10c": "Procent av den maximala laddeffekten som batteriet tar emot vid 10 °C.",
           "derating_15c": "Procent av den maximala laddeffekten som batteriet tar emot vid 15 °C.",
           "derating_20c": "Procent av den maximala laddeffekten vid 20 °C och varmare. Vanligtvis 100 %.",
-          "derating_use_learned": "På: ett inlärt band ersätter reglagekurvan för den temperaturen. Av: bara reglagen räknas; mätningen fortsätter och värdena visas fortfarande här.",
+          "derating_use_learned": "På: planeraren använder den inlärda kurvan (blå). Av: bara reglagen räknas; mätningen fortsätter och värdena visas fortfarande här.",
           "derating_action": "”Överta” skriver in de uppmätta värdena i reglagen, där du fortfarande kan justera dem innan du sparar. ”Förkasta” raderar alla mätningar när du sparar, till exempel efter ett batteribyte eller en felaktig temperatursensor."
         }
       },
@@ -290,7 +290,7 @@
       "evcc_url_required": "Ange evcc-adressen.",
       "evcc_unreachable": "evcc svarade inte på den här adressen. Kontrollera adressen och att evcc körs.",
       "currency_mismatch": "Den här sensorn rapporterar priser i {sensor_currency}, men Home Assistants valuta är {ha_currency}. Priser räknas inte om, så allt skulle märkas och dimensioneras som {ha_currency}. Ändra först valutan under Inställningar → System → Allmänt, eller skicka igen för att fortsätta ändå.",
-      "derating_nothing_learned": "Inget har lärts in ännu: inget temperaturband har sex laddpass där batteriet tog mindre än begärt."
+      "derating_nothing_learned": "Inget har lärts in ännu: färre än sex laddpass där batteriet tog mindre än begärt."
     }
   },
   "selector": {

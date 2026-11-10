@@ -90,7 +90,7 @@ def test_missing_temperature_falls_back_to_one_and_warns_once(caplog):
 
 
 def test_samples_survive_a_restart():
-    hass = _hass_with_prices(temp=2.5)
+    hass = _hass_with_prices(temp=3.0)
     coord = _coordinator(hass, **DERATING)
     at = datetime(2026, 1, 15, tzinfo=UTC)
     for _ in range(6):
@@ -391,15 +391,15 @@ def test_the_planning_inputs_line_carries_the_charge_factor(caplog):
 
 def test_switching_the_learned_values_off_plans_with_the_curve_again():
     samples = [ChargeSample(3.0, 0.4, True, datetime(2026, 1, 10, tzinfo=UTC))] * 6
-    on = _coordinator(_hass_with_prices(temp=2.5), **DERATING)
+    on = _coordinator(_hass_with_prices(temp=3.0), **DERATING)
     off = _coordinator(
-        _hass_with_prices(temp=2.5), **DERATING, **{CONF_DERATING_USE_LEARNED: False}
+        _hass_with_prices(temp=3.0), **DERATING, **{CONF_DERATING_USE_LEARNED: False}
     )
     for coordinator in (on, off):
         for sample in samples:
             coordinator.charge_model.add_sample(sample)
     assert on.charge_factor()[:2] == (pytest.approx(0.4), "learned")
-    assert off.charge_factor()[:2] == (pytest.approx(0.15), "curve")
+    assert off.charge_factor()[:2] == (pytest.approx(0.16), "curve")
 
 
 def test_resetting_forgets_the_observations_and_writes_the_store():

@@ -204,33 +204,59 @@ slots instead of counting on energy the battery will not take.
 
 **Learning.** With a battery charge energy meter configured (battery step),
 every forced charge slot the pilot really runs is measured: how much went
-into the battery compared with what was asked for. Per 5 °C band, once six
-slots have shown the battery taking clearly less than requested, the measured
-value replaces the slider curve for that band. Slots near max SOC (the battery
-tapers because it is full), shorter than 10 minutes, with requests below
-20 % of the max charge power, or with less than 0.2 kWh in under 30 minutes
-(too close to the resolution of typical energy meters) are ignored. Dry-run
-learns nothing, because no charge actually happens.
+into the battery compared with what was asked for. Slots near max SOC (the
+battery tapers because it is full), shorter than 10 minutes, with requests
+below 20 % of the max charge power, or with less than 0.2 kWh in under
+30 minutes (too close to the resolution of typical energy meters) are
+ignored. Dry-run learns nothing, because no charge actually happens.
+
+Once six slots have shown the battery taking clearly less than requested, a
+curve is fitted through the individual measurements, each at the temperature
+it was taken at. There is no fixed grid: the curve consists of temperature
+ranges that begin and end where the measurements do, each with one charge
+limit, for example "4..9 °C: 55 %". Ranges are split where the measurements
+differ and joined where they agree, so a battery whose BMS switches at 10 °C
+shows a step at 10 °C. The rules of the fit:
+
+* The limit never falls with rising temperature.
+* Each range takes the median of its slots, so one odd slot does not bend it.
+* A slot in which the battery took everything it was asked for says only that
+  the limit is at least that high, there and at every warmer temperature. It
+  counts where it lies above the curve and is ignored otherwise.
+* Between two ranges the limit rises in a straight line.
+* Outside the measured temperatures the sliders stay in charge. The curve
+  only bounds them: colder than the coldest measurement the planner never
+  assumes more than the coldest learned limit, warmer than the warmest never
+  less than the warmest learned limit. Where sliders and measurements
+  disagree, that shows as a step at the edge of the measured temperatures.
+
+A single slot can form a range of its own when it lies colder and lower, or
+warmer and higher, than all others - the number behind each range tells how
+much stands behind it.
 
 **Seeing and steering what was learned.** The section in the options dialog
-lists every 5 °C band: the value of the slider curve, the measured value once
-the band is learned, and how many charge slots were measured (and in how many
-of them the battery took less than requested).
+draws it: the learned curve as a blue line (bold where it was measured, thin
+where the sliders stand in), the sliders as a dashed
+orange line, one dot per measured charge slot (filled: the battery took less
+than requested, hollow: it took everything) and a vertical line at the
+current battery temperature. Below the chart the learned ranges are listed
+with their limit and the number of slots behind each.
 
 | Setting | Default | Meaning |
 |---|---|---|
-| Plan with the learned values | on | On: a learned band replaces the slider curve for that temperature. Off: only the sliders count. Measuring continues either way, and the values stay visible. |
-| Learned values | Leave as they are | **Adopt into the sliders** writes the measured values into the five sliders and shows the form again, so you can still adjust them before saving. Each slider takes the measured factor at its own temperature; a value below its colder neighbour is lifted to it. **Discard all measurements** deletes every observation when you save the dialog — use it after a battery swap or when the temperature sensor was wrong. |
+| Plan with the learned values | on | On: the learned curve replaces the slider curve wherever there are measurements. Off: only the sliders count. Measuring continues either way, and the values stay visible. |
+| Learned values | Leave as they are | **Adopt into the sliders** writes the measured values into the five sliders and shows the form again, so you can still adjust them before saving. Each slider takes the learned curve's value at its own temperature. Five sliders cannot hold a step between two of them, so adopting is a coarser copy of the curve. **Discard all measurements** deletes every observation when you save the dialog — use it after a battery swap or when the temperature sensor was wrong. |
 
-With learning on, adopting changes nothing about the plan: the learned bands
-apply either way. It is the way to freeze a measured curve — adopt, then
+With learning on, adopting changes little about the plan: the learned curve
+applies either way. It is the way to freeze a measured curve — adopt, then
 switch "Plan with the learned values" off.
 
 The configuration sensor shows `charge_factor`, its source (`curve`,
 `learned`, `no_temperature`), whether learning is `active` or has
 `no_charge_meter`, whether the learned values are used, the number of learned
-bands and the bands themselves (`charge_rate_bands`). The diagnostics dump
-lists the same bands.
+ranges (`learned_bands`) and the ranges themselves (`charge_rate_bands`, each
+with `from_c`, `to_c`, the learned limit and its number of slots). The
+diagnostics dump lists the same ranges.
 
 ### Backup reserve
 
