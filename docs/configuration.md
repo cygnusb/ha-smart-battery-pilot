@@ -202,6 +202,11 @@ slots instead of counting on energy the battery will not take.
 | Battery temperature entity | – | Cell or module temperature of the battery (not the outdoor sensor). Required when the option is on. °F is converted. If it becomes unavailable, the planner falls back to full charge power and logs one warning. |
 | Charge power at 0 / 5 / 10 / 15 / 20 °C | 10 / 20 / 50 / 80 / 100 % | Percent of the maximum charge power the battery accepts. Linear in between; below 0 °C the 0 °C value applies, above 20 °C the 20 °C value. The values must not fall as the temperature rises. The defaults are a conservative generic LFP curve — check your battery's datasheet. |
 
+The five sliders sit in a collapsible block ("Sliders: charge power by
+temperature"). It is open while the option is still off and folded once it
+is on - the chart shows the sliders as the dashed line either way - and opens
+again right after "Adopt into the sliders".
+
 **Learning.** With a battery charge energy meter configured (battery step),
 every forced charge slot the pilot really runs is measured: how much went
 into the battery compared with what was asked for. Slots near max SOC (the

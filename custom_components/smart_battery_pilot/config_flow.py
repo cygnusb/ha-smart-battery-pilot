@@ -11,6 +11,7 @@ from homeassistant.config_entries import (
     OptionsFlow,
 )
 from homeassistant.core import callback
+from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
@@ -309,7 +310,21 @@ def schema_tuning(d: dict[str, Any], currency: str = DEFAULT_CURRENCY) -> vol.Sc
     )
 
 
-def schema_derating(d: dict[str, Any]) -> vol.Schema:
+# The five sliders sit in one collapsible block of the cold-weather form.
+SECTION_DERATING_CURVE = "derating_curve"
+
+
+def schema_derating(d: dict[str, Any], *, sliders_open: bool | None = None) -> vol.Schema:
+    """The cold-weather form.
+
+    The sliders are a section of their own, because five of them fill a
+    screen. It opens expanded while the option is still off - that is when
+    they are set up - and collapsed afterwards, when the chart above shows
+    them anyway. `sliders_open` overrides that, for the form shown right
+    after an adoption changed them.
+    """
+    if sliders_open is None:
+        sliders_open = not d.get(CONF_CHARGE_DERATING, DEFAULT_CHARGE_DERATING)
     fields: dict[Any, Any] = {
         vol.Required(
             CONF_CHARGE_DERATING, default=d.get(CONF_CHARGE_DERATING, DEFAULT_CHARGE_DERATING)
@@ -319,8 +334,15 @@ def schema_derating(d: dict[str, Any]) -> vol.Schema:
             description=_sugg(d.get(CONF_BATTERY_TEMPERATURE_ENTITY)),
         ): _BATTERY_TEMPERATURE,
     }
-    for key, default in zip(DERATING_CURVE_KEYS, DEFAULT_DERATING_CURVE, strict=True):
-        fields[vol.Required(key, default=d.get(key, default))] = _percent_slider()
+    fields[vol.Required(SECTION_DERATING_CURVE)] = section(
+        vol.Schema(
+            {
+                vol.Required(key, default=d.get(key, default)): _percent_slider()
+                for key, default in zip(DERATING_CURVE_KEYS, DEFAULT_DERATING_CURVE, strict=True)
+            }
+        ),
+        {"collapsed": not sliders_open},
+    )
     fields[
         vol.Required(
             CONF_DERATING_USE_LEARNED,
@@ -870,9 +892,15 @@ class SBPOptionsFlow(OptionsFlow):
         errors: dict[str, str] = {}
         coordinator = self._coordinator()
         model: ChargeRateModel | None = getattr(coordinator, "charge_model", None)
+        adopted = None
         if user_input is not None:
+            # The sliders arrive nested in their section; everything below,
+            # and the stored options, know them as plain fields.
+            user_input = {
+                **{k: v for k, v in user_input.items() if k != SECTION_DERATING_CURVE},
+                **user_input.get(SECTION_DERATING_CURVE, {}),
+            }
             action = user_input.get(CONF_DERATING_ACTION, DERATING_ACTION_KEEP)
-            adopted = None
             if action == DERATING_ACTION_ADOPT:
                 adopted = model.adopted_percentages() if model is not None else None
                 if adopted is None:
@@ -894,7 +922,12 @@ class SBPOptionsFlow(OptionsFlow):
                 return await self._save_step("derating", user_input)
         return self.async_show_form(
             step_id="derating",
-            data_schema=schema_derating(self._merged),
+            # After an adoption (or a refused one) the sliders are what the
+            # user came back to look at.
+            data_schema=schema_derating(
+                self._merged,
+                sliders_open=True if adopted is not None or errors else None,
+            ),
             errors=errors,
             description_placeholders=derating_placeholders(
                 model, self._merged, coordinator.charge_factor()[2] if coordinator else None

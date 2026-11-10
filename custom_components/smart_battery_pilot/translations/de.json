@@ -219,24 +219,27 @@
         "data": {
           "charge_derating": "Reduzierte Ladeleistung bei Kälte einplanen",
           "battery_temperature_entity": "Batterietemperatur-Entität",
-          "derating_0c": "Ladeleistung bei 0 °C und kälter",
-          "derating_5c": "Ladeleistung bei 5 °C",
-          "derating_10c": "Ladeleistung bei 10 °C",
-          "derating_15c": "Ladeleistung bei 15 °C",
-          "derating_20c": "Ladeleistung bei 20 °C und wärmer",
           "derating_use_learned": "Mit den gelernten Werten planen",
           "derating_action": "Gelernte Werte"
         },
         "data_description": {
           "charge_derating": "Der Planer rechnet damit, dass eine kalte Batterie weniger als die maximale Ladeleistung aufnimmt, und plant mehr günstige Ladeslots ein. Ein bis an die Kältegrenze geplanter Slot fordert beim Lade-Skript weiterhin die volle Leistung an; die Drosselung übernimmt das BMS der Batterie, nicht der Pilot.",
           "battery_temperature_entity": "Zellen- oder Modultemperatur der Batterie, nicht die Außentemperatur. Pflicht, wenn die Option aktiv ist.",
-          "derating_0c": "Prozent der maximalen Ladeleistung, die die Batterie bei 0 °C und kälter aufnimmt. Werte stehen im Datenblatt der Batterie.",
-          "derating_5c": "Prozent der maximalen Ladeleistung, die die Batterie bei 5 °C aufnimmt.",
-          "derating_10c": "Prozent der maximalen Ladeleistung, die die Batterie bei 10 °C aufnimmt.",
-          "derating_15c": "Prozent der maximalen Ladeleistung, die die Batterie bei 15 °C aufnimmt.",
-          "derating_20c": "Prozent der maximalen Ladeleistung bei 20 °C und wärmer. Meist 100 %.",
           "derating_use_learned": "An: Der Planer rechnet mit der gelernten Kurve (blau). Aus: Es zählen nur die Regler; gemessen wird weiter, und die Werte bleiben hier sichtbar.",
           "derating_action": "„Übernehmen“ schreibt die Messwerte in die Regler, wo du sie vor dem Speichern noch anpassen kannst. „Verwerfen“ löscht beim Speichern alle Messungen, etwa nach einem Batterietausch oder einem falschen Temperatursensor."
+        },
+        "sections": {
+          "derating_curve": {
+            "name": "Regler: Ladeleistung je Temperatur",
+            "description": "Prozent der maximalen Ladeleistung, die die Batterie bei der jeweiligen Temperatur aufnimmt; dazwischen linear. Die Werte dürfen mit steigender Temperatur nicht fallen. Sie stehen im Datenblatt der Batterie.",
+            "data": {
+              "derating_0c": "Ladeleistung bei 0 °C und kälter",
+              "derating_5c": "Ladeleistung bei 5 °C",
+              "derating_10c": "Ladeleistung bei 10 °C",
+              "derating_15c": "Ladeleistung bei 15 °C",
+              "derating_20c": "Ladeleistung bei 20 °C und wärmer"
+            }
+          }
         }
       },
       "reserve": {

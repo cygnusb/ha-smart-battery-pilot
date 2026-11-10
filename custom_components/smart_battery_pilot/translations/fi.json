@@ -219,24 +219,27 @@
         "data": {
           "charge_derating": "Suunnittele kylmällä alennetulla latausteholla",
           "battery_temperature_entity": "Akun lämpötilan entiteetti",
-          "derating_0c": "Latausteho 0 °C:ssa ja alle",
-          "derating_5c": "Latausteho 5 °C:ssa",
-          "derating_10c": "Latausteho 10 °C:ssa",
-          "derating_15c": "Latausteho 15 °C:ssa",
-          "derating_20c": "Latausteho 20 °C:ssa ja yli",
           "derating_use_learned": "Suunnittele opituilla arvoilla",
           "derating_action": "Opitut arvot"
         },
         "data_description": {
           "charge_derating": "Suunnittelija olettaa, että kylmä akku ottaa vastaan vähemmän kuin suurimman lataustehon, ja suunnittelee enemmän edullisia latausjaksoja. Kylmärajaan asti suunniteltu jakso pyytää latausskriptiltä edelleen täyttä tehoa; rajoituksen hoitaa akun BMS, ei pilotti.",
           "battery_temperature_entity": "Akun kennon tai moduulin lämpötila, ei ulkolämpötila. Pakollinen, kun asetus on päällä.",
-          "derating_0c": "Prosentti suurimmasta lataustehosta, jonka akku ottaa vastaan 0 °C:ssa ja kylmemmässä. Katso akun tuotetiedot.",
-          "derating_5c": "Prosentti suurimmasta lataustehosta, jonka akku ottaa vastaan 5 °C:ssa.",
-          "derating_10c": "Prosentti suurimmasta lataustehosta, jonka akku ottaa vastaan 10 °C:ssa.",
-          "derating_15c": "Prosentti suurimmasta lataustehosta, jonka akku ottaa vastaan 15 °C:ssa.",
-          "derating_20c": "Prosentti suurimmasta lataustehosta 20 °C:ssa ja lämpimämmässä. Yleensä 100 %.",
           "derating_use_learned": "Päällä: suunnittelija käyttää opittua käyrää (sininen). Pois: vain liukusäätimet ratkaisevat; mittaus jatkuu ja arvot näkyvät edelleen tässä.",
           "derating_action": "”Ota käyttöön” kirjoittaa mitatut arvot liukusäätimiin, joissa voit vielä muuttaa niitä ennen tallennusta. ”Hylkää” poistaa tallennettaessa kaikki mittaukset, esimerkiksi akun vaihdon tai väärän lämpötila-anturin jälkeen."
+        },
+        "sections": {
+          "derating_curve": {
+            "name": "Liukusäätimet: latausteho lämpötilan mukaan",
+            "description": "Prosenttiosuus enimmäislataustehosta, jonka akku ottaa vastaan kussakin lämpötilassa; välissä lineaarisesti. Arvot eivät saa laskea lämpötilan noustessa. Ne löytyvät akun datalehdestä.",
+            "data": {
+              "derating_0c": "Latausteho 0 °C:ssa ja alle",
+              "derating_5c": "Latausteho 5 °C:ssa",
+              "derating_10c": "Latausteho 10 °C:ssa",
+              "derating_15c": "Latausteho 15 °C:ssa",
+              "derating_20c": "Latausteho 20 °C:ssa ja yli"
+            }
+          }
         }
       },
       "reserve": {
