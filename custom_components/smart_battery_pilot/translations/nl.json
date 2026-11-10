@@ -215,7 +215,7 @@
       },
       "derating": {
         "title": "Laden bij kou",
-        "description": "**Blauwe lijn:** waarmee de planner rekent op basis van de geleerde waarden, dun waar nog niets is gemeten en de waarde uit jouw schuifregelaars is geschat. **Oranje, gestreept:** jouw schuifregelaars. **Punten:** gemeten laadslots; gevuld waar de batterij minder opnam dan gevraagd, hol waar ze alles opnam. **Verticale lijn:** de batterijtemperatuur op dit moment.\n\n{chart}\n\nTot nu toe gemeten: {measured} laadslots, waarvan {limited} begrensd door de batterij. Het leren begint bij zes begrensde slots. Geleerde temperatuurbereiken (aantal slots):\n\n{bands}",
+        "description": "**Blauwe lijn:** waarmee de planner rekent op basis van de geleerde waarden, dun waar nog niets is gemeten en de waarde uit jouw schuifregelaars is geschat. **Oranje, gestreept:** jouw schuifregelaars. **Punten:** laadslots die de batterij begrensde. **Driehoeken:** slots waarin ze alles opnam wat gevraagd werd, dus de grens ligt minstens daar. **Verticale lijn:** de batterijtemperatuur op dit moment.\n\n{chart}\n\nTot nu toe gemeten: {measured} laadslots, waarvan {limited} begrensd door de batterij. Het leren begint bij zes begrensde slots. Geleerde temperatuurbereiken (aantal slots):\n\n{bands}\n\n{flag}Begrensde slots die worden tegengesproken door een kouder slot dat duidelijk meer opnam: {conflicts} van {limited}. Vanaf drie, en minstens de helft, verklaart de temperatuur de grens niet. De pilot plant dan met jouw schuifregelaars en tekent geen blauwe lijn.",
         "data": {
           "charge_derating": "Plannen met verlaagd laadvermogen bij kou",
           "battery_temperature_entity": "Entiteit voor batterijtemperatuur",

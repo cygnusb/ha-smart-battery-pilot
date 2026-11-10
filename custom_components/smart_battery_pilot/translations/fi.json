@@ -215,7 +215,7 @@
       },
       "derating": {
         "title": "Lataus kylmällä",
-        "description": "**Sininen viiva:** mitä suunnittelija olettaa opituilla arvoilla, ohut siellä, missä mitään ei ole vielä mitattu ja arvo on arvioitu liukusäätimistäsi. **Oranssi, katkoviiva:** liukusäätimesi. **Pisteet:** mitatut latausjaksot; täytetty, kun akku otti pyydettyä vähemmän, ontto, kun se otti kaiken. **Pystyviiva:** akun lämpötila juuri nyt.\n\n{chart}\n\nTähän mennessä mitattu: {measured} latausjaksoa, joista {limited} akun rajoittamia. Oppiminen alkaa kuudesta rajoitetusta jaksosta. Opitut lämpötila-alueet (jaksojen määrä):\n\n{bands}",
+        "description": "**Sininen viiva:** mitä suunnittelija olettaa opituilla arvoilla, ohut siellä, missä mitään ei ole vielä mitattu ja arvo on arvioitu liukusäätimistäsi. **Oranssi, katkoviiva:** liukusäätimesi. **Pisteet:** latausjaksot, joita akku rajoitti. **Kolmiot:** jaksot, joissa akku otti kaiken pyydetyn, joten raja on vähintään siinä. **Pystyviiva:** akun lämpötila juuri nyt.\n\n{chart}\n\nTähän mennessä mitattu: {measured} latausjaksoa, joista {limited} akun rajoittamia. Oppiminen alkaa kuudesta rajoitetusta jaksosta. Opitut lämpötila-alueet (jaksojen määrä):\n\n{bands}\n\n{flag}Rajoitetut jaksot, joiden kanssa on ristiriidassa kylmempi jakso, joka otti selvästi enemmän: {conflicts}/{limited}. Kolmesta alkaen ja vähintään puolessa lämpötila ei selitä rajaa. Pilotti suunnittelee silloin liukusäätimilläsi eikä piirrä sinistä viivaa.",
         "data": {
           "charge_derating": "Suunnittele kylmällä alennetulla latausteholla",
           "battery_temperature_entity": "Akun lämpötilan entiteetti",

@@ -215,7 +215,7 @@
       },
       "derating": {
         "title": "Lading i kulde",
-        "description": "**Blå linje:** det planleggeren regner med ut fra de lærte verdiene, tynn der ingenting er målt ennå og verdien er anslått ut fra glidebryterne dine. **Oransje, stiplet:** glidebryterne dine. **Punkter:** målte ladeperioder; fylt der batteriet tok mindre enn forespurt, hule der det tok alt. **Loddrett linje:** batteriets temperatur akkurat nå.\n\n{chart}\n\nMålt så langt: {measured} ladeperioder, hvorav {limited} begrenset av batteriet. Læringen starter ved seks begrensede perioder. Lærte temperaturområder (antall perioder):\n\n{bands}",
+        "description": "**Blå linje:** det planleggeren regner med ut fra de lærte verdiene, tynn der ingenting er målt ennå og verdien er anslått ut fra glidebryterne dine. **Oransje, stiplet:** glidebryterne dine. **Punkter:** ladeperioder som batteriet begrenset. **Trekanter:** perioder der det tok alt som ble forespurt, så grensen ligger minst der. **Loddrett linje:** batteriets temperatur akkurat nå.\n\n{chart}\n\nMålt så langt: {measured} ladeperioder, hvorav {limited} begrenset av batteriet. Læringen starter ved seks begrensede perioder. Lærte temperaturområder (antall perioder):\n\n{bands}\n\n{flag}Begrensede perioder som motsies av en kaldere periode som tok tydelig mer: {conflicts} av {limited}. Fra tre, og minst halvparten, forklarer ikke temperaturen grensen. Piloten planlegger da med glidebryterne dine og tegner ingen blå linje.",
         "data": {
           "charge_derating": "Planlegg med redusert ladeeffekt i kulde",
           "battery_temperature_entity": "Entitet for batteritemperatur",

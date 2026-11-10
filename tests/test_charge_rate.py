@@ -334,3 +334,58 @@ def test_adopting_reads_the_learned_curve_at_the_slider_temperatures():
     assert adopted[:2] == [10, 55]
     assert adopted[3:] == [100, 100]
     assert adopted == sorted(adopted)
+
+
+# --- a temperature that does not explain the limit ---------------------------
+
+
+def _two_level_battery():
+    """Limits to 70 % at 8, 12 and 13 °C, yet took 90 % at 9 °C: whatever
+    sets the limit, it is not this temperature."""
+    limited = [_sample(t, 0.70) for t in (8.0, 10.0, 11.0, 12.0, 12.5, 13.0)]
+    return _model_with([*limited, _sample(9.0, 0.90, saturated=False)])
+
+
+def test_a_colder_slot_that_took_clearly_more_contradicts_a_limited_one():
+    model = _two_level_battery()
+    # The slot at 8 °C is colder than the one that took 90 % and stands.
+    assert model.conflicts() == 5
+    assert model.explained is False
+
+
+def test_an_unexplained_limit_plans_with_the_sliders():
+    model = _two_level_battery()
+    assert model.ranges()  # still fitted, for the user to look at or adopt
+    assert model.factor(12.0) == pytest.approx(curve_factor(DEFAULT, 12.0))
+    assert model.source(12.0) == SOURCE_CURVE
+    assert model.bands()[0]["in_use"] == "curve"
+    assert model.adopted_percentages() is not None
+
+
+def test_a_curve_that_rises_with_temperature_has_no_conflicts():
+    samples = [_sample(t, 0.55) for t in (4.0, 5.5, 7.0, 8.0, 8.5, 9.0)]
+    samples += [_sample(t, 1.0, saturated=False) for t in (11.0, 13.0)]
+    model = _model_with(samples)
+    assert model.conflicts() == 0
+    assert model.explained is True
+
+
+def test_measurement_noise_is_not_a_conflict():
+    ratios = (0.70, 0.74, 0.69, 0.75, 0.71, 0.78)
+    model = _model_with([_sample(4.0 + i, r) for i, r in enumerate(ratios)])
+    assert model.conflicts() == 0
+
+
+def test_one_slot_that_started_late_does_not_block_learning():
+    samples = [_sample(t, 0.55) for t in (4.0, 5.0, 6.0, 7.0, 8.0, 9.0)]
+    model = _model_with([*samples, _sample(8.5, 0.30)])
+    assert model.conflicts() == 1
+    assert model.explained is True
+    assert model.source(6.0) == SOURCE_LEARNED
+
+
+def test_conflicts_follow_new_samples_and_a_clear():
+    model = _two_level_battery()
+    model.clear()
+    assert model.conflicts() == 0
+    assert model.explained is True

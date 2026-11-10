@@ -73,7 +73,9 @@ def derating_svg(model: ChargeRateModel, temperature: float | None = None) -> st
         f'<path d="{path([(t, curve_factor(model.curve, t)) for t in steps])}" fill="none" '
         f'stroke="{SLIDERS}" stroke-width="2" stroke-dasharray="6 4"/>'
     )
-    ranges = model.ranges()
+    # No learned curve where the temperature does not explain the slots: the
+    # planner does not use one then, and a line would claim otherwise.
+    ranges = model.ranges() if model.explained else []
     if ranges:
         # Bold where it was measured, thin where the sliders only lend the
         # shape: the picture should not claim more than the data holds.
@@ -93,12 +95,19 @@ def derating_svg(model: ChargeRateModel, temperature: float | None = None) -> st
                 'stroke-linecap="round"/>'
             )
     for sample in model.samples:
-        fill = INK if sample.saturated else "none"
-        parts.append(
-            f'<circle cx="{x(sample.temperature):.1f}" '
-            f'cy="{_y(max(0.0, min(1.0, sample.ratio))):.1f}" r="4" fill="{fill}" '
-            f'stroke="{INK}" stroke-width="1.5"/>'
-        )
+        cx = x(sample.temperature)
+        cy = _y(max(0.0, min(1.0, sample.ratio)))
+        if sample.saturated:
+            parts.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="4" fill="{INK}"/>')
+        else:
+            # The battery took all that was asked: the limit lies here or
+            # higher. A small upward triangle, so it does not read as a
+            # measurement of the limit.
+            parts.append(
+                f'<path d="M{cx - 4:.1f},{cy + 3:.1f} L{cx + 4:.1f},{cy + 3:.1f} '
+                f'L{cx:.1f},{cy - 4:.1f} Z" fill="none" stroke="{INK}" stroke-width="1.25" '
+                'opacity="0.75"/>'
+            )
     parts.append("</svg>")
     return "".join(parts)
 

@@ -215,7 +215,7 @@
       },
       "derating": {
         "title": "Cold-weather charging",
-        "description": "**Blue line:** what the planner assumes with the learned values, thin where it is estimated from your sliders because nothing was measured there yet. **Orange, dashed:** your sliders. **Dots:** measured charge slots; filled where the battery took less than requested, hollow where it took everything. **Vertical line:** the battery temperature now.\n\n{chart}\n\nMeasured so far: {measured} charge slots, {limited} of them limited by the battery. Learning starts with six limited slots. Learned temperature ranges (number of slots):\n\n{bands}",
+        "description": "**Blue line:** what the planner assumes with the learned values, thin where it is estimated from your sliders because nothing was measured there yet. **Orange, dashed:** your sliders. **Dots:** charge slots the battery limited. **Triangles:** slots in which it took everything that was asked for, so the limit lies at least there. **Vertical line:** the battery temperature now.\n\n{chart}\n\nMeasured so far: {measured} charge slots, {limited} of them limited by the battery. Learning starts with six limited slots. Learned temperature ranges (number of slots):\n\n{bands}\n\n{flag}Limited slots contradicted by a colder slot that took clearly more: {conflicts} of {limited}. From three, and at least half of them, the temperature does not explain the limit. The pilot then plans with your sliders and draws no blue line.",
         "data": {
           "charge_derating": "Plan with reduced charge power in the cold",
           "battery_temperature_entity": "Battery temperature entity",

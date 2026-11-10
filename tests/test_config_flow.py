@@ -631,7 +631,22 @@ def test_the_derating_form_shows_what_was_learned():
     ]
     assert shown["bands"] == "- 4..9 °C: **55 %** (6)\n- 12 °C: **100 %** (1)"
     assert (shown["measured"], shown["limited"]) == ("7", "6")
+    assert (shown["conflicts"], shown["flag"]) == ("0", "")
     assert shown["chart"].startswith("![](data:image/svg+xml;base64,")
+
+
+def test_the_derating_form_flags_a_temperature_that_explains_nothing():
+    from smart_battery_pilot.forecast.charge_rate import ChargeSample
+
+    at = datetime(2026, 1, 10, 3, 0, tzinfo=UTC)
+    samples = [ChargeSample(t, 0.70, True, at) for t in (8.0, 10.0, 11.0, 12.0, 12.5, 13.0)]
+    samples += [ChargeSample(9.0, 0.90, False, at)]
+    entry = _entry_with_coordinator(_FakeCoordinator(samples))
+    shown = _run(_options_flow(_FakeHass(), entry).async_step_derating())[
+        "description_placeholders"
+    ]
+    assert shown["conflicts"] == "5"
+    assert shown["flag"].strip()
 
 
 def test_the_derating_form_works_without_a_loaded_entry():

@@ -215,7 +215,7 @@
       },
       "derating": {
         "title": "Laden bei Kälte",
-        "description": "**Blaue Linie:** womit der Planer mit den gelernten Werten rechnet, dünn dort, wo noch nichts gemessen wurde und aus deinen Reglern geschätzt wird. **Orange, gestrichelt:** deine Regler. **Punkte:** gemessene Ladeslots; gefüllt, wenn die Batterie weniger als angefordert aufgenommen hat, hohl, wenn sie alles aufgenommen hat. **Senkrechte Linie:** die aktuelle Batterietemperatur.\n\n{chart}\n\nBisher gemessen: {measured} Ladeslots, davon {limited} von der Batterie begrenzt. Gelernt wird ab sechs begrenzten Slots. Gelernte Temperaturbereiche (Anzahl Slots):\n\n{bands}",
+        "description": "**Blaue Linie:** womit der Planer mit den gelernten Werten rechnet, dünn dort, wo noch nichts gemessen wurde und aus deinen Reglern geschätzt wird. **Orange, gestrichelt:** deine Regler. **Punkte:** Ladeslots, die die Batterie begrenzt hat. **Dreiecke:** Slots, in denen sie alles Angeforderte aufgenommen hat; die Grenze liegt also mindestens dort. **Senkrechte Linie:** die aktuelle Batterietemperatur.\n\n{chart}\n\nBisher gemessen: {measured} Ladeslots, davon {limited} von der Batterie begrenzt. Gelernt wird ab sechs begrenzten Slots. Gelernte Temperaturbereiche (Anzahl Slots):\n\n{bands}\n\n{flag}Begrenzte Slots, denen ein kälterer Slot mit deutlich höherer Leistung widerspricht: {conflicts} von {limited}. Ab drei und mindestens der Hälfte erklärt die Temperatur die Grenze nicht. Der Pilot plant dann mit deinen Reglern und zeichnet keine blaue Linie.",
         "data": {
           "charge_derating": "Reduzierte Ladeleistung bei Kälte einplanen",
           "battery_temperature_entity": "Batterietemperatur-Entität",

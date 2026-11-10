@@ -215,7 +215,7 @@
       },
       "derating": {
         "title": "Uzlāde aukstumā",
-        "description": "**Zilā līnija:** ar ko plānotājs rēķinās, izmantojot apgūtās vērtības, tieva tur, kur vēl nekas nav izmērīts un vērtība novērtēta pēc jūsu slīdņiem. **Oranža, pārtraukta:** jūsu slīdņi. **Punkti:** izmērītie uzlādes intervāli; aizpildīti, ja akumulators uzņēma mazāk nekā prasīts, tukši, ja uzņēma visu. **Vertikālā līnija:** akumulatora pašreizējā temperatūra.\n\n{chart}\n\nLīdz šim izmērīts: {measured} uzlādes intervāli, no tiem {limited} ierobežoja akumulators. Apguve sākas ar sešiem ierobežotiem intervāliem. Apgūtie temperatūras diapazoni (intervālu skaits):\n\n{bands}",
+        "description": "**Zilā līnija:** ar ko plānotājs rēķinās, izmantojot apgūtās vērtības, tieva tur, kur vēl nekas nav izmērīts un vērtība novērtēta pēc jūsu slīdņiem. **Oranža, pārtraukta:** jūsu slīdņi. **Punkti:** uzlādes intervāli, kurus akumulators ierobežoja. **Trīsstūri:** intervāli, kuros tas uzņēma visu prasīto, tātad robeža ir vismaz tur. **Vertikālā līnija:** akumulatora pašreizējā temperatūra.\n\n{chart}\n\nLīdz šim izmērīts: {measured} uzlādes intervāli, no tiem {limited} ierobežoja akumulators. Apguve sākas ar sešiem ierobežotiem intervāliem. Apgūtie temperatūras diapazoni (intervālu skaits):\n\n{bands}\n\n{flag}Ierobežoti intervāli, kuriem pretrunā ir aukstāks intervāls, kas uzņēma skaidri vairāk: {conflicts} no {limited}. No trim un vismaz puses temperatūra robežu neizskaidro. Tad pilots plāno pēc jūsu slīdņiem un zilo līniju nezīmē.",
         "data": {
           "charge_derating": "Plānot ar samazinātu uzlādes jaudu aukstumā",
           "battery_temperature_entity": "Akumulatora temperatūras entītija",

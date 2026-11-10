@@ -215,7 +215,7 @@
       },
       "derating": {
         "title": "Įkrovimas šaltyje",
-        "description": "**Mėlyna linija:** kuo planuoklis remiasi naudodamas išmoktas vertes, plona ten, kur dar nieko neišmatuota ir vertė įvertinta pagal jūsų slankiklius. **Oranžinė, punktyrinė:** jūsų slankikliai. **Taškai:** išmatuoti įkrovimo intervalai; užpildyti, kai baterija priėmė mažiau nei prašyta, tuščiaviduriai, kai priėmė viską. **Vertikali linija:** dabartinė baterijos temperatūra.\n\n{chart}\n\nIki šiol išmatuota: {measured} įkrovimo intervalų, iš jų {limited} apribojo baterija. Mokymasis prasideda nuo šešių apribotų intervalų. Išmokti temperatūros ruožai (intervalų skaičius):\n\n{bands}",
+        "description": "**Mėlyna linija:** kuo planuoklis remiasi naudodamas išmoktas vertes, plona ten, kur dar nieko neišmatuota ir vertė įvertinta pagal jūsų slankiklius. **Oranžinė, punktyrinė:** jūsų slankikliai. **Taškai:** įkrovimo intervalai, kuriuos baterija ribojo. **Trikampiai:** intervalai, kai ji priėmė viską, ko prašyta, taigi riba yra bent ten. **Vertikali linija:** dabartinė baterijos temperatūra.\n\n{chart}\n\nIki šiol išmatuota: {measured} įkrovimo intervalų, iš jų {limited} apribojo baterija. Mokymasis prasideda nuo šešių apribotų intervalų. Išmokti temperatūros ruožai (intervalų skaičius):\n\n{bands}\n\n{flag}Riboti intervalai, kuriems prieštarauja šaltesnis intervalas, priėmęs aiškiai daugiau: {conflicts} iš {limited}. Nuo trijų ir bent pusės temperatūra ribos nepaaiškina. Tada pilotas planuoja pagal jūsų slankiklius ir mėlynos linijos nebraižo.",
         "data": {
           "charge_derating": "Planuoti su sumažinta įkrovimo galia šaltyje",
           "battery_temperature_entity": "Baterijos temperatūros objektas",
