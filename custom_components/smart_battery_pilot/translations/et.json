@@ -215,6 +215,7 @@
       },
       "derating": {
         "title": "Laadimine külmaga",
+        "description": "Seni õpitud, aku temperatuurivahemike kaupa: liugurite kõver → **mõõdetud väärtus** (mõõdetud laadimisvahemikud / neist nõutust väiksema võimsusega). Vahemik loetakse õpituks pärast kuut piiratud laadimist.\n\n{bands}",
         "data": {
           "charge_derating": "Arvesta külmaga vähendatud laadimisvõimsusega",
           "battery_temperature_entity": "Aku temperatuuri olem",
@@ -222,7 +223,9 @@
           "derating_5c": "Laadimisvõimsus 5 °C juures",
           "derating_10c": "Laadimisvõimsus 10 °C juures",
           "derating_15c": "Laadimisvõimsus 15 °C juures",
-          "derating_20c": "Laadimisvõimsus 20 °C ja üle selle"
+          "derating_20c": "Laadimisvõimsus 20 °C ja üle selle",
+          "derating_use_learned": "Planeeri õpitud väärtustega",
+          "derating_action": "Õpitud väärtused"
         },
         "data_description": {
           "charge_derating": "Planeerija eeldab, et külm aku võtab vastu vähem kui maksimaalse laadimisvõimsuse, ja planeerib rohkem odavaid laadimisperioode. Külmapiirini planeeritud periood küsib laadimisskriptilt endiselt täit võimsust; piiramise teeb aku BMS, mitte piloot.",
@@ -231,7 +234,9 @@
           "derating_5c": "Protsent maksimaalsest laadimisvõimsusest, mida aku 5 °C juures vastu võtab.",
           "derating_10c": "Protsent maksimaalsest laadimisvõimsusest, mida aku 10 °C juures vastu võtab.",
           "derating_15c": "Protsent maksimaalsest laadimisvõimsusest, mida aku 15 °C juures vastu võtab.",
-          "derating_20c": "Protsent maksimaalsest laadimisvõimsusest 20 °C ja soojemal. Tavaliselt 100 %."
+          "derating_20c": "Protsent maksimaalsest laadimisvõimsusest 20 °C ja soojemal. Tavaliselt 100 %.",
+          "derating_use_learned": "Sees: õpitud vahemik asendab sellel temperatuuril liugurite kõvera. Väljas: arvestatakse ainult liugureid; mõõtmine jätkub ja väärtused jäävad siin nähtavaks.",
+          "derating_action": "„Võta üle“ kirjutab mõõdetud väärtused liuguritesse, kus saad neid enne salvestamist veel muuta. „Kustuta“ eemaldab salvestamisel kõik mõõtmised, näiteks pärast aku vahetust või vale temperatuurianduri korral."
         }
       },
       "reserve": {
@@ -284,7 +289,8 @@
       "ev_external_needs_entity": "Poliitika 'Väline' vajab välise juhtimise olemit.",
       "evcc_url_required": "Sisesta evcc aadress.",
       "evcc_unreachable": "evcc ei vastanud sellel aadressil. Kontrolli aadressi ja et evcc töötab.",
-      "currency_mismatch": "See andur esitab hinnad valuutas {sensor_currency}, kuid Home Assistanti valuuta on {ha_currency}. Hindu ei teisendata, seega märgistataks ja mõõdetaks kõike valuutas {ha_currency}. Muuda esmalt valuutat jaotises Seaded → Süsteem → Üldine või saada vorm uuesti, et siiski jätkata."
+      "currency_mismatch": "See andur esitab hinnad valuutas {sensor_currency}, kuid Home Assistanti valuuta on {ha_currency}. Hindu ei teisendata, seega märgistataks ja mõõdetaks kõike valuutas {ha_currency}. Muuda esmalt valuutat jaotises Seaded → Süsteem → Üldine või saada vorm uuesti, et siiski jätkata.",
+      "derating_nothing_learned": "Veel pole midagi õpitud: üheski temperatuurivahemikus pole kuut laadimist, kus aku võttis nõutust vähem."
     }
   },
   "selector": {
@@ -305,6 +311,13 @@
       "options": {
         "none": "Puudub",
         "evcc": "evcc"
+      }
+    },
+    "derating_action": {
+      "options": {
+        "keep": "Jäta muutmata",
+        "adopt": "Võta liuguritesse üle",
+        "reset": "Kustuta kõik mõõtmised"
       }
     }
   },

@@ -215,6 +215,7 @@
       },
       "derating": {
         "title": "Įkrovimas šaltyje",
+        "description": "Iki šiol išmokta pagal baterijos temperatūros juostas: slankiklių kreivė → **išmatuota vertė** (išmatuoti įkrovimo intervalai / iš jų su mažesne galia nei prašyta). Juosta laikoma išmokta po šešių ribotų intervalų.\n\n{bands}",
         "data": {
           "charge_derating": "Planuoti su sumažinta įkrovimo galia šaltyje",
           "battery_temperature_entity": "Baterijos temperatūros objektas",
@@ -222,7 +223,9 @@
           "derating_5c": "Įkrovimo galia esant 5 °C",
           "derating_10c": "Įkrovimo galia esant 10 °C",
           "derating_15c": "Įkrovimo galia esant 15 °C",
-          "derating_20c": "Įkrovimo galia esant 20 °C ir daugiau"
+          "derating_20c": "Įkrovimo galia esant 20 °C ir daugiau",
+          "derating_use_learned": "Planuoti pagal išmoktas vertes",
+          "derating_action": "Išmoktos vertės"
         },
         "data_description": {
           "charge_derating": "Planuoklis tikisi, kad šalta baterija priims mažiau nei didžiausią įkrovimo galią, ir suplanuoja daugiau pigių įkrovimo intervalų. Iki šalčio ribos suplanuotas intervalas vis tiek prašo įkrovimo scenarijaus visos galios; ribojimą atlieka baterijos BMS, ne pilotas.",
@@ -231,7 +234,9 @@
           "derating_5c": "Didžiausios įkrovimo galios procentas, kurį baterija priima esant 5 °C.",
           "derating_10c": "Didžiausios įkrovimo galios procentas, kurį baterija priima esant 10 °C.",
           "derating_15c": "Didžiausios įkrovimo galios procentas, kurį baterija priima esant 15 °C.",
-          "derating_20c": "Didžiausios įkrovimo galios procentas esant 20 °C ir šilčiau. Paprastai 100 %."
+          "derating_20c": "Didžiausios įkrovimo galios procentas esant 20 °C ir šilčiau. Paprastai 100 %.",
+          "derating_use_learned": "Įjungta: išmokta juosta tai temperatūrai pakeičia slankiklių kreivę. Išjungta: galioja tik slankikliai; matuojama toliau, o vertės lieka matomos čia.",
+          "derating_action": "„Perimti“ įrašo išmatuotas vertes į slankiklius, kur prieš išsaugodami dar galite jas pakoreguoti. „Atmesti“ išsaugant ištrina visus matavimus, pavyzdžiui, pakeitus bateriją ar esant netinkamam temperatūros jutikliui."
         }
       },
       "reserve": {
@@ -284,7 +289,8 @@
       "ev_external_needs_entity": "Politikai 'Išorinis' reikia išorinio valdymo objekto.",
       "evcc_url_required": "Įveskite evcc adresą.",
       "evcc_unreachable": "evcc neatsakė šiuo adresu. Patikrinkite adresą ir ar evcc veikia.",
-      "currency_mismatch": "Šis jutiklis pateikia kainas valiuta {sensor_currency}, tačiau Home Assistant valiuta yra {ha_currency}. Kainos nekonvertuojamos, todėl viskas būtų pažymėta ir pritaikyta kaip {ha_currency}. Pirmiausia pakeiskite valiutą skiltyje Nustatymai → Sistema → Bendra arba pateikite dar kartą, kad vis tiek tęstumėte."
+      "currency_mismatch": "Šis jutiklis pateikia kainas valiuta {sensor_currency}, tačiau Home Assistant valiuta yra {ha_currency}. Kainos nekonvertuojamos, todėl viskas būtų pažymėta ir pritaikyta kaip {ha_currency}. Pirmiausia pakeiskite valiutą skiltyje Nustatymai → Sistema → Bendra arba pateikite dar kartą, kad vis tiek tęstumėte.",
+      "derating_nothing_learned": "Dar nieko neišmokta: nė vienoje temperatūros juostoje nėra šešių įkrovimo intervalų, kai baterija priėmė mažiau nei prašyta."
     }
   },
   "selector": {
@@ -305,6 +311,13 @@
       "options": {
         "none": "Nėra",
         "evcc": "evcc"
+      }
+    },
+    "derating_action": {
+      "options": {
+        "keep": "Palikti kaip yra",
+        "adopt": "Perimti į slankiklius",
+        "reset": "Atmesti visus matavimus"
       }
     }
   },

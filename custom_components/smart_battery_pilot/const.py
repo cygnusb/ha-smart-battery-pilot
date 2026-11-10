@@ -44,6 +44,12 @@ CONF_CHARGE_DERATING = "charge_derating"
 CONF_BATTERY_TEMPERATURE_ENTITY = "battery_temperature_entity"
 # Percent of max charge power at 0, 5, 10, 15 and 20 °C - the support points
 # of forecast.charge_rate.CURVE_TEMPERATURES, in that order.
+CONF_DERATING_USE_LEARNED = "derating_use_learned"
+# Not an option: a one-off choice in the options dialog, never stored.
+CONF_DERATING_ACTION = "derating_action"
+DERATING_ACTION_KEEP = "keep"
+DERATING_ACTION_ADOPT = "adopt"
+DERATING_ACTION_RESET = "reset"
 CONF_DERATING_0C = "derating_0c"
 CONF_DERATING_5C = "derating_5c"
 CONF_DERATING_10C = "derating_10c"
@@ -101,6 +107,7 @@ DEFAULT_DISCHARGE_MODE = DISCHARGE_MODE_SELF_CONSUMPTION
 DEFAULT_DRY_RUN = True
 DEFAULT_TRAINING_DAYS = 60
 DEFAULT_CHARGE_DERATING = False
+DEFAULT_DERATING_USE_LEARNED = True
 # Conservative generic LFP: many BMS still allow a trickle charge at 0 °C.
 DEFAULT_DERATING_CURVE = (10, 20, 50, 80, 100)
 DEFAULT_BACKUP_RESERVE = 0  # at or below min_soc: inactive

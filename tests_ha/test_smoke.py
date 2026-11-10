@@ -230,6 +230,50 @@ async def test_the_derating_options_step_renders_and_saves(sbp_hass: HomeAssista
     assert entry.options["charge_derating"] is True
 
 
+async def test_learned_charge_rates_show_up_adopt_and_reset(sbp_hass: HomeAssistant) -> None:
+    """The dialog reads the running coordinator through the entry it was built
+    for, and the discard has to survive the reload that saving triggers."""
+    from custom_components.smart_battery_pilot.forecast.charge_rate import ChargeSample
+
+    curve = {
+        "charge_derating": True,
+        "battery_temperature_entity": "sensor.battery_soc",
+        "derating_0c": 10,
+        "derating_5c": 20,
+        "derating_10c": 50,
+        "derating_15c": 80,
+        "derating_20c": 100,
+    }
+    entry = await _setup(sbp_hass, options=curve)
+    model = entry.runtime_data.coordinator.charge_model
+    for _ in range(6):
+        model.add_sample(ChargeSample(12.0, 0.74, True, dt_util.utcnow()))
+    options = sbp_hass.config_entries.options
+
+    menu = await options.async_init(entry.entry_id)
+    form = await options.async_configure(menu["flow_id"], {"next_step_id": "derating"})
+    assert "10..15 °C: 65 % → **74 %** (6 / 6)" in form["description_placeholders"]["bands"]
+
+    adopted = await options.async_configure(form["flow_id"], {**curve, "derating_action": "adopt"})
+    assert adopted["type"] == "form"
+    assert not adopted["errors"]
+
+    saved = await options.async_configure(
+        adopted["flow_id"],
+        {**curve, "derating_use_learned": False, "derating_action": "reset"},
+    )
+    assert saved["type"] == "menu"
+    done = await options.async_configure(saved["flow_id"], {"next_step_id": "apply"})
+    await sbp_hass.async_block_till_done()
+    assert done["type"] == "create_entry"
+    assert "derating_action" not in entry.options
+    assert entry.options["derating_use_learned"] is False
+    reloaded = entry.runtime_data.coordinator.charge_model
+    assert reloaded is not model
+    assert reloaded.samples == ()
+    assert reloaded.use_learned is False
+
+
 async def test_the_reserve_options_step_renders_and_saves(sbp_hass: HomeAssistant) -> None:
     entry = await _setup(sbp_hass)
     options = sbp_hass.config_entries.options
