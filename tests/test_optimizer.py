@@ -550,3 +550,39 @@ def test_rerouting_keeps_random_plans_inside_the_battery_window():
             assert floor - 0.05 <= planned.soc_forecast <= 95.0 + 0.05
             if planned.action == ACTION_CHARGE:
                 assert planned.discharge_kwh == 0
+
+
+def test_held_energy_is_not_rerouted_onto_a_night_another_controller_holds():
+    """A planned car session under the "external" EV policy: the other
+    controller holds the battery all night and the pilot calls no charge
+    script there. The refill the reroute would count on cannot happen, so the
+    energy stays held for the morning."""
+    slots = []
+    for i, slot in enumerate(_evening_hold_slots()):
+        night = 2 <= i < 8
+        slots.append(
+            InputSlot(
+                price_slot=slot.price_slot,
+                net_demand_kwh=slot.net_demand_kwh,
+                ev_kwh=11.0 if night else 0.0,
+                battery_blocked=night,
+            )
+        )
+    battery = BatteryState(
+        capacity_kwh=12.8,
+        soc=10.0 + 2.2 / 12.8 * 100.0,
+        min_soc=10.0,
+        max_soc=95.0,
+        max_charge_power_w=6000,
+        max_discharge_power_w=6000,
+        efficiency=90,
+    )
+    config = OptimizerConfig(
+        spread_threshold=0.10,
+        discharge_mode=DISCHARGE_MODE_SELF_CONSUMPTION,
+        ev_no_grid_charge=True,
+    )
+    plan = build_plan(slots, battery, config)
+    assert all(s.action != ACTION_CHARGE for s in plan.slots)
+    assert sum(s.discharge_kwh for s in plan.slots[:2]) == 0
+    assert sum(s.discharge_kwh for s in plan.slots[8:]) == pytest.approx(2.2 * 0.9**0.5, abs=0.02)
