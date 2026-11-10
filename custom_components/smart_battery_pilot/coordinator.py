@@ -246,6 +246,9 @@ class SBPData:
     error: str | None = None
     adapter_name: str | None = None
     model_type: str = "default"
+    # Holdout error of both consumption models in kWh per hour, keyed by model
+    # type; None until the history is long enough to compare them.
+    model_holdout_mae: dict[str, float] | None = None
     training_samples: int = 0
     soc: float | None = None
     updated_at: datetime | None = None
@@ -785,6 +788,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             valid=True,
             adapter_name=self._adapter_name,
             model_type=self.forecaster.model_type,
+            model_holdout_mae=self.forecaster.holdout_mae,
             training_samples=self.forecaster.sample_count,
             soc=soc,
             updated_at=now,

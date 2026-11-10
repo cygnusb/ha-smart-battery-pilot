@@ -300,6 +300,7 @@ class PlanStatusSensor(SBPEntity, SensorEntity):
             "adapter": data.adapter_name,
             "updated_at": data.updated_at.isoformat() if data.updated_at else None,
             "model_type": data.model_type,
+            "model_holdout_mae": data.model_holdout_mae,
             "training_samples": data.training_samples,
         }
 

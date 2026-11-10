@@ -64,6 +64,7 @@ async def async_get_config_entry_diagnostics(
         "error": data.error,
         "price_adapter": data.adapter_name,
         "model_type": data.model_type,
+        "model_holdout_mae": data.model_holdout_mae,
         "training_samples": data.training_samples,
         "soc": data.soc,
         "updated_at": data.updated_at.isoformat() if data.updated_at else None,
