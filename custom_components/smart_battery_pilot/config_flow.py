@@ -97,12 +97,8 @@ from .currency import (
     scaled,
 )
 from .evcc import EvccError, async_fetch_state, normalize_url
-from .forecast.charge_rate import (
-    BAND_WIDTH,
-    CURVE_TEMPERATURES,
-    ChargeRateModel,
-    is_non_decreasing,
-)
+from .forecast.charge_chart import derating_image_markdown
+from .forecast.charge_rate import ChargeRateModel, curve_from_percentages, is_non_decreasing
 from .price_adapters import detect_adapter
 from .pv_sources import async_energy_dashboard_forecast_entries, async_solar_forecast_entries
 
@@ -343,25 +339,39 @@ def schema_derating(d: dict[str, Any]) -> vol.Schema:
     return vol.Schema(fields)
 
 
-def derating_overview(model: ChargeRateModel | None) -> str:
-    """The learned bands as Markdown lines for the dialog, "-" when unknown.
+def derating_placeholders(
+    model: ChargeRateModel | None, merged: dict[str, Any], temperature: float | None = None
+) -> dict[str, str]:
+    """What the cold-weather step shows besides its fields.
 
-    One line per 5 °C band: slider curve -> learned value, then how many
-    charge slots were measured and how many of them hit the battery's limit.
-    Numbers only, so it reads the same in every language; the step's
-    description explains the columns.
+    `chart`: sliders, learned curve and observations as an inline image.
+    `bands`: one Markdown line per learned temperature range, a dash while
+    nothing is learned. `measured` / `limited`: how many charge slots were
+    observed and in how many the battery took less than requested.
+
+    The sliders are the ones the dialog currently holds, saved or not, so the
+    picture follows an adoption or an edit made a moment ago.
     """
-    if model is None:
-        return "-"
-    lines = []
-    for band in model.bands(include=CURVE_TEMPERATURES[:-1]):
-        low = band["band_c"]
-        learned = f"{band['learned'] * 100:.0f} %" if band["learned"] is not None else "-"
-        lines.append(
-            f"- {low:.0f}..{low + BAND_WIDTH:.0f} °C: {band['curve'] * 100:.0f} % → "
-            f"**{learned}** ({band['samples']} / {band['saturated']})"
-        )
-    return "\n".join(lines)
+    curve = curve_from_percentages(
+        [
+            float(merged.get(key, default))
+            for key, default in zip(DERATING_CURVE_KEYS, DEFAULT_DERATING_CURVE, strict=True)
+        ]
+    )
+    shown = ChargeRateModel.from_dict(model.to_dict() if model is not None else {}, curve)
+    lines = [
+        f"- {r.low:g}{'' if r.high == r.low else f'..{r.high:g}'} °C:"
+        f" **{r.factor * 100:.0f} %** ({r.samples})"
+        for r in shown.ranges()
+    ]
+    measured, limited = shown.counts()
+    return {
+        "chart": derating_image_markdown(shown, temperature),
+        # Escaped: a bare hyphen is an empty Markdown list item.
+        "bands": "\n".join(lines) or "\\-",
+        "measured": str(measured),
+        "limited": str(limited),
+    }
 
 
 def schema_reserve(d: dict[str, Any]) -> vol.Schema:
@@ -882,7 +892,9 @@ class SBPOptionsFlow(OptionsFlow):
             step_id="derating",
             data_schema=schema_derating(self._merged),
             errors=errors,
-            description_placeholders={"bands": derating_overview(model)},
+            description_placeholders=derating_placeholders(
+                model, self._merged, coordinator.charge_factor()[2] if coordinator else None
+            ),
         )
 
     async def async_step_reserve(

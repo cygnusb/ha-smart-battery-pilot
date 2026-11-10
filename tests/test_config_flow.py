@@ -598,6 +598,9 @@ class _FakeCoordinator:
             self.charge_model.add_sample(sample)
         self.resets = 0
 
+    def charge_factor(self):
+        return (1.0, "off", None)
+
     async def async_reset_charge_observations(self):
         self.resets += 1
         self.charge_model.clear()
@@ -617,17 +620,27 @@ def _entry_with_coordinator(coordinator, **options) -> ConfigEntry:
 
 
 def test_the_derating_form_shows_what_was_learned():
-    entry = _entry_with_coordinator(_FakeCoordinator(_learned_samples()))
-    form = _run(_options_flow(_FakeHass(), entry).async_step_derating())
-    bands = form["description_placeholders"]["bands"]
-    assert "10..15 °C: 65 % → **74 %** (6 / 6)" in bands
-    # Bands without a single measurement are listed too, as not learned.
-    assert "0..5 °C: 15 % → **-** (0 / 0)" in bands
+    from smart_battery_pilot.forecast.charge_rate import ChargeSample
+
+    at = datetime(2026, 1, 10, 3, 0, tzinfo=UTC)
+    samples = [ChargeSample(t, 0.55, True, at) for t in (4.0, 5.5, 7.0, 8.0, 8.5, 9.0)]
+    samples += [ChargeSample(12.0, 1.0, False, at)]
+    entry = _entry_with_coordinator(_FakeCoordinator(samples))
+    shown = _run(_options_flow(_FakeHass(), entry).async_step_derating())[
+        "description_placeholders"
+    ]
+    assert shown["bands"] == "- 4..9 °C: **55 %** (6)\n- 12 °C: **100 %** (1)"
+    assert (shown["measured"], shown["limited"]) == ("7", "6")
+    assert shown["chart"].startswith("![](data:image/svg+xml;base64,")
 
 
 def test_the_derating_form_works_without_a_loaded_entry():
-    form = _run(_options_flow(_FakeHass(), _entry()).async_step_derating())
-    assert form["description_placeholders"] == {"bands": "-"}
+    shown = _run(_options_flow(_FakeHass(), _entry()).async_step_derating())[
+        "description_placeholders"
+    ]
+    assert (shown["bands"], shown["measured"], shown["limited"]) == ("\\-", "0", "0")
+    # The sliders are drawn even when nothing runs yet.
+    assert shown["chart"].startswith("![](data:image/svg+xml;base64,")
 
 
 def test_using_the_learned_values_is_on_by_default_and_can_be_switched_off():

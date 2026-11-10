@@ -215,7 +215,7 @@
       },
       "derating": {
         "title": "Cold-weather charging",
-        "description": "Learned so far, per battery temperature band: slider curve → **measured value** (charge slots measured / of which the battery took less than requested). A band counts as learned after six limited slots.\n\n{bands}",
+        "description": "**Blue line:** what the planner assumes with the learned values, thin where it is estimated from your sliders because nothing was measured there yet. **Orange, dashed:** your sliders. **Dots:** measured charge slots; filled where the battery took less than requested, hollow where it took everything. **Vertical line:** the battery temperature now.\n\n{chart}\n\nMeasured so far: {measured} charge slots, {limited} of them limited by the battery. Learning starts with six limited slots. Learned temperature ranges (number of slots):\n\n{bands}",
         "data": {
           "charge_derating": "Plan with reduced charge power in the cold",
           "battery_temperature_entity": "Battery temperature entity",
@@ -235,7 +235,7 @@
           "derating_10c": "Percent of the maximum charge power the battery accepts at 10 °C.",
           "derating_15c": "Percent of the maximum charge power the battery accepts at 15 °C.",
           "derating_20c": "Percent of the maximum charge power at 20 °C and warmer. Usually 100 %.",
-          "derating_use_learned": "On: a learned band replaces the slider curve for that temperature. Off: only the sliders count; measuring continues and stays visible here.",
+          "derating_use_learned": "On: the planner uses the learned curve (blue). Off: only the sliders count; measuring continues and stays visible here.",
           "derating_action": "“Adopt” writes the measured values into the sliders, where you can still adjust them before saving. “Discard” deletes all measurements when you save, for example after a battery swap or a wrong temperature sensor."
         }
       },
@@ -290,7 +290,7 @@
       "evcc_url_required": "Enter the evcc address.",
       "evcc_unreachable": "evcc did not answer at this address. Check the address and that evcc is running.",
       "currency_mismatch": "This sensor reports prices in {sensor_currency}, but Home Assistant's currency is {ha_currency}. Prices are not converted, so everything would be labelled and sized as {ha_currency}. Change the currency under Settings → System → General first, or submit again to continue anyway.",
-      "derating_nothing_learned": "Nothing has been learned yet: no temperature band has six charge slots in which the battery took less than requested."
+      "derating_nothing_learned": "Nothing has been learned yet: fewer than six charge slots in which the battery took less than requested."
     }
   },
   "selector": {

@@ -215,7 +215,7 @@
       },
       "derating": {
         "title": "Laadimine külmaga",
-        "description": "Seni õpitud, aku temperatuurivahemike kaupa: liugurite kõver → **mõõdetud väärtus** (mõõdetud laadimisvahemikud / neist nõutust väiksema võimsusega). Vahemik loetakse õpituks pärast kuut piiratud laadimist.\n\n{bands}",
+        "description": "**Sinine joon:** millega planeerija õpitud väärtuste põhjal arvestab, peenike seal, kus midagi pole veel mõõdetud ja väärtus on hinnatud sinu liugurite põhjal. **Oranž, katkendlik:** sinu liugurid. **Punktid:** mõõdetud laadimisvahemikud; täidetud, kui aku võttis nõutust vähem, tühjad, kui aku võttis kõik. **Püstjoon:** aku praegune temperatuur.\n\n{chart}\n\nSeni mõõdetud: {measured} laadimisvahemikku, neist {limited} aku poolt piiratud. Õppimine algab kuuest piiratud vahemikust. Õpitud temperatuurivahemikud (laadimiste arv):\n\n{bands}",
         "data": {
           "charge_derating": "Arvesta külmaga vähendatud laadimisvõimsusega",
           "battery_temperature_entity": "Aku temperatuuri olem",
@@ -235,7 +235,7 @@
           "derating_10c": "Protsent maksimaalsest laadimisvõimsusest, mida aku 10 °C juures vastu võtab.",
           "derating_15c": "Protsent maksimaalsest laadimisvõimsusest, mida aku 15 °C juures vastu võtab.",
           "derating_20c": "Protsent maksimaalsest laadimisvõimsusest 20 °C ja soojemal. Tavaliselt 100 %.",
-          "derating_use_learned": "Sees: õpitud vahemik asendab sellel temperatuuril liugurite kõvera. Väljas: arvestatakse ainult liugureid; mõõtmine jätkub ja väärtused jäävad siin nähtavaks.",
+          "derating_use_learned": "Sees: planeerija kasutab õpitud kõverat (sinine). Väljas: arvestatakse ainult liugureid; mõõtmine jätkub ja väärtused jäävad siin nähtavaks.",
           "derating_action": "„Võta üle“ kirjutab mõõdetud väärtused liuguritesse, kus saad neid enne salvestamist veel muuta. „Kustuta“ eemaldab salvestamisel kõik mõõtmised, näiteks pärast aku vahetust või vale temperatuurianduri korral."
         }
       },
@@ -290,7 +290,7 @@
       "evcc_url_required": "Sisesta evcc aadress.",
       "evcc_unreachable": "evcc ei vastanud sellel aadressil. Kontrolli aadressi ja et evcc töötab.",
       "currency_mismatch": "See andur esitab hinnad valuutas {sensor_currency}, kuid Home Assistanti valuuta on {ha_currency}. Hindu ei teisendata, seega märgistataks ja mõõdetaks kõike valuutas {ha_currency}. Muuda esmalt valuutat jaotises Seaded → Süsteem → Üldine või saada vorm uuesti, et siiski jätkata.",
-      "derating_nothing_learned": "Veel pole midagi õpitud: üheski temperatuurivahemikus pole kuut laadimist, kus aku võttis nõutust vähem."
+      "derating_nothing_learned": "Veel pole midagi õpitud: vähem kui kuus laadimist, kus aku võttis nõutust vähem."
     }
   },
   "selector": {

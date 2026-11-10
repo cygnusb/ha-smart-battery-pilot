@@ -215,7 +215,7 @@
       },
       "derating": {
         "title": "Lading i kulde",
-        "description": "Lært så langt, per temperaturbånd for batteriet: glidebryterkurve → **målt verdi** (målte ladeperioder / hvorav med lavere effekt enn forespurt). Et bånd regnes som lært etter seks begrensede perioder.\n\n{bands}",
+        "description": "**Blå linje:** det planleggeren regner med ut fra de lærte verdiene, tynn der ingenting er målt ennå og verdien er anslått ut fra glidebryterne dine. **Oransje, stiplet:** glidebryterne dine. **Punkter:** målte ladeperioder; fylt der batteriet tok mindre enn forespurt, hule der det tok alt. **Loddrett linje:** batteriets temperatur akkurat nå.\n\n{chart}\n\nMålt så langt: {measured} ladeperioder, hvorav {limited} begrenset av batteriet. Læringen starter ved seks begrensede perioder. Lærte temperaturområder (antall perioder):\n\n{bands}",
         "data": {
           "charge_derating": "Planlegg med redusert ladeeffekt i kulde",
           "battery_temperature_entity": "Entitet for batteritemperatur",
@@ -235,7 +235,7 @@
           "derating_10c": "Prosent av maksimal ladeeffekt som batteriet tar imot ved 10 °C.",
           "derating_15c": "Prosent av maksimal ladeeffekt som batteriet tar imot ved 15 °C.",
           "derating_20c": "Prosent av maksimal ladeeffekt ved 20 °C og varmere. Vanligvis 100 %.",
-          "derating_use_learned": "På: et lært bånd erstatter glidebryterkurven for den temperaturen. Av: bare glidebryterne teller; målingen fortsetter, og verdiene vises fortsatt her.",
+          "derating_use_learned": "På: planleggeren bruker den lærte kurven (blå). Av: bare glidebryterne teller; målingen fortsetter, og verdiene vises fortsatt her.",
           "derating_action": "«Overta» skriver de målte verdiene inn i glidebryterne, der du fortsatt kan justere dem før du lagrer. «Forkast» sletter alle målinger når du lagrer, for eksempel etter et batteribytte eller en feil temperatursensor."
         }
       },
@@ -290,7 +290,7 @@
       "evcc_url_required": "Skriv inn evcc-adressen.",
       "evcc_unreachable": "evcc svarte ikke på denne adressen. Sjekk adressen og at evcc kjører.",
       "currency_mismatch": "Denne sensoren rapporterer priser i {sensor_currency}, men Home Assistants valuta er {ha_currency}. Priser regnes ikke om, så alt ville blitt merket og dimensjonert som {ha_currency}. Endre først valutaen under Innstillinger → System → Generelt, eller send inn på nytt for å fortsette likevel.",
-      "derating_nothing_learned": "Ingenting er lært ennå: ingen temperaturbånd har seks ladeperioder der batteriet tok mindre enn forespurt."
+      "derating_nothing_learned": "Ingenting er lært ennå: færre enn seks ladeperioder der batteriet tok mindre enn forespurt."
     }
   },
   "selector": {

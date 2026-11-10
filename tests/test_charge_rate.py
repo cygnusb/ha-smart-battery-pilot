@@ -14,7 +14,7 @@ from smart_battery_pilot.forecast.charge_rate import (
     SOURCE_OFF,
     ChargeRateModel,
     ChargeSample,
-    band_of,
+    LearnedRange,
     curve_factor,
     curve_from_percentages,
     is_non_decreasing,
@@ -71,12 +71,6 @@ def test_monotonic_check():
     assert not is_non_decreasing([10, 30, 20, 80, 100])
 
 
-def test_bands_are_five_degrees_wide():
-    assert band_of(3.0) == 0.0
-    assert band_of(5.0) == 5.0
-    assert band_of(-0.1) == -5.0
-
-
 # --- lookup without learning -------------------------------------------------
 
 
@@ -96,50 +90,145 @@ def test_an_empty_model_returns_the_curve_itself():
 # --- learning -----------------------------------------------------------------
 
 
-def test_a_band_is_learned_at_the_sixth_saturated_sample():
+def test_nothing_is_learned_before_the_sixth_limited_slot():
     model = _model_with([_sample(3.0, 0.4)] * 5)
-    assert model.source(2.5) == SOURCE_CURVE
-    assert model.factor(2.5) == pytest.approx(0.15)
+    assert model.ranges() == []
+    assert model.source(3.0) == SOURCE_CURVE
+    assert model.factor(3.0) == pytest.approx(curve_factor(DEFAULT, 3.0))
 
     model.add_sample(_sample(3.0, 0.4))
-    assert model.source(2.5) == SOURCE_LEARNED
-    assert model.factor(2.5) == pytest.approx(0.4)
+    assert model.ranges() == [LearnedRange(3.0, 3.0, 0.4, 6)]
+    assert model.source(3.0) == SOURCE_LEARNED
+    assert model.factor(3.0) == pytest.approx(0.4)
 
 
-def test_the_learned_value_is_the_median():
-    ratios = [0.3, 0.3, 0.4, 0.4, 0.5, 0.9]
-    model = _model_with([_sample(3.0, r) for r in ratios])
-    assert model.learned(0.0) == pytest.approx(0.4)
+def test_a_step_is_learned_where_the_observations_put_it():
+    """One limit up to 9 °C, full power from 11 °C: two ranges that begin
+    and end at the observations, not at multiples of five."""
+    samples = [_sample(t, 0.55) for t in (4.0, 5.5, 7.0, 8.0, 8.5, 9.0)]
+    samples += [_sample(t, 1.0, saturated=False) for t in (11.0, 13.0)]
+    ranges = _model_with(samples).ranges()
+    assert ranges == [
+        LearnedRange(4.0, 9.0, pytest.approx(0.55), 6),
+        LearnedRange(11.0, 13.0, 1.0, 2),
+    ]
 
 
-def test_unsaturated_samples_raise_the_band_as_lower_bounds():
-    samples = [_sample(3.0, 0.4)] * 6 + [_sample(3.0, 0.6, saturated=False)] * 4
-    assert _model_with(samples).learned(0.0) == pytest.approx(0.6)
+def test_between_two_ranges_the_factor_rises_in_a_straight_line():
+    samples = [_sample(t, 0.6) for t in (8.0, 9.0, 10.0)]
+    samples += [_sample(t, 0.9) for t in (14.0, 15.0, 16.0)]
+    model = _model_with(samples)
+    assert model.factor(10.0) == pytest.approx(0.6)
+    assert model.factor(12.0) == pytest.approx(0.75)
+    assert model.factor(14.0) == pytest.approx(0.9)
 
 
-def test_unsaturated_samples_alone_never_learn_a_band():
+def test_one_bad_slot_does_not_bend_the_curve():
+    """A slot that started late reads far too low. The median ignores it."""
+    samples = [_sample(8.0, r) for r in (0.55, 0.56, 0.30, 0.55, 0.54, 0.55, 0.56)]
+    [only] = _model_with(samples).ranges()
+    assert only.factor == pytest.approx(0.55)
+
+
+def test_an_odd_slot_among_warmer_and_colder_ones_is_absorbed():
+    samples = [_sample(t, 0.55) for t in (4.0, 5.0, 6.0, 8.0, 9.0, 10.0)]
+    [only] = _model_with([*samples, _sample(7.0, 0.30)]).ranges()
+    assert only == LearnedRange(4.0, 10.0, pytest.approx(0.55), 7)
+
+
+def test_a_lone_slot_at_the_cold_edge_stands_alone_when_it_reads_lower():
+    """Colder and lower fits a curve that rises with temperature, so nothing
+    contradicts it. It can only make the plan more careful, and its count of
+    one is shown next to it."""
+    samples = [_sample(t, 0.55) for t in (4.0, 5.0, 6.0, 7.0, 8.0, 9.0)]
+    model = _model_with([*samples, _sample(2.0, 0.30)])
+    assert model.ranges()[0] == LearnedRange(2.0, 2.0, pytest.approx(0.30), 1)
+    assert model.factor(4.0) == pytest.approx(0.55)
+    assert model.factor(1.0) <= 0.30
+
+
+def test_a_lone_slot_at_the_cold_edge_that_reads_higher_is_absorbed():
+    samples = [_sample(t, 0.55) for t in (4.0, 5.0, 6.0, 7.0, 8.0, 9.0)]
+    [only] = _model_with([*samples, _sample(2.0, 0.90)]).ranges()
+    assert only.factor == pytest.approx(0.55)
+    assert only.low == 2.0
+
+
+def test_a_lone_slot_at_the_warm_edge_that_reads_lower_is_absorbed():
+    samples = [_sample(t, 0.55) for t in (4.0, 5.0, 6.0, 7.0, 8.0, 9.0)]
+    [only] = _model_with([*samples, _sample(12.0, 0.30)]).ranges()
+    assert only.factor == pytest.approx(0.55)
+
+
+def test_the_learned_curve_never_falls_with_rising_temperature():
+    # Colder slots that read higher than warmer ones are pooled with them.
+    samples = [_sample(5.0, 0.8)] * 3 + [_sample(10.0, 0.5)] * 3
+    model = _model_with(samples)
+    factors = [model.factor(t) for t in (5.0, 6.0, 8.0, 10.0)]
+    assert factors == sorted(factors)
+    assert len(model.ranges()) == 1
+
+
+def test_a_slot_that_took_everything_counts_only_above_the_fit():
+    limited = [_sample(t, 0.5) for t in (4.0, 5.0, 6.0, 7.0, 8.0, 9.0)]
+    # Small requests the battery took in full: below the fit, no news.
+    below = _model_with(limited + [_sample(6.0, 0.2, saturated=False)] * 4)
+    assert below.ranges() == [LearnedRange(4.0, 9.0, pytest.approx(0.5), 6)]
+    # Full power taken at 12 °C: the limit is higher up there.
+    above = _model_with([*limited, _sample(12.0, 1.0, saturated=False)])
+    assert above.ranges()[-1] == LearnedRange(12.0, 12.0, 1.0, 1)
+
+
+def test_a_small_request_met_in_full_does_not_pull_down_a_colder_full_one():
+    """Full power taken at 11 °C holds for 12 °C too. A slot that asked for
+    little there and got it says nothing against that."""
+    limited = [_sample(t, 0.5) for t in (4.0, 5.0, 6.0, 7.0, 8.0, 9.0)]
+    took_all = [_sample(11.0, 1.0, saturated=False), _sample(12.0, 0.6, saturated=False)]
+    assert _model_with(limited + took_all).ranges()[-1] == LearnedRange(11.0, 12.0, 1.0, 2)
+
+
+def test_slots_that_took_everything_never_learn_on_their_own():
     model = _model_with([_sample(3.0, 0.6, saturated=False)] * 10)
-    assert model.learned(0.0) is None
+    assert model.ranges() == []
     assert model.source(3.0) == SOURCE_CURVE
 
 
 def test_learned_values_are_clamped_to_one():
-    assert _model_with([_sample(3.0, 1.2)] * 6).learned(0.0) == 1.0
+    assert _model_with([_sample(3.0, 1.2)] * 6).ranges()[0].factor == 1.0
 
 
-def test_interpolation_mixes_learned_and_curve_bands():
+def test_colder_than_any_observation_the_sliders_stay_in_charge():
+    """Measured 55 % from 4 °C up. Below that nothing is known, and assuming
+    more than the user set would book too few charge slots on a cold night."""
+    model = _model_with([_sample(t, 0.55) for t in (4.0, 5.0, 6.0, 7.0, 8.0, 9.0)])
+    assert model.factor(4.0) == pytest.approx(0.55)
+    for t in (-5.0, 0.0, 2.0, 3.9):
+        assert model.factor(t) == pytest.approx(curve_factor(DEFAULT, t))
+        assert model.source(t) == SOURCE_CURVE
+    # Sliders more optimistic than the measurement are capped by it.
+    low = _model_with([_sample(t, 0.12) for t in (4.0, 5.0, 6.0, 7.0, 8.0, 9.0)])
+    assert low.factor(3.0) == pytest.approx(0.12)
+    assert low.source(3.0) == SOURCE_LEARNED
+    assert low.factor(0.0) == pytest.approx(0.10)
+
+
+def test_warmer_than_any_observation_the_sliders_apply_but_never_below_the_fit():
+    model = _model_with([_sample(t, 0.55) for t in (4.0, 5.0, 6.0, 7.0, 8.0, 9.0)])
+    assert model.factor(9.5) == pytest.approx(0.55)  # sliders: 47 %, below the fit
+    assert model.source(9.5) == SOURCE_LEARNED
+    assert model.factor(12.0) == pytest.approx(0.62)  # sliders: 62 % at 12 °C
+    assert model.source(12.0) == SOURCE_CURVE
+    assert model.factor(20.0) == pytest.approx(1.0)
+
+
+def test_the_fit_follows_new_samples_and_a_clear():
     model = _model_with([_sample(3.0, 0.4)] * 6)
-    # Between the band-0 centre (2.5 °C, learned 0.4) and the band-5 centre
-    # (7.5 °C, curve 0.35): halfway -> 0.375.
-    assert model.factor(5.0) == pytest.approx(0.375)
-    # Far from the learned band the curve applies unchanged.
-    assert model.factor(12.0) == pytest.approx(curve_factor(DEFAULT, 12.0))
-
-
-def test_the_factor_is_continuous_around_a_learned_band():
-    model = _model_with([_sample(3.0, 0.4)] * 6)
-    for edge in (7.5, -2.5):
-        assert model.factor(edge - 1e-6) == pytest.approx(model.factor(edge + 1e-6), abs=1e-4)
+    assert model.factor(3.0) == pytest.approx(0.4)
+    for _ in range(7):
+        model.add_sample(_sample(3.0, 0.6))
+    assert model.factor(3.0) == pytest.approx(0.6)
+    model.clear()
+    assert model.ranges() == []
 
 
 # --- bookkeeping --------------------------------------------------------------
@@ -164,24 +253,7 @@ def test_round_trip_keeps_samples_and_takes_the_new_curve():
     restored = ChargeRateModel.from_dict(model.to_dict(), other_curve)
     assert restored.samples == model.samples
     assert restored.curve == other_curve
-    assert restored.factor(2.5) == pytest.approx(0.4)
-
-
-def test_bands_summary_for_diagnostics():
-    model = _model_with([_sample(3.0, 0.4)] * 6 + [_sample(12.0, 0.7, saturated=False)])
-    bands = model.bands()
-    assert bands[0] == {
-        "band_c": 0.0,
-        "samples": 6,
-        "saturated": 6,
-        "learned": 0.4,
-        "curve": 0.15,
-        "in_use": "learned",
-    }
-    assert bands[1]["band_c"] == 10.0
-    assert bands[1]["in_use"] == "curve"
-    assert bands[1]["learned"] is None
-    assert model.learned_band_count == 1
+    assert restored.factor(3.0) == pytest.approx(0.4)
 
 
 def test_loading_applies_the_cap_and_the_age_limit():
@@ -209,36 +281,6 @@ def test_loading_applies_the_cap_and_the_age_limit():
 # --- the learned values under the user's control ------------------------------
 
 
-def test_switched_off_the_curve_plans_but_the_learned_value_stays_visible():
-    model = _model_with([_sample(3.0, 0.4)] * 6)
-    model.use_learned = False
-    assert model.factor(2.5) == pytest.approx(0.15)  # the slider curve
-    assert model.source(2.5) == "curve"
-    band = model.bands()[0]
-    assert band["learned"] == 0.4
-    assert band["in_use"] == "curve"
-    assert model.measured_factor(2.5) == pytest.approx(0.4)
-
-
-def test_bands_can_list_bands_nothing_was_measured_in():
-    model = _model_with([_sample(12.0, 0.7)])
-    bands = model.bands(include=(0.0, 5.0, 10.0, 15.0))
-    assert [b["band_c"] for b in bands] == [0.0, 5.0, 10.0, 15.0]
-    assert bands[0]["samples"] == 0
-    assert bands[0]["learned"] is None
-
-
-def test_adopting_turns_the_learned_bands_into_slider_values():
-    """Band 10-15 °C learned at 74 %: its centre is 12.5 °C, the sliders sit
-    at 10 and 15 °C and take the measured factor there."""
-    model = _model_with([_sample(12.0, 0.74)] * 6)
-    adopted = model.adopted_percentages()
-    assert adopted is not None
-    assert adopted == [round(model.measured_factor(t) * 100) for t in (0, 5, 10, 15, 20)]
-    assert adopted[2] > 50  # the 10 °C slider moved up from the default curve
-    assert adopted == sorted(adopted)
-
-
 def test_adopted_values_never_fall_with_rising_temperature():
     # A cold band learned far above the curve of the warmer ones.
     model = _model_with([_sample(3.0, 0.95)] * 6)
@@ -255,3 +297,40 @@ def test_clear_forgets_every_observation():
     model.clear()
     assert model.samples == ()
     assert model.factor(2.5) == pytest.approx(0.15)
+
+
+def test_bands_summary_for_sensor_and_diagnostics():
+    model = _model_with([_sample(t, 0.55) for t in (4.0, 5.0, 6.0, 7.0, 8.0, 9.0)])
+    assert model.bands() == [
+        {
+            "from_c": 4.0,
+            "to_c": 9.0,
+            "learned": 0.55,
+            "samples": 6,
+            "curve": pytest.approx(curve_factor(DEFAULT, 6.5), abs=1e-3),
+            "in_use": "learned",
+        }
+    ]
+    assert model.learned_band_count == 1
+    assert model.counts() == (6, 6)
+
+
+def test_switched_off_the_sliders_plan_but_the_learned_curve_stays_visible():
+    model = _model_with([_sample(3.0, 0.4)] * 6)
+    model.use_learned = False
+    assert model.factor(3.0) == pytest.approx(curve_factor(DEFAULT, 3.0))
+    assert model.source(3.0) == "curve"
+    assert model.bands()[0]["in_use"] == "curve"
+    assert model.measured_factor(3.0) == pytest.approx(0.4)
+
+
+def test_adopting_reads_the_learned_curve_at_the_slider_temperatures():
+    samples = [_sample(t, 0.55) for t in (4.0, 5.5, 7.0, 8.0, 8.5, 9.0)]
+    samples += [_sample(t, 1.0, saturated=False) for t in (11.0, 13.0)]
+    model = _model_with(samples)
+    adopted = model.adopted_percentages()
+    assert adopted == [round(model.measured_factor(t) * 100) for t in (0, 5, 10, 15, 20)]
+    # 0 °C was never measured and keeps its slider; 5 °C takes the measurement.
+    assert adopted[:2] == [10, 55]
+    assert adopted[3:] == [100, 100]
+    assert adopted == sorted(adopted)
