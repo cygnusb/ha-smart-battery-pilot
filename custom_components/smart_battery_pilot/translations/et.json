@@ -219,24 +219,27 @@
         "data": {
           "charge_derating": "Arvesta külmaga vähendatud laadimisvõimsusega",
           "battery_temperature_entity": "Aku temperatuuri olem",
-          "derating_0c": "Laadimisvõimsus 0 °C ja alla selle",
-          "derating_5c": "Laadimisvõimsus 5 °C juures",
-          "derating_10c": "Laadimisvõimsus 10 °C juures",
-          "derating_15c": "Laadimisvõimsus 15 °C juures",
-          "derating_20c": "Laadimisvõimsus 20 °C ja üle selle",
           "derating_use_learned": "Planeeri õpitud väärtustega",
           "derating_action": "Õpitud väärtused"
         },
         "data_description": {
           "charge_derating": "Planeerija eeldab, et külm aku võtab vastu vähem kui maksimaalse laadimisvõimsuse, ja planeerib rohkem odavaid laadimisperioode. Külmapiirini planeeritud periood küsib laadimisskriptilt endiselt täit võimsust; piiramise teeb aku BMS, mitte piloot.",
           "battery_temperature_entity": "Aku elemendi või mooduli temperatuur, mitte välistemperatuur. Kohustuslik, kui valik on sisse lülitatud.",
-          "derating_0c": "Protsent maksimaalsest laadimisvõimsusest, mida aku 0 °C ja külmemal vastu võtab. Vaata aku andmelehte.",
-          "derating_5c": "Protsent maksimaalsest laadimisvõimsusest, mida aku 5 °C juures vastu võtab.",
-          "derating_10c": "Protsent maksimaalsest laadimisvõimsusest, mida aku 10 °C juures vastu võtab.",
-          "derating_15c": "Protsent maksimaalsest laadimisvõimsusest, mida aku 15 °C juures vastu võtab.",
-          "derating_20c": "Protsent maksimaalsest laadimisvõimsusest 20 °C ja soojemal. Tavaliselt 100 %.",
           "derating_use_learned": "Sees: planeerija kasutab õpitud kõverat (sinine). Väljas: arvestatakse ainult liugureid; mõõtmine jätkub ja väärtused jäävad siin nähtavaks.",
           "derating_action": "„Võta üle“ kirjutab mõõdetud väärtused liuguritesse, kus saad neid enne salvestamist veel muuta. „Kustuta“ eemaldab salvestamisel kõik mõõtmised, näiteks pärast aku vahetust või vale temperatuurianduri korral."
+        },
+        "sections": {
+          "derating_curve": {
+            "name": "Liugurid: laadimisvõimsus temperatuuri järgi",
+            "description": "Protsent maksimaalsest laadimisvõimsusest, mille aku igal temperatuuril vastu võtab; vahepeal lineaarselt. Väärtused ei tohi soojemaks minnes langeda. Need leiad aku andmelehelt.",
+            "data": {
+              "derating_0c": "Laadimisvõimsus 0 °C ja alla selle",
+              "derating_5c": "Laadimisvõimsus 5 °C juures",
+              "derating_10c": "Laadimisvõimsus 10 °C juures",
+              "derating_15c": "Laadimisvõimsus 15 °C juures",
+              "derating_20c": "Laadimisvõimsus 20 °C ja üle selle"
+            }
+          }
         }
       },
       "reserve": {

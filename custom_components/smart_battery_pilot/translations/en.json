@@ -219,24 +219,27 @@
         "data": {
           "charge_derating": "Plan with reduced charge power in the cold",
           "battery_temperature_entity": "Battery temperature entity",
-          "derating_0c": "Charge power at 0 °C and below",
-          "derating_5c": "Charge power at 5 °C",
-          "derating_10c": "Charge power at 10 °C",
-          "derating_15c": "Charge power at 15 °C",
-          "derating_20c": "Charge power at 20 °C and above",
           "derating_use_learned": "Plan with the learned values",
           "derating_action": "Learned values"
         },
         "data_description": {
           "charge_derating": "The planner expects a cold battery to accept less than the maximum charge power and schedules more cheap charge slots. A slot planned up to the cold limit still asks the charge script for full power, so the battery's BMS does the throttling, not the pilot.",
           "battery_temperature_entity": "Cell or module temperature of the battery, not the outdoor temperature. Required when the option is on.",
-          "derating_0c": "Percent of the maximum charge power the battery accepts at 0 °C and colder. Check your battery's datasheet.",
-          "derating_5c": "Percent of the maximum charge power the battery accepts at 5 °C.",
-          "derating_10c": "Percent of the maximum charge power the battery accepts at 10 °C.",
-          "derating_15c": "Percent of the maximum charge power the battery accepts at 15 °C.",
-          "derating_20c": "Percent of the maximum charge power at 20 °C and warmer. Usually 100 %.",
           "derating_use_learned": "On: the planner uses the learned curve (blue). Off: only the sliders count; measuring continues and stays visible here.",
           "derating_action": "“Adopt” writes the measured values into the sliders, where you can still adjust them before saving. “Discard” deletes all measurements when you save, for example after a battery swap or a wrong temperature sensor."
+        },
+        "sections": {
+          "derating_curve": {
+            "name": "Sliders: charge power by temperature",
+            "description": "Percent of the maximum charge power the battery takes at each temperature; linear in between. The values must not fall as it gets warmer. Your battery's datasheet has them.",
+            "data": {
+              "derating_0c": "Charge power at 0 °C and below",
+              "derating_5c": "Charge power at 5 °C",
+              "derating_10c": "Charge power at 10 °C",
+              "derating_15c": "Charge power at 15 °C",
+              "derating_20c": "Charge power at 20 °C and above"
+            }
+          }
         }
       },
       "reserve": {

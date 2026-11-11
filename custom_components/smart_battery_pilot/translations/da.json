@@ -219,24 +219,27 @@
         "data": {
           "charge_derating": "Planlæg med reduceret ladeeffekt i kulde",
           "battery_temperature_entity": "Entitet for batteritemperatur",
-          "derating_0c": "Ladeeffekt ved 0 °C og derunder",
-          "derating_5c": "Ladeeffekt ved 5 °C",
-          "derating_10c": "Ladeeffekt ved 10 °C",
-          "derating_15c": "Ladeeffekt ved 15 °C",
-          "derating_20c": "Ladeeffekt ved 20 °C og derover",
           "derating_use_learned": "Planlæg med de lærte værdier",
           "derating_action": "Lærte værdier"
         },
         "data_description": {
           "charge_derating": "Planlæggeren regner med, at et koldt batteri modtager mindre end den maksimale ladeeffekt, og planlægger flere billige ladeperioder. En periode, der er planlagt op til kuldegrænsen, beder stadig ladescriptet om fuld effekt; batteriets BMS står for begrænsningen, ikke piloten.",
           "battery_temperature_entity": "Celle- eller modultemperatur for batteriet, ikke udetemperaturen. Påkrævet, når indstillingen er slået til.",
-          "derating_0c": "Procent af den maksimale ladeeffekt, som batteriet modtager ved 0 °C og koldere. Se batteriets datablad.",
-          "derating_5c": "Procent af den maksimale ladeeffekt, som batteriet modtager ved 5 °C.",
-          "derating_10c": "Procent af den maksimale ladeeffekt, som batteriet modtager ved 10 °C.",
-          "derating_15c": "Procent af den maksimale ladeeffekt, som batteriet modtager ved 15 °C.",
-          "derating_20c": "Procent af den maksimale ladeeffekt ved 20 °C og varmere. Normalt 100 %.",
           "derating_use_learned": "Til: planlæggeren bruger den lærte kurve (blå). Fra: kun skyderne tæller; der måles fortsat, og værdierne vises stadig her.",
           "derating_action": "“Overtag” skriver de målte værdier ind i skyderne, hvor du stadig kan justere dem, før du gemmer. “Kassér” sletter alle målinger, når du gemmer, f.eks. efter et batteriskift eller en forkert temperatursensor."
+        },
+        "sections": {
+          "derating_curve": {
+            "name": "Skydere: ladeeffekt efter temperatur",
+            "description": "Procent af den maksimale ladeeffekt, som batteriet optager ved hver temperatur; lineært imellem. Værdierne må ikke falde, når det bliver varmere. De står i batteriets datablad.",
+            "data": {
+              "derating_0c": "Ladeeffekt ved 0 °C og derunder",
+              "derating_5c": "Ladeeffekt ved 5 °C",
+              "derating_10c": "Ladeeffekt ved 10 °C",
+              "derating_15c": "Ladeeffekt ved 15 °C",
+              "derating_20c": "Ladeeffekt ved 20 °C og derover"
+            }
+          }
         }
       },
       "reserve": {

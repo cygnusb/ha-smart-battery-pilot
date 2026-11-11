@@ -9,6 +9,7 @@ Home Assistant version we claim to support?
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+import re
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
@@ -180,6 +181,12 @@ async def test_setup_with_cold_weather_charging_on(sbp_hass: HomeAssistant) -> N
     assert derating["factor"] < 1.0
 
 
+def _derating_form(values: dict) -> dict:
+    """Flat cold-weather values as the form sends them: sliders in their section."""
+    sliders = {k: v for k, v in values.items() if re.fullmatch(r"derating_\d+c", k)}
+    return {**{k: v for k, v in values.items() if k not in sliders}, "derating_curve": sliders}
+
+
 async def test_the_derating_options_step_renders_and_saves(sbp_hass: HomeAssistant) -> None:
     """The stub suite cannot tell whether real selectors accept the slider and
     entity configs, nor whether the frontend can serialise the form."""
@@ -195,32 +202,38 @@ async def test_the_derating_options_step_renders_and_saves(sbp_hass: HomeAssista
     assert form["step_id"] == "derating"
     # What the frontend does per field; a selector config HA rejects raises here.
     for selector in form["data_schema"].schema.values():
-        assert "selector" in cv.custom_serializer(selector)
+        shown = cv.custom_serializer(selector)
+        # The sliders are a collapsible section holding fields of its own.
+        assert "selector" in shown or all("selector" in inner for inner in shown["schema"])
 
     refused = await options.async_configure(
         form["flow_id"],
-        {
-            "charge_derating": True,
-            "derating_0c": 10,
-            "derating_5c": 20,
-            "derating_10c": 50,
-            "derating_15c": 80,
-            "derating_20c": 100,
-        },
+        _derating_form(
+            {
+                "charge_derating": True,
+                "derating_0c": 10,
+                "derating_5c": 20,
+                "derating_10c": 50,
+                "derating_15c": 80,
+                "derating_20c": 100,
+            }
+        ),
     )
     assert refused["errors"] == {"base": "derating_needs_temperature"}
 
     saved = await options.async_configure(
         refused["flow_id"],
-        {
-            "charge_derating": True,
-            "battery_temperature_entity": "sensor.battery_soc",
-            "derating_0c": 10,
-            "derating_5c": 30,
-            "derating_10c": 50,
-            "derating_15c": 80,
-            "derating_20c": 100,
-        },
+        _derating_form(
+            {
+                "charge_derating": True,
+                "battery_temperature_entity": "sensor.battery_soc",
+                "derating_0c": 10,
+                "derating_5c": 30,
+                "derating_10c": 50,
+                "derating_15c": 80,
+                "derating_20c": 100,
+            }
+        ),
     )
     assert saved["type"] == "menu"
     done = await options.async_configure(saved["flow_id"], {"next_step_id": "apply"})
@@ -256,13 +269,15 @@ async def test_learned_charge_rates_show_up_adopt_and_reset(sbp_hass: HomeAssist
     assert shown["bands"] == "- 12 °C: **74 %** (6)"
     assert shown["chart"].startswith("![](data:image/svg+xml;base64,")
 
-    adopted = await options.async_configure(form["flow_id"], {**curve, "derating_action": "adopt"})
+    adopted = await options.async_configure(
+        form["flow_id"], _derating_form({**curve, "derating_action": "adopt"})
+    )
     assert adopted["type"] == "form"
     assert not adopted["errors"]
 
     saved = await options.async_configure(
         adopted["flow_id"],
-        {**curve, "derating_use_learned": False, "derating_action": "reset"},
+        _derating_form({**curve, "derating_use_learned": False, "derating_action": "reset"}),
     )
     assert saved["type"] == "menu"
     done = await options.async_configure(saved["flow_id"], {"next_step_id": "apply"})

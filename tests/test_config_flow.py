@@ -515,6 +515,13 @@ def test_the_export_script_stays_optional_in_self_consumption_mode():
 # --- cold-weather charging ------------------------------------------------------
 
 
+def _derating_defaults(schema):
+    """Default of every field of the cold-weather form, sliders included."""
+    markers = list(schema.schema)
+    markers += list(schema.schema[cf.SECTION_DERATING_CURVE].schema.schema)
+    return {str(m): m.default() for m in markers if callable(getattr(m, "default", None))}
+
+
 def _derating_input(enabled=True, entity="sensor.battery_temp", values=DEFAULT_DERATING_CURVE):
     data = {CONF_CHARGE_DERATING: enabled, **dict(zip(DERATING_CURVE_KEYS, values, strict=True))}
     if entity:
@@ -531,11 +538,7 @@ def test_the_derating_section_is_in_the_options_menu_only():
 
 
 def test_the_derating_defaults_are_off_and_the_generic_lfp_curve():
-    defaults = {
-        str(m): m.default()
-        for m in cf.schema_derating({}).schema
-        if callable(getattr(m, "default", None))
-    }
+    defaults = _derating_defaults(cf.schema_derating({}))
     assert defaults[CONF_CHARGE_DERATING] is False
     assert [defaults[k] for k in DERATING_CURVE_KEYS] == [10, 20, 50, 80, 100]
 
@@ -659,11 +662,7 @@ def test_the_derating_form_works_without_a_loaded_entry():
 
 
 def test_using_the_learned_values_is_on_by_default_and_can_be_switched_off():
-    defaults = {
-        str(m): m.default()
-        for m in cf.schema_derating({}).schema
-        if callable(getattr(m, "default", None))
-    }
+    defaults = _derating_defaults(cf.schema_derating({}))
     assert defaults[CONF_DERATING_USE_LEARNED] is True
     assert defaults[CONF_DERATING_ACTION] == DERATING_ACTION_KEEP
 
@@ -687,11 +686,7 @@ def test_adopting_fills_the_sliders_and_shows_the_form_again():
     assert result["type"] == "form"
     assert result["errors"] == {}
     adopted = coordinator.charge_model.adopted_percentages()
-    shown = {
-        str(m): m.default()
-        for m in result["data_schema"].schema
-        if callable(getattr(m, "default", None))
-    }
+    shown = _derating_defaults(result["data_schema"])
     assert [shown[k] for k in DERATING_CURVE_KEYS] == adopted
     assert shown[CONF_DERATING_ACTION] == DERATING_ACTION_KEEP
     applied = _run(flow.async_step_apply())["data"]
@@ -1120,3 +1115,34 @@ def test_clearing_the_hourly_entries_turns_them_off(monkeypatch):
     flow = _options_flow(_FakeHass(), _entry(**{CONF_PV_FORECAST_ENTRIES: ["east"]}))
     _run(flow.async_step_pv({CONF_PV_FORECAST_TODAY: "sensor.pv"}))
     assert _run(flow.async_step_apply())["data"][CONF_PV_FORECAST_ENTRIES] is None
+
+
+def test_the_sliders_arrive_nested_and_are_stored_flat():
+    """The frontend sends a section's fields as a dict under its key."""
+    flow = _options_flow(_FakeHass(), _entry())
+    nested = {
+        CONF_CHARGE_DERATING: True,
+        CONF_BATTERY_TEMPERATURE_ENTITY: "sensor.battery_temp",
+        cf.SECTION_DERATING_CURVE: dict(
+            zip(DERATING_CURVE_KEYS, (10, 30, 60, 90, 100), strict=True)
+        ),
+    }
+    assert _run(flow.async_step_derating(nested))["type"] == "menu"
+    applied = _run(flow.async_step_apply())["data"]
+    assert [applied[k] for k in DERATING_CURVE_KEYS] == [10, 30, 60, 90, 100]
+    assert cf.SECTION_DERATING_CURVE not in applied
+
+
+def test_the_sliders_are_open_while_setting_up_and_folded_afterwards():
+    def collapsed(schema):
+        return schema.schema[cf.SECTION_DERATING_CURVE].options["collapsed"]
+
+    assert collapsed(cf.schema_derating({})) is False
+    assert collapsed(cf.schema_derating({CONF_CHARGE_DERATING: True})) is True
+    # Right after an adoption they are what the user wants to look at.
+    coordinator = _FakeCoordinator(_learned_samples())
+    flow = _options_flow(_FakeHass(), _entry_with_coordinator(coordinator))
+    result = _run(
+        flow.async_step_derating({**_derating_input(), CONF_DERATING_ACTION: DERATING_ACTION_ADOPT})
+    )
+    assert collapsed(result["data_schema"]) is False

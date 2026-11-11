@@ -219,24 +219,27 @@
         "data": {
           "charge_derating": "Plānot ar samazinātu uzlādes jaudu aukstumā",
           "battery_temperature_entity": "Akumulatora temperatūras entītija",
-          "derating_0c": "Uzlādes jauda pie 0 °C un zemāk",
-          "derating_5c": "Uzlādes jauda pie 5 °C",
-          "derating_10c": "Uzlādes jauda pie 10 °C",
-          "derating_15c": "Uzlādes jauda pie 15 °C",
-          "derating_20c": "Uzlādes jauda pie 20 °C un augstāk",
           "derating_use_learned": "Plānot ar apgūtajām vērtībām",
           "derating_action": "Apgūtās vērtības"
         },
         "data_description": {
           "charge_derating": "Plānotājs pieņem, ka auksts akumulators pieņem mazāk nekā maksimālo uzlādes jaudu, un ieplāno vairāk lētu uzlādes periodu. Līdz aukstuma robežai ieplānots periods joprojām pieprasa uzlādes skriptam pilnu jaudu; ierobežošanu veic akumulatora BMS, nevis pilots.",
           "battery_temperature_entity": "Akumulatora šūnas vai moduļa temperatūra, nevis āra temperatūra. Obligāta, ja opcija ir ieslēgta.",
-          "derating_0c": "Procenti no maksimālās uzlādes jaudas, ko akumulators pieņem pie 0 °C un aukstākā laikā. Skatiet akumulatora datu lapu.",
-          "derating_5c": "Procenti no maksimālās uzlādes jaudas, ko akumulators pieņem pie 5 °C.",
-          "derating_10c": "Procenti no maksimālās uzlādes jaudas, ko akumulators pieņem pie 10 °C.",
-          "derating_15c": "Procenti no maksimālās uzlādes jaudas, ko akumulators pieņem pie 15 °C.",
-          "derating_20c": "Procenti no maksimālās uzlādes jaudas pie 20 °C un siltākā laikā. Parasti 100 %.",
           "derating_use_learned": "Ieslēgts: plānotājs izmanto apgūto līkni (zilo). Izslēgts: tiek ņemti vērā tikai slīdņi; mērīšana turpinās, un vērtības joprojām ir redzamas šeit.",
           "derating_action": "„Pārņemt“ ieraksta izmērītās vērtības slīdņos, kur tās pirms saglabāšanas vēl var pielāgot. „Atmest“ saglabājot izdzēš visus mērījumus, piemēram, pēc akumulatora nomaiņas vai nepareiza temperatūras sensora."
+        },
+        "sections": {
+          "derating_curve": {
+            "name": "Slīdņi: uzlādes jauda pēc temperatūras",
+            "description": "Maksimālās uzlādes jaudas daļa procentos, ko akumulators uzņem katrā temperatūrā; starp tām lineāri. Kļūstot siltākam, vērtības nedrīkst samazināties. Tās atrodamas akumulatora datu lapā.",
+            "data": {
+              "derating_0c": "Uzlādes jauda pie 0 °C un zemāk",
+              "derating_5c": "Uzlādes jauda pie 5 °C",
+              "derating_10c": "Uzlādes jauda pie 10 °C",
+              "derating_15c": "Uzlādes jauda pie 15 °C",
+              "derating_20c": "Uzlādes jauda pie 20 °C un augstāk"
+            }
+          }
         }
       },
       "reserve": {

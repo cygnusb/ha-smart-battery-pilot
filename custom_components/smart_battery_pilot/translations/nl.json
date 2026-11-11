@@ -219,24 +219,27 @@
         "data": {
           "charge_derating": "Plannen met verlaagd laadvermogen bij kou",
           "battery_temperature_entity": "Entiteit voor batterijtemperatuur",
-          "derating_0c": "Laadvermogen bij 0 °C en lager",
-          "derating_5c": "Laadvermogen bij 5 °C",
-          "derating_10c": "Laadvermogen bij 10 °C",
-          "derating_15c": "Laadvermogen bij 15 °C",
-          "derating_20c": "Laadvermogen bij 20 °C en hoger",
           "derating_use_learned": "Plannen met de geleerde waarden",
           "derating_action": "Geleerde waarden"
         },
         "data_description": {
           "charge_derating": "De planner gaat ervan uit dat een koude batterij minder dan het maximale laadvermogen opneemt en plant meer goedkope laadperiodes in. Een periode die tot de koudegrens is gepland, vraagt het laadscript nog steeds om het volle vermogen; het BMS van de batterij begrenst, niet de piloot.",
           "battery_temperature_entity": "Cel- of moduletemperatuur van de batterij, niet de buitentemperatuur. Verplicht als de optie aan staat.",
-          "derating_0c": "Percentage van het maximale laadvermogen dat de batterij opneemt bij 0 °C en kouder. Zie het gegevensblad van de batterij.",
-          "derating_5c": "Percentage van het maximale laadvermogen dat de batterij opneemt bij 5 °C.",
-          "derating_10c": "Percentage van het maximale laadvermogen dat de batterij opneemt bij 10 °C.",
-          "derating_15c": "Percentage van het maximale laadvermogen dat de batterij opneemt bij 15 °C.",
-          "derating_20c": "Percentage van het maximale laadvermogen bij 20 °C en warmer. Meestal 100 %.",
           "derating_use_learned": "Aan: de planner gebruikt de geleerde curve (blauw). Uit: alleen de schuifregelaars tellen; het meten gaat door en de waarden blijven hier zichtbaar.",
           "derating_action": "“Overnemen” schrijft de gemeten waarden in de schuifregelaars, waar je ze vóór het opslaan nog kunt aanpassen. “Verwerpen” wist bij het opslaan alle metingen, bijvoorbeeld na een batterijwissel of een verkeerde temperatuursensor."
+        },
+        "sections": {
+          "derating_curve": {
+            "name": "Schuifregelaars: laadvermogen per temperatuur",
+            "description": "Percentage van het maximale laadvermogen dat de batterij bij elke temperatuur opneemt; daartussen lineair. De waarden mogen niet dalen als het warmer wordt. Ze staan in het datablad van de batterij.",
+            "data": {
+              "derating_0c": "Laadvermogen bij 0 °C en lager",
+              "derating_5c": "Laadvermogen bij 5 °C",
+              "derating_10c": "Laadvermogen bij 10 °C",
+              "derating_15c": "Laadvermogen bij 15 °C",
+              "derating_20c": "Laadvermogen bij 20 °C en hoger"
+            }
+          }
         }
       },
       "reserve": {

@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 import re
 
+from homeassistant.data_entry_flow import section as flow_section
 import pytest
 
 from smart_battery_pilot import config_flow, sensor
@@ -58,7 +59,17 @@ def _load(language: str) -> dict:
 
 
 def _fields(builder) -> set[str]:
-    return {str(marker) for marker in builder({}).schema}
+    """The step's own fields; a collapsible section is not one of them."""
+    return {str(m) for m, v in builder({}).schema.items() if not isinstance(v, flow_section)}
+
+
+def _sections(builder) -> dict[str, set[str]]:
+    """Collapsible sections of the step and the fields inside each."""
+    return {
+        str(m): {str(inner) for inner in v.schema.schema}
+        for m, v in builder({}).schema.items()
+        if isinstance(v, flow_section)
+    }
 
 
 def _flat(node, prefix: str = "") -> dict[str, str]:
@@ -131,6 +142,12 @@ def test_every_schema_field_is_labelled_and_described(language, section, steps):
         assert set(doc[step]["data_description"]) == expected, (
             f"{language} {section}.{step} descriptions"
         )
+        # A section explains its fields once, in its own description.
+        found = doc[step].get("sections", {})
+        assert set(found) == set(_sections(builder)), f"{language} {section}.{step} sections"
+        for key, inner in _sections(builder).items():
+            assert set(found[key]["data"]) == inner, f"{language} {section}.{step}.{key} labels"
+            assert found[key]["name"].strip() and found[key]["description"].strip()
 
 
 @pytest.mark.parametrize("language", LANGUAGES)
