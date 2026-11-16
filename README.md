@@ -43,8 +43,11 @@ vendor configurations.
 
 1. **Price forecast** — the price entity of your existing tariff integration is
    parsed automatically (15-minute or hourly slots, today + tomorrow). Supported
-   price integrations: Nordpool, EPEX Spot, ENTSO-E, Tibber, aWATTar and any
-   integration that exposes an hourly price list as a sensor attribute.
+   price integrations: Nordpool, EPEX Spot, ENTSO-E, aWATTar and any
+   integration that exposes the price list as a sensor attribute. Integrations
+   that only offer the forecast through a service call (such as the official
+   Home Assistant Tibber integration) need a small
+   [bridge sensor](docs/configuration.md#price-sources-without-forecast-attributes).
 2. **Consumption forecast** — a lightweight model (pure Python, no heavy ML
    dependencies) is trained daily from your Home Assistant history: hour of
    day, weekday/weekend and optionally outdoor temperature (heat pump aware).

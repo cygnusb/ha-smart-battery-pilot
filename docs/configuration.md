@@ -13,6 +13,24 @@
 If your integration is not recognized, create a template sensor with `today`/
 `tomorrow` attributes as plain price arrays — that format is always accepted.
 
+#### Price sources without forecast attributes
+
+Some integrations only provide today's and tomorrow's prices through a service
+response, not as sensor attributes. The official Home Assistant **Tibber**
+integration is one of them: its price sensor exposes the current price and a few
+statistics, but no price list. The pilot reads attributes and does not call the
+services of individual integrations, so such a source needs a bridge: a template
+sensor that calls the service and exposes the result as `today` / `tomorrow`
+lists (or `raw_today` / `raw_tomorrow`), selected as the price entity.
+
+Keep the native resolution (for example 15 minutes). If the service returns the
+final consumer price, leave the price offset at `0` so fees are not counted twice.
+
+The alternative is a price integration that exposes the attributes, such as the
+Nordpool HACS integration, with fees and taxes covered by the price offset. That
+is only an approximation when part of the surcharge is proportional (VAT, for
+example).
+
 #### Currency
 
 Prices are **never converted** between currencies. The planner works in
