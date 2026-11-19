@@ -21,7 +21,8 @@ integration is one of them: its price sensor exposes the current price and a few
 statistics, but no price list. The pilot reads attributes and does not call the
 services of individual integrations, so such a source needs a bridge: a template
 sensor that calls the service and exposes the result as `today` / `tomorrow`
-lists (or `raw_today` / `raw_tomorrow`), selected as the price entity.
+lists (or `raw_today` / `raw_tomorrow`), selected as the price entity. A worked example is on the
+[price bridges](price-bridges.md) page.
 
 Keep the native resolution (for example 15 minutes). If the service returns the
 final consumer price, leave the price offset at `0` so fees are not counted twice.
