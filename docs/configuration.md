@@ -37,7 +37,9 @@ that integration: like Tibber, it only offers the curve through an action
 The Nordpool HACS integration is a third-party component, and it has been
 reported to keep serving the previous day's curve as "today" for many hours
 after its upstream API stopped answering, while the sensor still looked alive.
-The pilot then plans on stale prices. If you use it, check now and then that
+Depending on how much of the stale curve still lies in the future, the pilot
+either refuses to plan (the card then shows `no_price_data` and assist stands
+down) or plans on stale prices. If you use it, check now and then that
 `raw_today` of the sensor starts at today's date.
 
 #### Currency
