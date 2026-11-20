@@ -38,8 +38,9 @@ The Nordpool HACS integration is a third-party component, and it has been
 reported to keep serving the previous day's curve as "today" for many hours
 after its upstream API stopped answering, while the sensor still looked alive.
 Depending on how much of the stale curve still lies in the future, the pilot
-either refuses to plan (the card then shows `no_price_data` and assist stands
-down) or plans on stale prices. If you use it, check now and then that
+either refuses to plan (the plan status shows `no_price_data`, the battery is
+handed back to auto mode, and after 12 hours the *No valid plan* repair
+appears) or plans on stale prices. If you use it, check now and then that
 `raw_today` of the sensor starts at today's date.
 
 #### Currency
