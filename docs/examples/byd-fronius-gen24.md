@@ -149,6 +149,7 @@ sbp_block_discharge:
         value: >-
           {%- set raw = states('sensor.reading_battery_settings').split(',') -%}
           {%- set inv = (raw[6] | float(0)) / 100 if raw | length > 6 else 0 -%}
+          {#- Fallback: your battery's SOC sensor (the id is an example) -#}
           {%- set soc = (inv | int) if 0 < inv <= 100
                 else (states('sensor.byd_battery_box_premium_hv_state_of_charge') | int(5)) -%}
           {{ [[soc, reserve_soc | default(5) | int] | max, 98] | min * 100 }}
@@ -225,6 +226,10 @@ let the pilot export.
 
 ## Integration configuration
 
+The entity ids below are examples: they depend on the integrations and on the
+language Home Assistant was set up in. Replace them with yours, including the
+SOC sensor in `sbp_block_discharge`.
+
 | Config flow field | Entity / value |
 |---|---|
 | Price forecast entity | `sensor.nordpool_kwh_de_eur_3_10_0` (Nordpool HACS) |
@@ -275,7 +280,9 @@ Watch these while testing (dry-run first!):
 Many installations stop PV production while the spot price is negative
 enough that exporting costs money, and start it again once it recovers. On
 the Gen24 that is two registers: 40232 (`0` = stop) and 40236 (`0` = PV
-running, `1` = PV blocked).
+running, `1` = PV blocked). The scripts and automations below follow
+those register semantics but, unlike the control scripts above, have not been
+run on the reference installation in this form; try them by hand first.
 
 ```yaml
 pv_stop:

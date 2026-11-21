@@ -61,9 +61,10 @@ adding the integration ([currency](configuration.md#currency)).
 
 ## 3. Write the control scripts
 
-The pilot never talks to the inverter itself. It calls your scripts at every
-slot boundary, with the planned power (`power_w`) and the backup reserve
-(`reserve_soc`) as variables. What each script has to do, and what the plan
+The pilot never talks to the inverter itself. It calls the script of the
+planned action when that action begins (*charge* and *export* at every slot,
+since their power may change), with the planned power (`power_w`) and the
+backup reserve (`reserve_soc`) as variables. What each script has to do, and what the plan
 assumes of it, is in [Control scripts](configuration.md#3-control-scripts).
 
 Start from an [example](examples/README.md) if one matches your hardware. Test
