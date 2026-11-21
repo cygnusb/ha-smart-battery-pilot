@@ -64,7 +64,7 @@
   },
   "card": {
     "title": "Der Plan auf deinem Dashboard",
-    "lede": "Zur Integration gehört eine Lovelace-Karte: geplante Aktionen, Preis, Verbrauch und Ladezustand in einer Ansicht, mit drei Layouts von der Handy-Spalte bis zum Wandpanel.",
+    "lede": "Zur Integration gehört eine Lovelace-Karte: geplante Aktionen, Preis, Verbrauch und Ladezustand zusammen, in fünf Ansichten von der Handy-Spalte bis zum Wandpanel.",
     "views_label": "Beispiele der Karte",
     "shots": {
       "dunkelflaute": {
@@ -101,6 +101,16 @@
         "title": "Fürs Handy",
         "caption": "Statuszeile, drei Kennzahlen und darunter die Kurven.",
         "alt": "Kompaktansicht: Status, Kennzahlen und ein kleineres Diagramm"
+      },
+      "view_bars": {
+        "title": "Balken-Ansicht",
+        "caption": "Jeder Preisbalken in der Farbe der geplanten Aktion; mit evcc eine Spur für das Auto.",
+        "alt": "Balken-Ansicht: ein Preisbalken pro Stunde in der Farbe der geplanten Aktion, darunter eine Spur mit der geplanten Energie fürs Auto"
+      },
+      "view_flow": {
+        "title": "Fluss-Ansicht",
+        "caption": "Der Preis als Farbband, PV nach oben, Verbrauch nach unten, der Akku in seinem Fenster.",
+        "alt": "Fluss-Ansicht: der Preis als orangefarbenes Band, PV nach oben und Verbrauch nach unten gezeichnet, der Ladezustand mit seinen Grenzen als gestrichelte Linien"
       }
     }
   },
@@ -173,13 +183,18 @@
     },
     "prices_from": "Preise von",
     "batteries_via": "Akkus, über deine Scripts",
-    "any_inverter": "jeder Wechselrichter, den Home Assistant steuern kann"
+    "any_inverter": "jeder Wechselrichter, den Home Assistant steuern kann",
+    "bridges": "Integrationen, die ihre Preise nur über eine Aktion liefern, etwa die offiziellen Integrationen von Tibber und Nord Pool, werden über einen kleinen Template-Sensor angebunden.",
+    "bridges_link": "Preis-Bridges (EN)"
   },
   "install": {
     "title": "Über HACS installieren",
     "lede": "Smart Battery Pilot ist im HACS-Standard-Repository, du musst also kein benutzerdefiniertes Repository hinzufügen. Die Integration startet ausgeschaltet und im Testmodus: In den ersten Tagen gibt es nur einen Plan zum Mitlesen, mehr nicht.",
     "open_hacs": "In HACS öffnen",
     "download": "Suche in HACS nach <strong>Smart Battery Pilot</strong>, lade die Integration herunter und starte Home Assistant neu.",
+    "scripts": "Schreib die Steuerungs-Scripts für deinen Wechselrichter.",
+    "scripts_detail": "Drei kurze Home-Assistant-Scripts (Laden, Entladen sperren, Auto) – darüber steuert der Pilot jeden Akku.",
+    "scripts_link": "Schritt-für-Schritt-Anleitung und Beispiele (EN)",
     "add": "Füge die Integration unter <strong>Einstellungen</strong>, <strong>Geräte &amp; Dienste</strong> hinzu.",
     "add_detail": "Wähle deinen Preissensor, den Akku, die Steuerungs-Scripts, den Verbrauchszähler und die PV-Prognose.",
     "card": "Leg die Karte auf ein Dashboard.",
@@ -189,6 +204,7 @@
     "text": "Smart Battery Pilot. MIT-Lizenz. Steht in keiner Verbindung zu Herstellern von Wechselrichtern oder Akkus oder zu Stromanbietern.",
     "nav_label": "Fußzeile",
     "changelog": "Changelog",
+    "faq": "Fehlersuche",
     "issues": "Issues"
   }
 }

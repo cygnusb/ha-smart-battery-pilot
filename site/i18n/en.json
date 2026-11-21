@@ -64,7 +64,7 @@
   },
   "card": {
     "title": "The plan on your dashboard",
-    "lede": "A Lovelace card ships with the integration: planned actions, price, consumption and state of charge in one view, with three layouts from a phone column to a wall panel.",
+    "lede": "A Lovelace card ships with the integration: planned actions, price, consumption and state of charge together, in five views that fit anything from a phone column to a wall panel.",
     "views_label": "Card examples",
     "shots": {
       "dunkelflaute": {
@@ -101,6 +101,16 @@
         "title": "For phones",
         "caption": "Status line, three figures and the curves underneath.",
         "alt": "Compact view: status, figures and a smaller chart"
+      },
+      "view_bars": {
+        "title": "Bars view",
+        "caption": "Every price bar in the colour of its planned action; with evcc, a lane for the car.",
+        "alt": "Bars view: one price bar per hour in the colour of the planned action, with the car's planned energy in a lane below"
+      },
+      "view_flow": {
+        "title": "Flow view",
+        "caption": "The price as a colour band, PV up and consumption down, the battery within its window.",
+        "alt": "Flow view: the price as an orange band, PV drawn upwards and consumption downwards, and the state of charge with its limits as dashed lines"
       }
     }
   },
@@ -173,13 +183,18 @@
     },
     "prices_from": "Prices from",
     "batteries_via": "Batteries, via your scripts",
-    "any_inverter": "any inverter Home Assistant can control"
+    "any_inverter": "any inverter Home Assistant can control",
+    "bridges": "Integrations that only offer their prices through an action, such as the official Tibber and Nord Pool integrations, connect through a small template sensor.",
+    "bridges_link": "Price bridges"
   },
   "install": {
     "title": "Install from HACS",
     "lede": "Smart Battery Pilot is in the HACS default repository, so there is no custom repository to add. It installs switched off and in dry-run: the first days are a plan to read, nothing more.",
     "open_hacs": "Open in HACS",
     "download": "Search for <strong>Smart Battery Pilot</strong> in HACS, download it and restart Home Assistant.",
+    "scripts": "Write the control scripts for your inverter.",
+    "scripts_detail": "Three short Home Assistant scripts (charge, block discharge, auto) are how the pilot steers any battery.",
+    "scripts_link": "Step-by-step guide and examples",
     "add": "Add the integration under <strong>Settings</strong>, <strong>Devices &amp; services</strong>.",
     "add_detail": "Pick your price sensor, battery, control scripts, consumption meter and PV forecast.",
     "card": "Put the card on a dashboard.",
@@ -189,6 +204,7 @@
     "text": "Smart Battery Pilot. MIT licence. Not affiliated with any inverter, battery or tariff vendor.",
     "nav_label": "Footer",
     "changelog": "Changelog",
+    "faq": "Troubleshooting",
     "issues": "Issues"
   }
 }

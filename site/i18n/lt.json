@@ -64,7 +64,7 @@
   },
   "card": {
     "title": "Planas tavo prietaisų skydelyje",
-    "lede": "Kartu su integracija pateikiama Lovelace kortelė: suplanuoti veiksmai, kaina, suvartojimas ir įkrovos lygis viename vaizde, su trimis išdėstymais – nuo telefono stulpelio iki sieninio ekrano.",
+    "lede": "Kartu su integracija pateikiama Lovelace kortelė: suplanuoti veiksmai, kaina, suvartojimas ir įkrovos lygis kartu, penkiais vaizdais – nuo telefono stulpelio iki sieninio ekrano.",
     "views_label": "Kortelės pavyzdžiai",
     "shots": {
       "dunkelflaute": {
@@ -101,6 +101,16 @@
         "title": "Telefonams",
         "caption": "Būsenos eilutė, trys rodikliai ir kreivės po jais.",
         "alt": "Kompaktiškas vaizdas: būsena, rodikliai ir mažesnė diagrama"
+      },
+      "view_bars": {
+        "title": "Stulpelių vaizdas",
+        "caption": "Kiekvienas kainos stulpelis suplanuoto veiksmo spalva; su evcc – atskira juosta automobiliui.",
+        "alt": "Stulpelių vaizdas: vienas kainos stulpelis per valandą suplanuoto veiksmo spalva, po juo juosta su automobiliui suplanuota energija"
+      },
+      "view_flow": {
+        "title": "Srauto vaizdas",
+        "caption": "Kaina kaip spalvų juosta, PV aukštyn, suvartojimas žemyn, baterija savo lange.",
+        "alt": "Srauto vaizdas: kaina kaip oranžinė juosta, PV nubraižyta aukštyn, suvartojimas žemyn, o įkrovos lygis su ribomis punktyrinėmis linijomis"
       }
     }
   },
@@ -173,13 +183,18 @@
     },
     "prices_from": "Kainos iš",
     "batteries_via": "Baterijos – per tavo scenarijus",
-    "any_inverter": "bet kuris keitiklis, kurį valdo Home Assistant"
+    "any_inverter": "bet kuris keitiklis, kurį valdo Home Assistant",
+    "bridges": "Integracijos, kurios kainas teikia tik per veiksmą, pavyzdžiui, oficialios Tibber ir Nord Pool integracijos, prijungiamos per nedidelį šablono jutiklį.",
+    "bridges_link": "Kainų tiltai (EN)"
   },
   "install": {
     "title": "Diegimas per HACS",
     "lede": "Smart Battery Pilot yra numatytojoje HACS saugykloje, todėl nereikia pridėti jokios pasirinktinės saugyklos. Integracija įdiegiama išjungta ir bandomojo paleidimo režimu: pirmomis dienomis tai tik planas, kurį galima perskaityti, ir nieko daugiau.",
     "open_hacs": "Atidaryti HACS",
     "download": "HACS paieškoje surask <strong>Smart Battery Pilot</strong>, atsisiųsk ir paleisk Home Assistant iš naujo.",
+    "scripts": "Parašyk valdymo scenarijus savo keitikliui.",
+    "scripts_detail": "Trys trumpi Home Assistant scenarijai (įkrovimas, iškrovimo blokavimas, auto) – per juos pilotas valdo bet kokią bateriją.",
+    "scripts_link": "Žingsnis po žingsnio vadovas ir pavyzdžiai (EN)",
     "add": "Pridėk integraciją skiltyje <strong>Nustatymai</strong>, <strong>Prietaisai ir paslaugos</strong>.",
     "add_detail": "Pasirink kainos jutiklį, bateriją, valdymo scenarijus, suvartojimo skaitiklį ir saulės prognozę.",
     "card": "Įdėk kortelę į prietaisų skydelį.",
@@ -189,6 +204,7 @@
     "text": "Smart Battery Pilot. MIT licencija. Nesusijęs su jokiu keitiklių ar baterijų gamintoju ar elektros tiekėju.",
     "nav_label": "Poraštė",
     "changelog": "Pakeitimų žurnalas",
+    "faq": "Trikčių šalinimas",
     "issues": "Problemos"
   }
 }

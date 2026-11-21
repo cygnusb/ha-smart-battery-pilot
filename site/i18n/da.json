@@ -64,7 +64,7 @@
   },
   "card": {
     "title": "Planen på dit betjeningspanel",
-    "lede": "Med integrationen følger et Lovelace-kort: planlagte handlinger, pris, forbrug og ladetilstand i én visning, med tre layouts fra en smal kolonne på telefonen til et vægpanel.",
+    "lede": "Med integrationen følger et Lovelace-kort: planlagte handlinger, pris, forbrug og ladetilstand samlet, i fem visninger fra en smal kolonne på telefonen til et vægpanel.",
     "views_label": "Eksempler på kortet",
     "shots": {
       "dunkelflaute": {
@@ -101,6 +101,16 @@
         "title": "Til telefonen",
         "caption": "Statuslinje, tre nøgletal og kurverne nedenunder.",
         "alt": "Kompakt visning: status, nøgletal og et mindre diagram"
+      },
+      "view_bars": {
+        "title": "Søjlevisning",
+        "caption": "Hver prissøjle i farven for den planlagte handling; med evcc et felt til bilen.",
+        "alt": "Søjlevisning: én prissøjle pr. time i farven for den planlagte handling, med bilens planlagte energi i et felt nedenunder"
+      },
+      "view_flow": {
+        "title": "Flowvisning",
+        "caption": "Prisen som farvebånd, solcellestrøm op og forbrug ned, batteriet inden for sit vindue.",
+        "alt": "Flowvisning: prisen som et orange bånd, solcellestrøm tegnet opad og forbrug nedad, og ladetilstanden med sine grænser som stiplede linjer"
       }
     }
   },
@@ -173,13 +183,18 @@
     },
     "prices_from": "Priser fra",
     "batteries_via": "Batterier, via dine scripts",
-    "any_inverter": "enhver inverter, Home Assistant kan styre"
+    "any_inverter": "enhver inverter, Home Assistant kan styre",
+    "bridges": "Integrationer, der kun leverer priserne via en handling, som de officielle integrationer til Tibber og Nord Pool, tilsluttes via en lille skabelonsensor.",
+    "bridges_link": "Prisbroer (EN)"
   },
   "install": {
     "title": "Installér fra HACS",
     "lede": "Smart Battery Pilot ligger i HACS’ standardrepository, så der er intet brugerdefineret repository at tilføje. Den installeres slukket og i testkørsel: de første dage er det en plan at læse, intet andet.",
     "open_hacs": "Åbn i HACS",
     "download": "Søg efter <strong>Smart Battery Pilot</strong> i HACS, download den, og genstart Home Assistant.",
+    "scripts": "Skriv styringsscripts til din inverter.",
+    "scripts_detail": "Tre korte Home Assistant-scripts (opladning, spær afladning, auto) er måden, piloten styrer ethvert batteri på.",
+    "scripts_link": "Trin-for-trin-vejledning og eksempler (EN)",
     "add": "Tilføj integrationen under <strong>Indstillinger</strong>, <strong>Enheder og tjenester</strong>.",
     "add_detail": "Vælg din prissensor, dit batteri, styringsscripts, forbrugsmåler og solcelleprognose.",
     "card": "Sæt kortet på et betjeningspanel.",
@@ -189,6 +204,7 @@
     "text": "Smart Battery Pilot. MIT-licens. Ikke tilknyttet nogen producent af invertere eller batterier eller noget elselskab.",
     "nav_label": "Sidefod",
     "changelog": "Ændringslog",
+    "faq": "Fejlfinding",
     "issues": "Issues"
   }
 }

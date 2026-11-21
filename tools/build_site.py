@@ -86,13 +86,15 @@ assert all(len(hours) == 24 for _, hours in STRIPS)
 
 # The card screenshots in the viewer, with each image's height in pixels.
 SCREENSHOTS = [
-    {"name": "dunkelflaute", "height": 942},
-    {"name": "winter_arbitrage", "height": 942},
-    {"name": "summer_export", "height": 942},
-    {"name": "ev_overnight", "height": 986},
-    {"name": "ev_compact", "height": 918},
-    {"name": "view_balance", "height": 942},
-    {"name": "view_compact", "height": 894},
+    {"name": "dunkelflaute", "height": 958},
+    {"name": "winter_arbitrage", "height": 958},
+    {"name": "summer_export", "height": 958},
+    {"name": "ev_overnight", "height": 1002},
+    {"name": "ev_compact", "height": 930},
+    {"name": "view_balance", "height": 958},
+    {"name": "view_bars", "height": 1014},
+    {"name": "view_flow", "height": 946},
+    {"name": "view_compact", "height": 906},
 ]
 
 

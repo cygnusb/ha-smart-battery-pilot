@@ -64,7 +64,7 @@
   },
   "card": {
     "title": "Het plan op je dashboard",
-    "lede": "Bij de integratie hoort een Lovelace-kaart: geplande acties, prijs, verbruik en laadtoestand in één weergave, met drie lay-outs van een smalle kolom op je telefoon tot een wandpaneel.",
+    "lede": "Bij de integratie hoort een Lovelace-kaart: geplande acties, prijs, verbruik en laadtoestand samen, in vijf weergaven van een smalle kolom op je telefoon tot een wandpaneel.",
     "views_label": "Voorbeelden van de kaart",
     "shots": {
       "dunkelflaute": {
@@ -101,6 +101,16 @@
         "title": "Voor telefoons",
         "caption": "Statusregel, drie cijfers en daaronder de curves.",
         "alt": "Compacte weergave: status, cijfers en een kleinere grafiek"
+      },
+      "view_bars": {
+        "title": "Staafweergave",
+        "caption": "Elke prijsstaaf in de kleur van de geplande actie; met evcc een strook voor de auto.",
+        "alt": "Staafweergave: één prijsstaaf per uur in de kleur van de geplande actie, met daaronder een strook met de geplande energie voor de auto"
+      },
+      "view_flow": {
+        "title": "Stroomweergave",
+        "caption": "De prijs als kleurband, PV omhoog en verbruik omlaag, de accu binnen zijn bereik.",
+        "alt": "Stroomweergave: de prijs als oranje band, PV naar boven en verbruik naar beneden getekend, en de laadtoestand met zijn grenzen als stippellijnen"
       }
     }
   },
@@ -173,13 +183,18 @@
     },
     "prices_from": "Prijzen van",
     "batteries_via": "Accu’s, via je scripts",
-    "any_inverter": "elke omvormer die Home Assistant kan aansturen"
+    "any_inverter": "elke omvormer die Home Assistant kan aansturen",
+    "bridges": "Integraties die hun prijzen alleen via een actie leveren, zoals de officiële integraties van Tibber en Nord Pool, sluit je aan via een kleine template-sensor.",
+    "bridges_link": "Prijsbruggen (EN)"
   },
   "install": {
     "title": "Installeren via HACS",
     "lede": "Smart Battery Pilot staat in de standaardrepository van HACS, dus je hoeft geen aangepaste repository toe te voegen. Hij start uitgeschakeld en in testmodus: de eerste dagen is het een plan om te lezen, meer niet.",
     "open_hacs": "Openen in HACS",
     "download": "Zoek in HACS naar <strong>Smart Battery Pilot</strong>, download hem en herstart Home Assistant.",
+    "scripts": "Schrijf de stuurscripts voor je omvormer.",
+    "scripts_detail": "Drie korte Home Assistant-scripts (laden, ontladen blokkeren, auto): zo stuurt de pilot elke accu aan.",
+    "scripts_link": "Stapsgewijze handleiding en voorbeelden (EN)",
     "add": "Voeg de integratie toe onder <strong>Instellingen</strong>, <strong>Apparaten &amp; diensten</strong>.",
     "add_detail": "Kies je prijssensor, accu, stuurscripts, verbruiksmeter en PV-prognose.",
     "card": "Zet de kaart op een dashboard.",
@@ -189,6 +204,7 @@
     "text": "Smart Battery Pilot. MIT-licentie. Niet gelieerd aan fabrikanten van omvormers of accu’s, of aan energieleveranciers.",
     "nav_label": "Voettekst",
     "changelog": "Changelog",
+    "faq": "Probleemoplossing",
     "issues": "Issues"
   }
 }
