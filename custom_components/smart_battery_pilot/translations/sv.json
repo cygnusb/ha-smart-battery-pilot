@@ -455,8 +455,8 @@
       "description": "Under tre dagar levererade det bara {actual_kwh} kWh av de {expected_kwh} kWh huset behövde (senast), trots att det innehöll energi.\n\nKontrollera att auto-skriptet låter batteriet stå i egenförbrukning och om växelriktarens minsta SOC är högre än pilotens."
     },
     "auto_not_capturing": {
-      "title": "Solöverskott når inte batteriet i automatiska perioder",
-      "description": "Under tre dagar tog batteriet bara emot {actual_kwh} kWh av {expected_kwh} kWh uppmätt överskott (senast), trots att det fanns plats. Planen räknar med den här energin, så dess SOC-prognos är för hög.\n\nAuto-skriptet måste låta batteriet ladda från överskott. Följer det bara kommandon måste något annat följa elmätaren, till exempel en automation. Begränsar du laddningen med flit kan du ignorera det här meddelandet."
+      "title": "Solöverskott når inte batteriet i automatiska perioder och viloperioder",
+      "description": "Under tre dagar tog batteriet bara emot {actual_kwh} kWh av {expected_kwh} kWh uppmätt överskott (senast), trots att det fanns plats. Planen räknar med den här energin, så dess SOC-prognos är för hög.\n\nAuto- och vilo-skriptet måste låta batteriet ladda från överskott. Följer det bara kommandon måste något annat följa elmätaren, till exempel en automation. Begränsar du laddningen med flit kan du ignorera det här meddelandet."
     },
     "reserve_not_enforced": {
       "title": "Batteriet laddar ur under reservnivån",

@@ -237,6 +237,37 @@ def test_an_idle_slot_that_holds_passes():
     assert CHECK_IDLE not in _shown(monitor)
 
 
+def test_surplus_passing_an_idle_slot_fires_the_capture_check():
+    """Idle only blocks discharging: PV surplus still belongs in the battery."""
+    monitor = HealthMonitor()
+    _days(monitor, 3, action=ACTION_IDLE, charge_per_step=0.0, discharge_per_step=0.0, **SURPLUS)
+    placeholders = monitor.issues(enabled=True, dry_run=False)[CHECK_CAPTURE]
+    assert placeholders == {"expected_kwh": "10.0", "actual_kwh": "0.0"}
+    assert CHECK_IDLE not in _shown(monitor)
+
+
+def test_an_idle_slot_that_takes_the_surplus_passes():
+    monitor = HealthMonitor()
+    _days(monitor, 5, action=ACTION_IDLE, charge_per_step=1.0, discharge_per_step=0.0, **SURPLUS)
+    assert CHECK_CAPTURE not in _shown(monitor)
+    assert CHECK_IDLE not in _shown(monitor)
+
+
+def test_an_idle_slot_owes_the_house_nothing():
+    """Holding the energy for later is the point of idle, not a cover failure."""
+    monitor = HealthMonitor()
+    _days(
+        monitor,
+        5,
+        action=ACTION_IDLE,
+        pv_w=0.0,
+        load_w=2000.0,
+        charge_per_step=0.0,
+        discharge_per_step=0.0,
+    )
+    assert _shown(monitor) == set()
+
+
 def test_trading_around_a_held_soc_spends_nothing():
     monitor = HealthMonitor()
     _days(monitor, 5, action=ACTION_IDLE, charge_per_step=0.2, discharge_per_step=0.2)

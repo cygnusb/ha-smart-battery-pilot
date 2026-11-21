@@ -455,8 +455,8 @@
       "description": "Trīs dienās tas no mājai vajadzīgajām {expected_kwh} kWh atdeva tikai {actual_kwh} kWh (pēdējo reizi), lai gan tajā bija enerģija.\n\nPārbaudi, vai automātiskais skripts atstāj akumulatoru pašpatēriņā un vai invertora minimālais SOC nav augstāks par pilota iestatīto."
     },
     "auto_not_capturing": {
-      "title": "Saules enerģijas pārpalikums automātiskajos periodos nesasniedz akumulatoru",
-      "description": "Trīs dienās akumulators no izmērītā {expected_kwh} kWh pārpalikuma saņēma tikai {actual_kwh} kWh (pēdējo reizi), lai gan vietas bija. Plāns rēķinās ar šo enerģiju, tāpēc tā SOC prognoze ir pārāk augsta.\n\nAutomātiskajam skriptam jāļauj akumulatoram uzlādēties no pārpalikuma. Ja tas izpilda tikai komandas, tīkla skaitītājam jāseko kam citam, piemēram, automatizācijai. Ja uzlādi ierobežo apzināti, ignorē šo paziņojumu."
+      "title": "Saules enerģijas pārpalikums automātiskajos un gaidīšanas periodos nesasniedz akumulatoru",
+      "description": "Trīs dienās akumulators no izmērītā {expected_kwh} kWh pārpalikuma saņēma tikai {actual_kwh} kWh (pēdējo reizi), lai gan vietas bija. Plāns rēķinās ar šo enerģiju, tāpēc tā SOC prognoze ir pārāk augsta.\n\nAutomātiskajam un gaidīšanas skriptam jāļauj akumulatoram uzlādēties no pārpalikuma. Ja tas izpilda tikai komandas, tīkla skaitītājam jāseko kam citam, piemēram, automatizācijai. Ja uzlādi ierobežo apzināti, ignorē šo paziņojumu."
     },
     "reserve_not_enforced": {
       "title": "Akumulators izlādējas zem rezerves līmeņa",

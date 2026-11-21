@@ -455,8 +455,8 @@
       "description": "På tre dage leverede det kun {actual_kwh} kWh af de {expected_kwh} kWh, huset havde brug for (seneste gang), selvom det indeholdt energi.\n\nTjek, at auto-scriptet lader batteriet stå i egenforbrug, og om vekselretterens minimum-SOC er højere end pilotens."
     },
     "auto_not_capturing": {
-      "title": "PV-overskud når ikke batteriet i automatiske perioder",
-      "description": "På tre dage modtog batteriet kun {actual_kwh} kWh af {expected_kwh} kWh målt overskud (seneste gang), selvom der var plads. Planen regner med denne energi, så dens SOC-prognose er for høj.\n\nAuto-scriptet skal lade batteriet lade fra overskud. Følger det kun kommandoer, må noget andet følge elmåleren, for eksempel en automatisering. Begrænser du opladningen med vilje, så ignorer denne besked."
+      "title": "PV-overskud når ikke batteriet i automatiske perioder og hvileperioder",
+      "description": "På tre dage modtog batteriet kun {actual_kwh} kWh af {expected_kwh} kWh målt overskud (seneste gang), selvom der var plads. Planen regner med denne energi, så dens SOC-prognose er for høj.\n\nAuto- og hvile-scriptet skal lade batteriet lade fra overskud. Følger det kun kommandoer, må noget andet følge elmåleren, for eksempel en automatisering. Begrænser du opladningen med vilje, så ignorer denne besked."
     },
     "reserve_not_enforced": {
       "title": "Batteriet aflader under backup-reserven",

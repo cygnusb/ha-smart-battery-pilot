@@ -455,8 +455,8 @@
       "description": "On three days it delivered only {actual_kwh} kWh of the {expected_kwh} kWh the house needed from it (last time), even though it held energy.\n\nCheck that the auto script leaves the battery in self-consumption, and whether the inverter's own minimum SOC is higher than the pilot's."
     },
     "auto_not_capturing": {
-      "title": "PV surplus doesn't reach the battery in auto slots",
-      "description": "On three days the battery took only {actual_kwh} kWh of {expected_kwh} kWh measured surplus (last time), even though it had room. The plan counts on this energy, so its SOC forecast is too high.\n\nThe auto script must leave the battery charging from surplus. If the battery only follows commands, something has to follow the grid meter, such as an automation. If you limit charging on purpose, ignore this message."
+      "title": "PV surplus doesn't reach the battery in auto and idle slots",
+      "description": "On three days the battery took only {actual_kwh} kWh of {expected_kwh} kWh measured surplus (last time), even though it had room. The plan counts on this energy, so its SOC forecast is too high.\n\nThe auto and idle scripts must leave the battery charging from surplus. If the battery only follows commands, something has to follow the grid meter, such as an automation. If you limit charging on purpose, ignore this message."
     },
     "reserve_not_enforced": {
       "title": "The battery discharges below the backup reserve",

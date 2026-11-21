@@ -455,8 +455,8 @@
       "description": "Per tris dienas jis iš namui reikalingų {expected_kwh} kWh atidavė tik {actual_kwh} kWh (paskutinį kartą), nors energijos turėjo.\n\nPatikrinkite, ar automatinis scenarijus palieka akumuliatorių savo vartojimo režime ir ar inverterio mažiausias SOC nėra didesnis už piloto."
     },
     "auto_not_capturing": {
-      "title": "Saulės energijos perteklius automatiniais laikotarpiais nepasiekia akumuliatoriaus",
-      "description": "Per tris dienas akumuliatorius iš išmatuoto {expected_kwh} kWh pertekliaus priėmė tik {actual_kwh} kWh (paskutinį kartą), nors vietos buvo. Planas skaičiuoja su šia energija, todėl jo SOC prognozė per didelė.\n\nAutomatinis scenarijus turi leisti akumuliatoriui krautis iš pertekliaus. Jei jis vykdo tik komandas, tinklo skaitiklį turi sekti kas nors kita, pavyzdžiui, automatizacija. Jei įkrovimą ribojate sąmoningai, nepaisykite šio pranešimo."
+      "title": "Saulės energijos perteklius automatiniais ir budėjimo laikotarpiais nepasiekia akumuliatoriaus",
+      "description": "Per tris dienas akumuliatorius iš išmatuoto {expected_kwh} kWh pertekliaus priėmė tik {actual_kwh} kWh (paskutinį kartą), nors vietos buvo. Planas skaičiuoja su šia energija, todėl jo SOC prognozė per didelė.\n\nAutomatinis ir budėjimo scenarijai turi leisti akumuliatoriui krautis iš pertekliaus. Jei jis vykdo tik komandas, tinklo skaitiklį turi sekti kas nors kita, pavyzdžiui, automatizacija. Jei įkrovimą ribojate sąmoningai, nepaisykite šio pranešimo."
     },
     "reserve_not_enforced": {
       "title": "Akumuliatorius išsikrauna žemiau atsarginio rezervo",

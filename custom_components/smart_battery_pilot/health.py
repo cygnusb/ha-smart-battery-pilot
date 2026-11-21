@@ -1,7 +1,7 @@
 """Consistency checks: does what the plan counts on really happen?
 
 The plan rests on assumptions nothing else verifies: a script that returned
-really changed the battery's mode, an auto slot really charges from surplus,
+really changed the battery's mode, auto and idle slots really charge from surplus,
 the SOC sensor is alive. When one fails nothing errors, the plan and the
 battery just drift apart. These checks compare the two and name the problem.
 They only ever report; no plan or script call depends on them.
@@ -414,8 +414,9 @@ class HealthMonitor:
             )
 
     def sample_flow(self, at: datetime, pv_w: float | None, load_w: float | None) -> None:
-        """PV and load between observations, for the auto slots' surplus and
-        deficit; the battery side comes from its meters at each observation."""
+        """PV and load between observations, for the surplus in auto and idle
+        slots and the deficit in auto slots; the battery side comes from its
+        meters at each observation."""
         if self._prev is None or at <= self._prev.at:
             return
         if len(self._flow) >= MAX_FLOW_SAMPLES:
@@ -515,9 +516,13 @@ class HealthMonitor:
             # around a held SOC. That moves both meters but spends nothing.
             tally["idle_hours"] += hours
             tally["idle_leak"] += max(0.0, given - taken)
+            # Idle only blocks discharging: surplus still charges the battery,
+            # and the plan counts on it as in auto. The deficit is the house's,
+            # since the energy is held for later on purpose.
+            self._settle_flow(a, b, flow, taken, given, room_above, room_below, cover=False)
         elif a.action == ACTION_AUTO:
             self._settle_reserve(a, b, hours, taken, given)
-            self._settle_auto(a, b, flow, taken, given, room_above, room_below)
+            self._settle_flow(a, b, flow, taken, given, room_above, room_below, cover=True)
 
     def _settle_reserve(
         self, a: Observation, b: Observation, hours: float, taken: float, given: float
@@ -544,7 +549,7 @@ class HealthMonitor:
             # may come tonight.
             self._raise(CHECK_RESERVE, {"reserve": f"{reserve:g}", "actual_kwh": _kwh(drop)})
 
-    def _settle_auto(
+    def _settle_flow(
         self,
         a: Observation,
         b: Observation,
@@ -553,7 +558,10 @@ class HealthMonitor:
         given: float,
         room_above: bool,
         room_below: bool,
+        cover: bool,
     ) -> None:
+        """Measured surplus against what the battery took; with `cover`, the
+        measured deficit against what it gave as well."""
         if a.load_w is None or b.load_w is None:
             return
         tally = self._tally
@@ -585,6 +593,8 @@ class HealthMonitor:
             if room_above and surplus > 0:
                 tally["surplus"] += surplus
                 tally["taken"] += taken
+        if not cover:
+            return
         deficit = _integrate_kwh(points, deficit_w)
         if room_below and deficit > 0:
             tally["deficit"] += deficit
