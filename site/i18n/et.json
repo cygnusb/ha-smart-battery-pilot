@@ -64,7 +64,7 @@
   },
   "card": {
     "title": "Plaan sinu vaates",
-    "lede": "Sidumisega on kaasas Lovelace'i kaart: planeeritud tegevused, hind, tarbimine ja laetuse tase ühes vaates, kolme paigutusega telefoniveerust seinapaneelini.",
+    "lede": "Sidumisega on kaasas Lovelace'i kaart: planeeritud tegevused, hind, tarbimine ja laetuse tase koos, viies vaates telefoniveerust seinapaneelini.",
     "views_label": "Kaardi näited",
     "shots": {
       "dunkelflaute": {
@@ -101,6 +101,16 @@
         "title": "Telefonile",
         "caption": "Olekurida, kolm näitajat ja graafikud nende all.",
         "alt": "Kompaktvaade: olek, näitajad ja väiksem graafik"
+      },
+      "view_bars": {
+        "title": "Tulpvaade",
+        "caption": "Iga hinnatulp planeeritud tegevuse värvi; evcc-ga eraldi rada autole.",
+        "alt": "Tulpvaade: üks hinnatulp tunnis planeeritud tegevuse värvi, all rada auto planeeritud energiaga"
+      },
+      "view_flow": {
+        "title": "Voovaade",
+        "caption": "Hind värviribana, PV üles ja tarbimine alla, aku oma aknas.",
+        "alt": "Voovaade: hind oranži ribana, PV joonistatud üles ja tarbimine alla ning laetuse tase piiridega katkendjoontena"
       }
     }
   },
@@ -173,13 +183,18 @@
     },
     "prices_from": "Hinnaallikad",
     "batteries_via": "Akud sinu skriptide kaudu",
-    "any_inverter": "iga inverter, mida Home Assistant suudab juhtida"
+    "any_inverter": "iga inverter, mida Home Assistant suudab juhtida",
+    "bridges": "Sidumised, mis annavad hinnad ainult toimingu kaudu, nagu Tibberi ja Nord Pooli ametlikud sidumised, ühendatakse väikese mallianduri abil.",
+    "bridges_link": "Hinnasillad (EN)"
   },
   "install": {
     "title": "Paigalda HACS-ist",
     "lede": "Smart Battery Pilot on HACS-i vaikerepositooriumis, seega pole vaja kohandatud repositooriumi lisada. See paigaldub välja lülitatult ja testkäivituses: esimestel päevadel on see vaid plaan, mida lugeda, ei midagi enamat.",
     "open_hacs": "Ava HACS-is",
     "download": "Otsi HACS-ist <strong>Smart Battery Pilot</strong>, laadi see alla ja taaskäivita Home Assistant.",
+    "scripts": "Kirjuta oma inverterile juhtimisskriptid.",
+    "scripts_detail": "Kolm lühikest Home Assistanti skripti (laadimine, tühjenemise blokeerimine, auto) – nende kaudu juhib piloot mis tahes akut.",
+    "scripts_link": "Samm-sammuline juhend ja näited (EN)",
     "add": "Lisa sidumine jaotises <strong>Seaded</strong>, <strong>Seadmed ja teenused</strong>.",
     "add_detail": "Vali hinnaandur, aku, juhtimisskriptid, tarbimisarvesti ja päikeseprognoos.",
     "card": "Lisa kaart vaatesse.",
@@ -189,6 +204,7 @@
     "text": "Smart Battery Pilot. MIT-litsents. Ei ole seotud ühegi inverteri-, aku- ega elektrimüüjaga.",
     "nav_label": "Jalus",
     "changelog": "Muudatuste logi",
+    "faq": "Tõrkeotsing",
     "issues": "Veateated"
   }
 }

@@ -64,7 +64,7 @@
   },
   "card": {
     "title": "Suunnitelma kojelaudallasi",
-    "lede": "Integraation mukana tulee Lovelace-kortti: suunnitellut toiminnot, hinta, kulutus ja varaustila samassa näkymässä, kolmella asettelulla puhelimen sarakkeesta seinäpaneeliin.",
+    "lede": "Integraation mukana tulee Lovelace-kortti: suunnitellut toiminnot, hinta, kulutus ja varaustila yhdessä, viidessä näkymässä puhelimen sarakkeesta seinäpaneeliin.",
     "views_label": "Korttiesimerkkejä",
     "shots": {
       "dunkelflaute": {
@@ -101,6 +101,16 @@
         "title": "Puhelimille",
         "caption": "Tilarivi, kolme lukua ja käyrät alla.",
         "alt": "Tiivis näkymä: tila, luvut ja pienempi kaavio"
+      },
+      "view_bars": {
+        "title": "Pylväsnäkymä",
+        "caption": "Jokainen hintapylväs suunnitellun toiminnon värissä; evcc:n kanssa oma kaista autolle.",
+        "alt": "Pylväsnäkymä: yksi hintapylväs tunnissa suunnitellun toiminnon värissä, alla kaista auton suunnitellulle energialle"
+      },
+      "view_flow": {
+        "title": "Virtausnäkymä",
+        "caption": "Hinta värinauhana, aurinkosähkö ylöspäin ja kulutus alaspäin, akku omassa ikkunassaan.",
+        "alt": "Virtausnäkymä: hinta oranssina nauhana, aurinkosähkö piirrettynä ylöspäin ja kulutus alaspäin, ja varaustila rajoineen katkoviivoina"
       }
     }
   },
@@ -173,13 +183,18 @@
     },
     "prices_from": "Hintalähteet",
     "batteries_via": "Akut skriptiesi kautta",
-    "any_inverter": "mikä tahansa invertteri, jota Home Assistant voi ohjata"
+    "any_inverter": "mikä tahansa invertteri, jota Home Assistant voi ohjata",
+    "bridges": "Integraatiot, jotka antavat hinnat vain toiminnon kautta, kuten Tibberin ja Nord Poolin viralliset integraatiot, liitetään pienen malli-anturin avulla.",
+    "bridges_link": "Hintasillat (EN)"
   },
   "install": {
     "title": "Asenna HACSista",
     "lede": "Smart Battery Pilot löytyy HACSin oletusrepositoriosta, joten mukautettua repositoriota ei tarvitse lisätä. Se asentuu pois päältä ja testiajoon: ensimmäiset päivät ovat vain suunnitelma luettavaksi.",
     "open_hacs": "Avaa HACSissa",
     "download": "Hae <strong>Smart Battery Pilot</strong> HACSista, lataa se ja käynnistä Home Assistant uudelleen.",
+    "scripts": "Kirjoita ohjausskriptit invertterillesi.",
+    "scripts_detail": "Kolme lyhyttä Home Assistant -skriptiä (lataus, purun esto, auto): niiden kautta pilotti ohjaa mitä tahansa akkua.",
+    "scripts_link": "Vaiheittainen opas ja esimerkit (EN)",
     "add": "Lisää integraatio kohdassa <strong>Asetukset</strong>, <strong>Laitteet &amp; palvelut</strong>.",
     "add_detail": "Valitse hinta-anturi, akku, ohjausskriptit, kulutusmittari ja aurinkoennuste.",
     "card": "Lisää kortti kojelaudalle.",
@@ -189,6 +204,7 @@
     "text": "Smart Battery Pilot. MIT-lisenssi. Ei sidoksissa yhteenkään invertteri- tai akkuvalmistajaan eikä sähkönmyyjään.",
     "nav_label": "Alatunniste",
     "changelog": "Muutosloki",
+    "faq": "Vianmääritys",
     "issues": "Vikailmoitukset"
   }
 }

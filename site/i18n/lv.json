@@ -64,7 +64,7 @@
   },
   "card": {
     "title": "Plāns tavā infopanelī",
-    "lede": "Integrācijai līdzi nāk Lovelace kartīte: plānotās darbības, cena, patēriņš un uzlādes līmenis vienā skatā, ar trim izkārtojumiem – no tālruņa kolonnas līdz sienas panelim.",
+    "lede": "Integrācijai līdzi nāk Lovelace kartīte: plānotās darbības, cena, patēriņš un uzlādes līmenis kopā, piecos skatos – no tālruņa kolonnas līdz sienas panelim.",
     "views_label": "Kartītes piemēri",
     "shots": {
       "dunkelflaute": {
@@ -101,6 +101,16 @@
         "title": "Tālruņiem",
         "caption": "Statusa rinda, trīs rādītāji un līknes zem tiem.",
         "alt": "Kompaktais skats: statuss, rādītāji un mazāka diagramma"
+      },
+      "view_bars": {
+        "title": "Stabiņu skats",
+        "caption": "Katrs cenas stabiņš plānotās darbības krāsā; ar evcc – atsevišķa josla automašīnai.",
+        "alt": "Stabiņu skats: viens cenas stabiņš stundā plānotās darbības krāsā, zem tā josla ar automašīnai plānoto enerģiju"
+      },
+      "view_flow": {
+        "title": "Plūsmas skats",
+        "caption": "Cena kā krāsu josla, PV uz augšu un patēriņš uz leju, akumulators savā logā.",
+        "alt": "Plūsmas skats: cena kā oranža josla, PV zīmēts uz augšu un patēriņš uz leju, un uzlādes līmenis ar robežām kā raustītas līnijas"
       }
     }
   },
@@ -173,13 +183,18 @@
     },
     "prices_from": "Cenas no",
     "batteries_via": "Akumulatori, ar taviem skriptiem",
-    "any_inverter": "jebkurš invertors, ko Home Assistant spēj vadīt"
+    "any_inverter": "jebkurš invertors, ko Home Assistant spēj vadīt",
+    "bridges": "Integrācijas, kas cenas sniedz tikai ar darbības palīdzību, piemēram, oficiālās Tibber un Nord Pool integrācijas, pievieno ar nelielu veidnes sensoru.",
+    "bridges_link": "Cenu tilti (EN)"
   },
   "install": {
     "title": "Instalēšana no HACS",
     "lede": "Smart Battery Pilot ir HACS noklusējuma repozitorijā, tāpēc pielāgots repozitorijs nav jāpievieno. Tas sākas izslēgts un testa palaišanas režīmā: pirmajās dienās tas ir tikai plāns, ko izlasīt, nekas vairāk.",
     "open_hacs": "Atvērt HACS",
     "download": "Sameklē <strong>Smart Battery Pilot</strong> HACS katalogā, lejupielādē to un restartē Home Assistant.",
+    "scripts": "Uzraksti vadības skriptus savam invertoram.",
+    "scripts_detail": "Trīs īsi Home Assistant skripti (uzlāde, izlādes bloķēšana, auto) – ar tiem pilots vada jebkuru akumulatoru.",
+    "scripts_link": "Soli pa solim ceļvedis un piemēri (EN)",
     "add": "Pievieno integrāciju sadaļā <strong>Konfigurācija</strong>, <strong>Ierīces un pakalpojumi</strong>.",
     "add_detail": "Izvēlies cenu sensoru, akumulatoru, vadības skriptus, patēriņa skaitītāju un saules prognozi.",
     "card": "Pievieno kartīti infopanelim.",
@@ -189,6 +204,7 @@
     "text": "Smart Battery Pilot. MIT licence. Nav saistīts ne ar vienu invertoru, akumulatoru vai elektroenerģijas tirgotāju.",
     "nav_label": "Kājene",
     "changelog": "Izmaiņu žurnāls",
+    "faq": "Problēmu novēršana",
     "issues": "Problēmas"
   }
 }

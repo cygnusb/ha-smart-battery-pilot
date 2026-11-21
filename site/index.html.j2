@@ -262,6 +262,7 @@ nav.top { position: relative; display: flex; flex-wrap: wrap; align-items: cente
 @media (min-width: 700px) { .sources div { grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); } }
 .sources dt { font-weight: 700; }
 .sources dd { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 22px; color: var(--ink-2); }
+.sources-note { margin: 12px 0 0; color: var(--ink-2); font-size: 16px; }
 
 /* install */
 .install { margin-top: 80px; background: var(--board); border: 1px solid var(--rule); border-radius: 8px; padding: 28px 18px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px 56px; }
@@ -423,8 +424,9 @@ footer.foot nav a { color: var(--ink); }
 </div>
 <dl class="sources">
 <div><dt>{{ t.features.prices_from }}</dt><dd><span>Nordpool</span><span>Tibber</span><span>aWATTar</span><span>EPEX Spot</span><span>ENTSO-E</span></dd></div>
-<div><dt>{{ t.features.batteries_via }}</dt><dd><span>Fronius</span><span>Victron</span><span>SMA</span><span>Sungrow</span><span>E3DC</span><span>{{ t.features.any_inverter }}</span></dd></div>
+<div><dt>{{ t.features.batteries_via }}</dt><dd><span>Fronius</span><span>Victron</span><span>SMA</span><span>Sungrow</span><span>E3DC</span><span>Zendure</span><span>{{ t.features.any_inverter }}</span></dd></div>
 </dl>
+<p class="sources-note">{{ t.features.bridges }} <a href="{{ root }}docs/price-bridges/" hreflang="en">{{ t.features.bridges_link }}</a></p>
 </section>
 
 <div class="wrap">
@@ -436,6 +438,7 @@ footer.foot nav a { color: var(--ink); }
 </div>
 <ol>
 <li><div><p>{{ t.install.download }}</p></div></li>
+<li><div><p>{{ t.install.scripts }}</p><p>{{ t.install.scripts_detail }} <a href="{{ root }}docs/getting-started/" hreflang="en">{{ t.install.scripts_link }}</a></p></div></li>
 <li><div><p>{{ t.install.add }}</p><p>{{ t.install.add_detail }}</p></div></li>
 <li><div><p>{{ t.install.card }}</p><p>{{ t.install.card_detail }}</p></div></li>
 </ol>
@@ -446,7 +449,7 @@ footer.foot nav a { color: var(--ink); }
 <footer class="foot">
 <div class="wrap">
 <span>{{ t.footer.text }}</span>
-<nav aria-label="{{ t.footer.nav_label }}"><a href="{{ root }}docs/" hreflang="en">{{ t.nav.docs }}</a><a href="{{ root }}docs/changelog/" hreflang="en">{{ t.footer.changelog }}</a><a href="https://github.com/cygnusb/ha-smart-battery-pilot/issues">{{ t.footer.issues }}</a><a href="https://github.com/cygnusb/ha-smart-battery-pilot">GitHub</a></nav>
+<nav aria-label="{{ t.footer.nav_label }}"><a href="{{ root }}docs/" hreflang="en">{{ t.nav.docs }}</a><a href="{{ root }}docs/troubleshooting/" hreflang="en">{{ t.footer.faq }}</a><a href="{{ root }}docs/changelog/" hreflang="en">{{ t.footer.changelog }}</a><a href="https://github.com/cygnusb/ha-smart-battery-pilot/issues">{{ t.footer.issues }}</a><a href="https://github.com/cygnusb/ha-smart-battery-pilot">GitHub</a></nav>
 </div>
 </footer>
 
