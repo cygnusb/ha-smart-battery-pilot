@@ -64,7 +64,9 @@ log shows every rejected pairing with this arithmetic.
 
 The plan ends with the last known price, usually at midnight before tomorrow's
 prices are out, at the end of tomorrow after that. Energy still in the battery
-then is worth nothing to the plan, so it covers the house with it before. When
+then is worth nothing to the plan, so it covers the house with it before, down
+to the minimum SOC, or the [backup reserve](configuration.md#backup-reserve)
+when one is set. When
 the next day's prices arrive, the pilot plans again and may charge overnight if
 the spread pays.
 

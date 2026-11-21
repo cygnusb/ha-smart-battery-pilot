@@ -15,16 +15,20 @@ the placeholders to your setup.
 
 ## Bridges that deliver the final price
 
-Some bridges publish the price you actually pay, fees and taxes included (Tibber,
-`all_in` of the Belgian integration). Two settings follow from that:
+Some bridges publish the price you actually pay, fees and taxes included
+(`all_in` of the Belgian integration, and Tibber's price where your contract
+includes the grid fees). Two settings follow from that:
 
-* **Price offset `0`**, so fees and taxes are not counted twice.
+* **Price offset `0`**, so fees and taxes are not counted twice. Whatever you
+  pay on top of the published price, such as grid fees billed separately, still
+  belongs in the offset.
 * **A fixed feed-in tariff.** A feed-in of `0` means "market price minus the
   price offset". With a final-price curve and an offset of `0`, that would value
   every exported kWh at the full consumer price. In self-consumption mode the plan
-  does not change, but the battery benefit then values stored PV far too high
-  (see [Price source](configuration.md#1-price-source)). Enter your average
-  feed-in price instead.
+  does not change, but the battery benefit then charges every kWh of stored PV
+  at that price, so the benefit comes out too low (see
+  [Price source](configuration.md#1-price-source)). Enter your average feed-in
+  price instead.
 
 Then check the [minimum price spread](configuration.md#options-settings--integrations--configure)
 against the new curve: a final-price curve usually swings by a different
@@ -130,10 +134,12 @@ actions:
 ## Official Tibber integration
 
 Contributed by a user; running in a live installation with 15-minute prices.
+Only the sensor names and the midnight refresh time (see the notes) differ
+from the contributed version.
 
 The official Home Assistant **Tibber** integration's price sensor carries the
 current price and a few statistics, but no price list. The curve comes from the
-`tibber.get_prices` action, which returns the final consumer price of your
+`tibber.get_prices` action, which returns the consumer price of your Tibber
 contract. The bridge has two stages: a trigger template sensor that calls the
 action, and a second sensor that turns its result into the plain `today` /
 `tomorrow` lists the pilot reads.
@@ -245,15 +251,18 @@ template:
 
 **3.** Select `sensor.tibber_price_curve` (the second sensor) as the price
 entity. The pilot reads it as plain hourly arrays (`hourly_arrays` in the
-diagnostics). The first sensor is not in a format the pilot reads. Set the
-price offset to `0` and a fixed feed-in tariff, see
-[bridges that deliver the final price](#bridges-that-deliver-the-final-price).
+diagnostics). The first sensor is not in a format the pilot reads. When the
+Tibber price already contains everything you pay per kWh, set the price offset
+to `0` and a fixed feed-in tariff, see
+[bridges that deliver the final price](#bridges-that-deliver-the-final-price);
+fees billed separately stay in the offset.
 
 * With more than one Tibber home, pick the right entry of
   `tibber_price_response.prices` instead of the first.
 * Plain lists carry no dates: the pilot takes `today` to start at the current
-  local midnight. That is why the first refresh runs right after midnight;
-  until it has run, `today` still holds the previous day. The number of values
+  local midnight. That is why the first refresh runs right after midnight
+  (the contributed version ran it at 00:05); until it has run, `today` still
+  holds the previous day. The number of values
   per day is not fixed, so the clock-change days work.
 * `tomorrow` stays empty until Tibber publishes the next day's prices,
   usually early in the afternoon. The refreshes after 13:00 pick them up.

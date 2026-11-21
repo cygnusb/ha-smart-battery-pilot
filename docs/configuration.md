@@ -8,7 +8,7 @@
 |---|---|
 | Price forecast entity | Entity of your tariff integration holding the price forecast in its attributes. Supported formats are detected automatically: **Nordpool** (`raw_today`/`raw_tomorrow`; `price_in_cents` or ct/öre/cEUR units are scaled to whole currency units per kWh), **EPEX Spot** (`data` with `price_eur_per_mwh`/`price_ct_per_kwh`), **ENTSO-E** (`prices` with `time`/`price`; the declared unit decides the scale, so a sensor configured for cents is converted too), **aWATTar** (`marketprice` entries) and plain **hourly arrays** (`today`/`tomorrow` float lists). Arrays may hold 23, 24 or 25 values (96 / 92 / 100 at quarter-hour resolution) — on the two clock-change days a local day is not 24 hours long, and the grid follows the real day. |
 | Price offset | Fixed surcharge added to every market price: grid fees, taxes, levies (e.g. `0.187` EUR/kWh in Germany). Self-consumption decisions use the *total* import price you actually pay. Grid export is valued at the feed-in tariff, or at the raw market price when the tariff is `0` — the import surcharge is not treated as export revenue. |
-| Feed-in tariff | What you earn per exported kWh. `0` means the market price is used (dynamic feed-in): the price entity's value without the price offset. The planner only uses it in the export discharge mode. The [battery benefit](optimizer.md#savings-estimate) uses it in every mode, to value the PV energy the battery stores instead of exporting it. If the price entity already delivers the final consumer price (offset `0`), enter a fixed feed-in tariff; `0` would value every exported kWh at the full consumer price. |
+| Feed-in tariff | What you earn per exported kWh. `0` means the market price is used (dynamic feed-in): the price entity's value without the price offset. The planner only uses it in the export discharge mode. The [battery benefit](optimizer.md#savings-estimate) uses it in every mode, to value the PV energy the battery stores instead of exporting it. If the price entity already delivers the final consumer price (offset `0`), enter a fixed feed-in tariff; `0` would value every exported kWh at the full consumer price, and the battery benefit would charge stored PV at it. |
 
 If your integration is not recognized, create a template sensor with `today`/
 `tomorrow` attributes as plain price arrays — that format is always accepted.
@@ -176,8 +176,8 @@ integration already drops the hours that are over, so a remaining-today
 sensor would be cut down a second time. Helios Forecast numbers its days from
 today: use `energy_day_1` for today and `energy_day_2` for tomorrow.
 
-The plan is only as good as the forecast. Much of a forecast's error is often a
-constant factor: compare a few weeks of forecast against the real production,
+The plan is only as good as the forecast. Much of a forecast's error is often
+systematic rather than the weather: compare a few weeks of forecast against the real production,
 then correct the forecast integration's own settings (efficiency, damping) or
 use one that calibrates itself.
 
