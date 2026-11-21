@@ -46,8 +46,8 @@ vendor configurations.
    price integrations: Nordpool, EPEX Spot, ENTSO-E, aWATTar and any
    integration that exposes the price list as a sensor attribute. Integrations
    that only offer the forecast through a service call (such as the official
-   Home Assistant Tibber integration) need a small
-   [bridge sensor](docs/configuration.md#price-sources-without-forecast-attributes).
+   Home Assistant Tibber and Nord Pool integrations) need a small
+   [bridge sensor](docs/price-bridges.md).
 2. **Consumption forecast** — a lightweight model (pure Python, no heavy ML
    dependencies) is trained daily from your Home Assistant history: hour of
    day, weekday/weekend and optionally outdoor temperature (heat pump aware).
@@ -208,6 +208,8 @@ The log then shows every planning run's inputs, how the price adapter parsed
 the entity, each charge/discharge pairing the optimizer made or rejected (and
 why, e.g. *spread not reached*), the plan result against the do-nothing
 baseline, and every executor decision including skipped script calls.
+What each plan status means, and answers to common questions such as "why
+doesn't it charge?", are in [Troubleshooting & FAQ](docs/troubleshooting.md).
 
 ## Dashboard card
 

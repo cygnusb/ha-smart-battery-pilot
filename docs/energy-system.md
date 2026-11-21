@@ -34,36 +34,15 @@ Home Assistant
                 └─ BYD Battery-Box Premium HV (via the internal BYD interface)
 ```
 
-### Modbus registers (Fronius Gen24)
+### Registers and scripts
 
-| Register | Name | Description |
-|----------|------|-------------|
-| 40348 | StorCtl_Mod | **Bitfield** arming the rate limits: bit 0 = InWRte (charge limit), bit 1 = OutWRte (discharge limit). `0` = none, `1` = charge limit, `2` = discharge limit, `3` = both |
-| 40350 | Minimum reserve (MinRsvPct) | Minimum SOC buffer (×100), e.g. `500` = 5%, `1000` = 10%, `2000` = 20%, `9900` = 99% (full reserve while force-charging). Below it the Gen24 tops up from the grid at only ~500 W |
-| 40355 | Discharge limit (OutWRte) | % of max charge power ×100 (`10000` = 100%, signed). `0` blocks discharging. **Negative** (`65536 - value`) forces charging at that rate. Needs bit 1 (StorCtl_Mod `2`) |
-| 40356 | Charge limit (InWRte) | % of max charge power ×100 (`10000` = 100%, signed). `0` blocks charging. **Negative** forces discharging. Needs bit 0 (StorCtl_Mod `1`) |
-| 40232 | PV production stop | `0` = stop PV (write 40232 to 0, then 40236 to 1) |
-| 40236 | PV production enable | `0` = PV running, `1` = PV blocked |
-
-**Power calculation:** the requested power is divided by the battery's
-maximum capacity (the first field of the storage settings block, e.g.
-`12800` for a 12.8 kWh battery) and multiplied by 10000:
-
-```
-value = (charging_power / max_capacity) * 10000
-      = (6000 / 12800) * 10000 ≈ 4687
-```
-
-### Battery control scripts
-
-| Script | Function | Modbus actions |
-|--------|----------|----------------|
-| `script.force_charging` | Force charge at a configurable power | 40355 = −charge rate (`65536 - rate`), 40356 = charge rate, 40350 = 9900, 40348 = 2 |
-| `script.force_discharge` | Limit discharging to a configurable power (does **not** force an export) | 40356 = 0, 40355 = discharge rate, 40348 = 2 |
-| `script.charge_limit` | Limit charging to a configurable power (without max reserve) | 40356 = charge rate, 40348 = 1 |
-| `script.reset_charging` | Back to auto mode with a reserve | 40348 = 0, 40355 = 10000, 40350 = reserve × 100, 40356 = 10000 |
-| `script.pv_stop` | Stop PV production | 40232 = 0, 40236 = 1 |
-| `script.pv_start` | Start PV production | 40236 = 0 |
+The Modbus registers (StorCtl_Mod, MinRsvPct, OutWRte, InWRte, the revert
+timeout), how a power in W becomes a rate, and the four control scripts the
+pilot calls are in the
+[BYD + Fronius Gen24 example](examples/byd-fronius-gen24.md#relevant-modbus-registers-fronius-gen24-slave-1).
+Those scripts are the tested ones; use them rather than writing the registers
+from scratch. PV production can be stopped and started through registers
+40232 and 40236 (see [negative prices](#negative-prices) below).
 
 ### Status sensors
 
@@ -81,7 +60,9 @@ value = (charging_power / max_capacity) * 10000
 ### Negative prices
 
 Many installations stop PV production while the spot price is negative
-enough that exporting costs money, and start it again once it recovers:
+enough that exporting costs money, and start it again once it recovers.
+`script.pv_stop` writes `0` to 40232 and then `1` to 40236; `script.pv_start`
+writes `0` to 40236:
 
 ```yaml
 # Stop PV below -0.10 EUR/kWh, start again at or above it
@@ -135,8 +116,10 @@ a template sensor for automations:
   unit_of_measurement: "EUR/kWh"
 ```
 
-Tibber, aWATTar, EPEX Spot and ENTSO-E work the same way as price sources;
-see the README for the full list.
+aWATTar, EPEX Spot and ENTSO-E integrations work the same way as price
+sources; see [price source](configuration.md#1-price-source) for the formats.
+The official Tibber and Nord Pool integrations only offer their curve through
+an action and need a [price bridge](price-bridges.md).
 
 ---
 

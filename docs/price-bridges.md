@@ -2,13 +2,37 @@
 
 The pilot reads the price forecast from the attributes of one sensor (see
 [price source](configuration.md#price-sources-without-forecast-attributes)).
-Integrations that only offer the curve through an action need a small bridge
-that publishes it as such a sensor. This page holds worked examples.
+Integrations that only offer the curve through an action, or carry it in a
+format the pilot does not read, need a small bridge that publishes it as such a
+sensor. This page holds worked examples. Each says where it comes from; adapt
+the placeholders to your setup.
 
-The recipe below was contributed by a user and has been running in a live
-installation. Adapt the placeholders to your setup.
+| Price source | Bridge |
+|---|---|
+| Official Home Assistant **Nord Pool** integration | [automation + MQTT sensor](#official-nord-pool-integration) |
+| Official Home Assistant **Tibber** integration | [trigger template sensor](#official-tibber-integration) |
+| **Belgian electricity prices** (`be_electricity_prices`, HACS) | [template sensor](#belgian-electricity-prices-be_electricity_prices) |
+
+## Bridges that deliver the final price
+
+Some bridges publish the price you actually pay, fees and taxes included (Tibber,
+`all_in` of the Belgian integration). Two settings follow from that:
+
+* **Price offset `0`**, so fees and taxes are not counted twice.
+* **A fixed feed-in tariff.** A feed-in of `0` means "market price minus the
+  price offset". With a final-price curve and an offset of `0`, that would value
+  every exported kWh at the full consumer price. In self-consumption mode the plan
+  does not change, but the battery benefit then values stored PV far too high
+  (see [Price source](configuration.md#1-price-source)). Enter your average
+  feed-in price instead.
+
+Then check the [minimum price spread](configuration.md#options-settings--integrations--configure)
+against the new curve: a final-price curve usually swings by a different
+amount than the spot price did.
 
 ## Official Nord Pool integration
+
+Contributed by a user; running in a live installation.
 
 The official Home Assistant **Nord Pool** integration exposes only the current
 price as a sensor. The curve comes from the `nordpool.get_prices_for_date`
@@ -102,3 +126,178 @@ actions:
   before. The pilot matches slots by timestamp, so this needs no handling.
 * The state is the day's average only so that the sensor has a value; the pilot
   reads the attributes.
+
+## Official Tibber integration
+
+Contributed by a user; running in a live installation with 15-minute prices.
+
+The official Home Assistant **Tibber** integration's price sensor carries the
+current price and a few statistics, but no price list. The curve comes from the
+`tibber.get_prices` action, which returns the final consumer price of your
+contract. The bridge has two stages: a trigger template sensor that calls the
+action, and a second sensor that turns its result into the plain `today` /
+`tomorrow` lists the pilot reads.
+
+The example uses [packages](https://www.home-assistant.io/docs/configuration/packages/);
+the `template:` blocks can also go into an existing template configuration.
+
+**1. Fetch the prices** (`packages/tibber_prices.yaml`):
+
+```yaml
+template:
+  - triggers:
+      - trigger: homeassistant
+        event: start
+      - trigger: time
+        at: "00:00:30"
+      - trigger: time
+        at: "13:05:00"
+      - trigger: time
+        at: "14:05:00"
+      - trigger: time
+        at: "15:05:00"
+
+    actions:
+      - action: tibber.get_prices
+        data:
+          start: "{{ today_at('00:00').isoformat() }}"
+          end: "{{ (today_at('00:00') + timedelta(days=2)).isoformat() }}"
+        response_variable: tibber_price_response
+
+      # Select the first Tibber home.
+      - variables:
+          price_rows: >-
+            {{ tibber_price_response.prices.values()
+               | first | default([], true) }}
+
+      # Split the returned prices by local calendar day.
+      - variables:
+          today_raw: >-
+            {% set ns = namespace(items=[]) %}
+            {% for row in price_rows %}
+              {% if (as_datetime(row.start_time) | as_local).date()
+                    == now().date() %}
+                {% set ns.items = ns.items +
+                   [{'value': row.price | float}] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.items }}
+
+          tomorrow_raw: >-
+            {% set ns = namespace(items=[]) %}
+            {% for row in price_rows %}
+              {% if (as_datetime(row.start_time) | as_local).date()
+                    == (now() + timedelta(days=1)).date() %}
+                {% set ns.items = ns.items +
+                   [{'value': row.price | float}] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.items }}
+
+    sensor:
+      - name: "Tibber price curve raw"
+        unique_id: tibber_price_curve_raw
+        unit_of_measurement: "EUR/kWh"
+
+        state: >-
+          {% set ns = namespace(price=none) %}
+          {% for row in price_rows %}
+            {% if (as_datetime(row.start_time) | as_local) <= now() %}
+              {% set ns.price = row.price %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.price if ns.price is not none else 'unknown' }}
+
+        attributes:
+          raw_today: "{{ today_raw }}"
+          raw_tomorrow: "{{ tomorrow_raw }}"
+          slots_today: "{{ today_raw | count }}"
+          slots_tomorrow: "{{ tomorrow_raw | count }}"
+```
+
+**2. Publish them as lists** (`packages/tibber_price_lists.yaml`):
+
+```yaml
+template:
+  - sensor:
+      - name: "Tibber price curve"
+        unique_id: tibber_price_curve
+        unit_of_measurement: "EUR/kWh"
+
+        state: >-
+          {{ states('sensor.tibber_price_curve_raw') }}
+
+        attributes:
+          today: >-
+            {{ state_attr('sensor.tibber_price_curve_raw', 'raw_today')
+               | default([], true)
+               | map(attribute='value')
+               | map('float', 0)
+               | list }}
+
+          tomorrow: >-
+            {{ state_attr('sensor.tibber_price_curve_raw', 'raw_tomorrow')
+               | default([], true)
+               | map(attribute='value')
+               | map('float', 0)
+               | list }}
+```
+
+**3.** Select `sensor.tibber_price_curve` (the second sensor) as the price
+entity. The pilot reads it as plain hourly arrays (`hourly_arrays` in the
+diagnostics). The first sensor is not in a format the pilot reads. Set the
+price offset to `0` and a fixed feed-in tariff, see
+[bridges that deliver the final price](#bridges-that-deliver-the-final-price).
+
+* With more than one Tibber home, pick the right entry of
+  `tibber_price_response.prices` instead of the first.
+* Plain lists carry no dates: the pilot takes `today` to start at the current
+  local midnight. That is why the first refresh runs right after midnight;
+  until it has run, `today` still holds the previous day. The number of values
+  per day is not fixed, so the clock-change days work.
+* `tomorrow` stays empty until Tibber publishes the next day's prices,
+  usually early in the afternoon. The refreshes after 13:00 pick them up.
+
+## Belgian electricity prices (`be_electricity_prices`)
+
+Written by the maintainer against the integration's source and confirmed
+working by a user.
+
+The [Belgian electricity prices](https://github.com/renaudallard/homeassistant_be_electricity_prices)
+integration computes the price Belgian contracts really charge, with network
+costs and taxes, which a spot price plus a fixed offset can only approximate.
+Its current price sensor carries the curve in `today` / `tomorrow`, but each row
+is `{start, energy, network, taxes, all_in}`, a shape the pilot does not read.
+`all_in` is the price it needs. This template sensor republishes it in the
+format of the Nordpool adapter (`configuration.yaml`; replace
+`sensor.YOUR_CURRENT_PRICE` with the integration's current price sensor):
+
+```yaml
+template:
+  - sensor:
+      - name: BE price curve
+        unique_id: be_price_curve
+        unit_of_measurement: EUR/kWh
+        state: "{{ states('sensor.YOUR_CURRENT_PRICE') }}"
+        attributes:
+          raw_today: >-
+            {%- set ns = namespace(rows=[]) -%}
+            {%- for r in state_attr('sensor.YOUR_CURRENT_PRICE', 'today') or [] -%}
+              {%- set ns.rows = ns.rows + [{'start': r.start, 'value': r.all_in}] -%}
+            {%- endfor -%}
+            {{ ns.rows }}
+          raw_tomorrow: >-
+            {%- set ns = namespace(rows=[]) -%}
+            {%- for r in state_attr('sensor.YOUR_CURRENT_PRICE', 'tomorrow') or [] -%}
+              {%- set ns.rows = ns.rows + [{'start': r.start, 'value': r.all_in}] -%}
+            {%- endfor -%}
+            {{ ns.rows }}
+          tomorrow_valid: "{{ (state_attr('sensor.YOUR_CURRENT_PRICE', 'tomorrow') or []) | count > 0 }}"
+```
+
+Select `sensor.be_price_curve` as the price entity, with the price offset at
+`0` and a fixed feed-in tariff, see
+[bridges that deliver the final price](#bridges-that-deliver-the-final-price).
+Before you switch, compare the bridge's `raw_today` values (Developer Tools →
+States) with what the integration shows. Both 15-minute and hourly contracts
+work, since the pilot takes the slot length from the timestamps.

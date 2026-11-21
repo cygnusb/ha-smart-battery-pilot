@@ -10,7 +10,8 @@ consumption and the PV forecast.
 | [Configuration](configuration.md) | Every setup step and option, going live, troubleshooting and the dashboard card. |
 | [How the optimizer works](optimizer.md) | The planning algorithm, what export and curtailed PV are worth, and how the savings are estimated. |
 | [EV charging, evcc and other controllers](ev-charging.md) | Keeping a wallbox out of the consumption forecast, sharing the battery with evcc, planned EV sessions and the grid import limit. |
-| [Price bridges](price-bridges.md) | Publishing the price curve of integrations that only offer it through an action (official Nord Pool) as a sensor the pilot can read. |
+| [Price bridges](price-bridges.md) | Publishing the price curve of integrations the pilot cannot read directly (official Nord Pool and Tibber, Belgian prices) as a sensor it can. |
+| [Troubleshooting & FAQ](troubleshooting.md) | Diagnostics, what each plan status and warning means, and why the plan does what it does. |
 | [Energy-system reference](energy-system.md) | A worked example of the signals the pilot needs and where they come from, for a BYD battery behind a Fronius Gen24. |
 | [Examples](examples/README.md) | Ready-to-use control scripts for specific battery and inverter combinations. |
 
