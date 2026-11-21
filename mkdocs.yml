@@ -21,10 +21,11 @@ exclude_docs: |
 
 nav:
   - Overview: README.md
+  - Getting started: getting-started.md
   - Configuration: configuration.md
+  - Dashboard card: dashboard.md
   - How the optimizer works: optimizer.md
   - EV charging: ev-charging.md
-  - Energy-system reference: energy-system.md
   - Price bridges: price-bridges.md
   - Troubleshooting & FAQ: troubleshooting.md
   - Examples:
@@ -33,6 +34,10 @@ nav:
       - Zendure SolarFlow 2400 AC+: examples/zendure-solarflow-ac-plus.md
   # Built from the GitHub releases by tools/mkdocs_hooks.py.
   - Changelog: changelog.md
+
+# Old URL kept as a pointer to where its content went.
+not_in_nav: |
+  energy-system.md
 
 # A broken link or anchor fails `mkdocs build --strict`, and with it CI.
 validation:

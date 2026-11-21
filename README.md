@@ -100,6 +100,9 @@ runs below the backup reserve or the SOC sensor is frozen, it says so under
 * **Optional:** a PV forecast, and battery charge and discharge energy meters for
   the savings figures.
 
+[Getting started](docs/getting-started.md) walks through all of it, from the
+signals to going live.
+
 ## Installation (HACS)
 
 Smart Battery Pilot is in the HACS default repository, so no custom
@@ -110,6 +113,8 @@ repository is needed:
 1. In HACS, search for **Smart Battery Pilot** (or use the button above),
    download it and restart Home Assistant.
 2. Settings → Devices & Services → *Add Integration* → **Smart Battery Pilot**.
+3. Write the control scripts and go live step by step:
+   [Getting started](docs/getting-started.md).
 
 ## Configuration
 
@@ -120,24 +125,17 @@ Details and the full option reference: [docs/configuration.md](docs/configuratio
 Three features live only in the options menu (*Configure* on the integration)
 and are off until you switch them on:
 
-* **Cold-weather charging** — the planner accounts for the reduced charge
-  power of a cold battery. It starts from a slider curve (0–20 °C) and learns
-  the real limit from the charge slots the pilot runs. The charge script is
-  still asked for full power; the BMS does the throttling.
-* **Backup reserve** — SOC kept for a grid outage. Arbitrage never spends it,
-  a SOC below it is refilled by a deadline (PV first, then the cheapest grid
-  slots, or earlier ones when that lets the battery serve a price peak), every
-  control script receives it as `reserve_soc`, and an entity can raise it at
-  runtime (e.g. on a storm warning). An optional fallback blocks discharging
-  at the reserve for inverters without a reserve setting.
-* **EV charging & other controllers** — wallbox energy is taken out of the
-  consumption history so the forecast learns the house without the car. While
-  an EV charges, the pilot can block discharging, or pause entirely while
-  another controller such as evcc holds the battery, and re-apply its plan
-  afterwards. With evcc, sessions it has planned (charge plan, cheap-price
-  window, fast mode) show up in the plan and the card ahead of time. Works with
-  any wallbox; evcc is pre-filled when found. See
-  [docs/ev-charging.md](docs/ev-charging.md).
+* **[Cold-weather charging](docs/configuration.md#cold-weather-charging)** —
+  plans with the reduced charge power of a cold battery and learns the real
+  limit from the charge slots the pilot runs.
+* **[Backup reserve](docs/configuration.md#backup-reserve)** — SOC kept for a
+  grid outage that arbitrage never spends, refilled by a deadline, handed to
+  every script as `reserve_soc`, and adjustable at runtime through an entity
+  (e.g. on a storm warning).
+* **[EV charging & other controllers](docs/ev-charging.md)** — keeps the car
+  out of the consumption forecast, blocks discharging while an EV charges or
+  pauses while evcc holds the battery, and shows sessions evcc has planned in
+  the plan ahead of time. Works with any wallbox.
 
 > **Safety first:** the integration starts **disabled** and in **dry-run**
 > mode. Watch the planned actions in the log and the plan sensor for a day or
@@ -185,36 +183,17 @@ reports `0.00`. See [docs/optimizer.md](docs/optimizer.md#savings-estimate).
 
 Service: `smart_battery_pilot.replan` — recompute the plan immediately.
 
-Diagnostics (⋮ → *Download diagnostics* on the device page) dump the active
-configuration, the matched price adapter, the forecast model, the inputs the
-last plan was built from (SOC, price range, battery limits, tunables, charge
-factor, backup reserve), the first day of the plan, the learned cold-weather
-charge bands, the pilot's savings ledger, the state of the consistency checks,
-and the executor's last 50
-decisions (applied, unchanged, dry run, disabled, reserve updated, reserve
-block, EV block, external control, script failed, no valid plan — each with a reason) — attach that to
-any issue report.
-
-For a deeper look, switch on debug logging (device page → *Enable debug
-logging*, or in `configuration.yaml`):
-
-```yaml
-logger:
-  logs:
-    custom_components.smart_battery_pilot: debug
-```
-
-The log then shows every planning run's inputs, how the price adapter parsed
-the entity, each charge/discharge pairing the optimizer made or rejected (and
-why, e.g. *spread not reached*), the plan result against the do-nothing
-baseline, and every executor decision including skipped script calls.
-What each plan status means, and answers to common questions such as "why
-doesn't it charge?", are in [Troubleshooting & FAQ](docs/troubleshooting.md).
+When something looks wrong, download the diagnostics (device page → ⋮ →
+*Download diagnostics*): the inputs of the last plan, the plan itself and the
+executor's last 50 decisions with their reasons. Attach it to any issue
+report. Debug logging, what each plan status means and answers to common
+questions such as "why doesn't it charge?" are in
+[Troubleshooting & FAQ](docs/troubleshooting.md).
 
 ## Dashboard card
 
-The integration ships its own Lovelace card (registered automatically as a
-Lovelace resource):
+The integration ships its own Lovelace card, registered automatically as a
+Lovelace resource:
 
 ```yaml
 type: custom:smart-battery-pilot-card
@@ -223,36 +202,11 @@ view: tracks                                     # optional - tracks | balance |
 height: auto                                     # optional - auto | <pixels> | <percent>
 ```
 
-Every quantity gets its own panel and its own scale: the price curve over a
-labeled price grid, PV against household consumption in kWh, and the SOC
-projection drawn against the battery's configured min/max window rather than
-0-100 %. Planned actions run as a labeled band across the top, with day
-separators, live PV power (if configured) and a hover tooltip carrying
-price/SOC/action/PV per slot. If `entity` is omitted or wrong, the card finds
-the plan sensor automatically.
-
-The chart is drawn at the size the dashboard gives the card rather than
-scaled to it, so it stays legible from a 300 px phone column to a full-width
-panel view: more width buys a denser hour grid, more height buys taller
-panels. `height` overrides the automatic sizing, and in a sections view
-`grid_options: {columns: full}` lets the card use the whole section.
-
-> **YAML dashboards (`lovelace: resource_mode: yaml`):** the resource list is
-> read-only, so the card cannot be added automatically. Add it yourself:
->
-> ```yaml
-> lovelace:
->   resource_mode: yaml
->   resources:
->     - url: /smart_battery_pilot/smart-battery-pilot-card.js
->       type: module
-> ```
->
-> Without it the card may intermittently be missing after a page load
-> ([#47](https://github.com/cygnusb/ha-smart-battery-pilot/issues/47),
-> [home-assistant/frontend#53890](https://github.com/home-assistant/frontend/issues/53890)).
-
-See [docs/configuration.md](docs/configuration.md#dashboard).
+Every quantity gets its own panel and its own scale: the price, PV against
+household consumption, and the SOC forecast within the battery's min/max
+window. The card draws at the size the dashboard gives it, from a phone column
+to a full-width panel. Views, sizing and YAML dashboards (which need the
+resource added by hand): [Dashboard card](docs/dashboard.md).
 
 Click an image to open it at full resolution. The energy panel also flips to the balance with the button in
 the legend.
