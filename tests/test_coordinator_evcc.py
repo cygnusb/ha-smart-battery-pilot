@@ -23,6 +23,7 @@ from smart_battery_pilot.const import (
     EV_POLICY_EXTERNAL,
     EV_SOURCE_EVCC,
 )
+from smart_battery_pilot.ev_sessions import MIN_SESSION_KWH
 from smart_battery_pilot.evcc import EvccError
 from smart_battery_pilot.sensor import ChargePlanSensor, ConfigSensor
 
@@ -230,7 +231,9 @@ def test_the_sensors_carry_the_ev_plan(monkeypatch):
     assert attrs["ev_source"] == EV_SOURCE_EVCC
     assert attrs["ev_kwh_total"] == coord.data.ev_kwh_total
     assert attrs["ev_sessions"] == coord.data.ev_sessions
-    charging = [s for s in attrs["slots"] if s["ev_kwh"] > 0]
+    # Seconds before a slot boundary, the slot in progress carries less than a
+    # session's minimum and is rightly not held; judge the first real slot.
+    charging = [s for s in attrs["slots"] if s["ev_kwh"] >= MIN_SESSION_KWH]
     assert charging
     assert charging[0]["ev_source"] == "now"
     assert charging[0]["battery_blocked"] is True
