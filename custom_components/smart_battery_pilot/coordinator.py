@@ -226,6 +226,9 @@ class _LedgerMark:
     # The battery is held for a car (EV block or another controller), not
     # for arbitrage - nothing the pilot gets credit for.
     ev_hold: bool = False
+    # Backup reserve in force (None: off). The battery may not spend what lies
+    # below it anyway, so an idle slot cannot have held that energy back.
+    reserve_soc: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -1881,13 +1884,16 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         """The mode the inverter is in: the pilot's, or auto while it is off."""
         return self.last_applied if self._is_steering() else ACTION_AUTO
 
-    def _stored_kwh(self) -> float | None:
-        """Energy in the battery above min SOC, from the live SOC."""
+    def _stored_kwh(self, floor_soc: float | None = None) -> float | None:
+        """Energy in the battery above min SOC (or above `floor_soc` if that is
+        higher), from the live SOC."""
         soc = self._read_float_state(self.conf(CONF_SOC_ENTITY))
         if soc is None:
             return None
-        min_soc = float(self.conf(CONF_MIN_SOC, DEFAULT_MIN_SOC))
-        return max(0.0, (soc - min_soc) / 100.0 * float(self.conf(CONF_CAPACITY_KWH, 10.0)))
+        floor = float(self.conf(CONF_MIN_SOC, DEFAULT_MIN_SOC))
+        if floor_soc is not None:
+            floor = max(floor, floor_soc)
+        return max(0.0, (soc - floor) / 100.0 * float(self.conf(CONF_CAPACITY_KWH, 10.0)))
 
     def _ledger_step(self, plan: Plan, now: datetime) -> None:
         """Book the segment since the last mark on the pilot ledger.
@@ -1911,6 +1917,7 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
             price=slot.price if slot else 0.0,
             demand_kw=max(0.0, slot.net_demand_kwh) / hours if slot and hours > 0 else 0.0,
             ev_hold=self._ev_hold_active,
+            reserve_soc=self.reserve_state()[0],
         )
         prev, self._ledger_mark = self._ledger_mark, mark
         if prev is None:
@@ -1930,7 +1937,11 @@ class SBPCoordinator(DataUpdateCoordinator[SBPData]):
         elif (
             prev.action == ACTION_IDLE and elapsed_h > 0 and stored is not None and not prev.ev_hold
         ):
-            self.pilot_ledger.book_hold(prev.demand_kw * elapsed_h, prev.price, eta, stored)
+            # Only energy above the reserve in force during the slot can have
+            # been held back; what lies below it is the reserve's.
+            holdable = self._stored_kwh(prev.reserve_soc)
+            if holdable is not None:
+                self.pilot_ledger.book_hold(prev.demand_kw * elapsed_h, prev.price, eta, holdable)
         if d_discharge > 0:
             value = self._export_value(prev.price) if prev.action == ACTION_EXPORT else prev.price
             gain = self.pilot_ledger.book_discharge(d_discharge, value, eta)
