@@ -2,6 +2,8 @@
 
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from smart_battery_pilot.const import (
     ACTION_AUTO,
     ACTION_CHARGE,
@@ -78,19 +80,8 @@ def test_pv_kwh_passed_through():
     assert plan.slots[3].pv_kwh == 0.0
 
 
-def test_pv_surplus_and_grid_share_charge_power():
-    """Grid charge plus modelled PV charge must not exceed inverter charge power."""
-    import math
-
-    battery = BatteryState(
-        capacity_kwh=12.8,
-        soc=10.0,
-        min_soc=10.0,
-        max_soc=95.0,
-        max_charge_power_w=6000,
-        max_discharge_power_w=6000,
-        efficiency=90,
-    )
+def _midday_charge_slots() -> list[InputSlot]:
+    """Negative prices with a small surplus at noon, an expensive evening."""
     slots = []
     for h in range(24):
         start = T0 + timedelta(hours=h)
@@ -108,7 +99,55 @@ def test_pv_surplus_and_grid_share_charge_power():
                 pv_kwh=pv,
             )
         )
-    plan = build_plan(slots, battery, CONFIG)
+    return slots
+
+
+def test_charge_power_covers_the_surplus_as_well():
+    """`power_w` is what the battery charges at: the plan's grid charge plus the
+    forecast surplus. A hybrid inverter's forced charge rate sends PV to the
+    battery first and draws only the rest from the grid; a battery that only
+    follows commands draws the rate from the house, where the surplus covers
+    part of it. Either way, a rate of the grid share alone would leave the
+    surplus out, and the SOC below the forecast."""
+    import math
+
+    battery = BatteryState(
+        capacity_kwh=12.8,
+        soc=10.0,
+        min_soc=10.0,
+        max_soc=95.0,
+        max_charge_power_w=6000,
+        max_discharge_power_w=6000,
+        efficiency=90,
+    )
+    plan = build_plan(_midday_charge_slots(), battery, CONFIG)
+    eta_one_way = math.sqrt(battery.efficiency / 100.0)
+    prev_soc = battery.soc
+    checked = 0
+    for slot in plan.slots:
+        stored = (slot.soc_forecast - prev_soc) / 100.0 * battery.capacity_kwh
+        if slot.action == ACTION_CHARGE and slot.net_demand_kwh < 0:
+            assert slot.power_w / 1000.0 * eta_one_way == pytest.approx(stored, abs=0.01)
+            checked += 1
+        prev_soc = slot.soc_forecast
+    assert checked
+
+
+def test_pv_surplus_and_grid_share_charge_power():
+    """Grid charge plus modelled PV charge must not exceed inverter charge power,
+    and neither may what the script is asked for."""
+    import math
+
+    battery = BatteryState(
+        capacity_kwh=12.8,
+        soc=10.0,
+        min_soc=10.0,
+        max_soc=95.0,
+        max_charge_power_w=6000,
+        max_discharge_power_w=6000,
+        efficiency=90,
+    )
+    plan = build_plan(_midday_charge_slots(), battery, CONFIG)
     eta_one_way = math.sqrt(battery.efficiency / 100.0)
     max_stored = battery.max_charge_power_w / 1000.0 * eta_one_way
     prev_soc = battery.soc
@@ -121,8 +160,8 @@ def test_pv_surplus_and_grid_share_charge_power():
         )
         if 11 <= i <= 13 and slot.action == ACTION_CHARGE:
             saw_midday_charge = True
-            pv_charge_w = max(0.0, -slot.net_demand_kwh) * 1000.0
-            assert slot.power_w + pv_charge_w <= battery.max_charge_power_w + 1
+            # power_w already holds the surplus: the battery's whole charge.
+            assert slot.power_w <= battery.max_charge_power_w + 1
         prev_soc = slot.soc_forecast
     assert saw_midday_charge, (
         "negative-price surplus slots should still grid-charge leftover headroom"

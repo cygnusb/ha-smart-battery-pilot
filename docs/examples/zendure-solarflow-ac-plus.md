@@ -311,7 +311,8 @@ off, so the assist can never drain a configured reserve.
 ## Verification
 
 * Charge slot: `grid_input_power` tracks `power_w`; the meter's delivered
-  power rises by the same amount.
+  power rises by the same amount, less any PV surplus (`power_w` already
+  counts the forecast surplus, so the battery takes it first).
 * Auto + surplus: AC mode flips to `input`, `grid_input_power` ≈ surplus, and
   the meter's returned power drops to ≈ 0.
 * Auto + load: `output_home_power` ≈ house load (up to the cap), returned
