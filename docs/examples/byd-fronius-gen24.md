@@ -99,7 +99,7 @@ script keeps 99 % there on purpose. `max_power` is the value of WChaMax
 
 ```yaml
 sbp_force_charge:
-  alias: "SBP: Laden erzwingen"
+  alias: "SBP: Force charge"
   fields:
     power_w:
       description: Charge power in W (provided by Smart Battery Pilot)
@@ -124,7 +124,7 @@ sbp_force_charge:
       data: { hub: gen24, slave: 1, address: 40348, value: 2 }
 
 sbp_block_discharge:
-  alias: "SBP: Entladen sperren (Idle)"
+  alias: "SBP: Block discharge (idle)"
   sequence:
     # No limits armed: PV may still charge, grid-charge from a previous
     # `charge` slot must not continue.
@@ -150,11 +150,11 @@ sbp_block_discharge:
           {%- set raw = states('sensor.reading_battery_settings').split(',') -%}
           {%- set inv = (raw[6] | float(0)) / 100 if raw | length > 6 else 0 -%}
           {%- set soc = (inv | int) if 0 < inv <= 100
-                else (states('sensor.byd_battery_box_premium_hv_ladezustand') | int(5)) -%}
+                else (states('sensor.byd_battery_box_premium_hv_state_of_charge') | int(5)) -%}
           {{ [[soc, reserve_soc | default(5) | int] | max, 98] | min * 100 }}
 
 sbp_auto_mode:
-  alias: "SBP: Auto-Modus"
+  alias: "SBP: Auto mode"
   sequence:
     - service: modbus.write_register
       data: { hub: gen24, slave: 1, address: 40348, value: 0 }
@@ -168,7 +168,7 @@ sbp_auto_mode:
       data: { hub: gen24, slave: 1, address: 40356, value: 10000 }
 
 sbp_force_discharge:
-  alias: "SBP: Entladen ins Netz erzwingen (Export-Modus)"
+  alias: "SBP: Force discharge to grid (export mode)"
   fields:
     power_w:
       description: Discharge power in W (provided by Smart Battery Pilot)
@@ -227,9 +227,9 @@ let the pilot export.
 
 | Config flow field | Entity / value |
 |---|---|
-| Price forecast entity | `sensor.nordpool_kwh_ger_eur_3_10_019` (Nordpool HACS) |
+| Price forecast entity | `sensor.nordpool_kwh_de_eur_3_10_0` (Nordpool HACS) |
 | Price offset | `0.187` EUR/kWh (German grid fees + taxes) |
-| SOC entity | `sensor.byd_battery_box_premium_hv_ladezustand` |
+| SOC entity | `sensor.byd_battery_box_premium_hv_state_of_charge` |
 | Capacity | `12.8` kWh |
 | Max charge / discharge power | `6000` / `6000` W |
 | Min / Max SOC | `10` / `95` % |
@@ -238,10 +238,10 @@ let the pilot export.
 | Script: idle | `script.sbp_block_discharge` |
 | Script: auto | `script.sbp_auto_mode` |
 | Script: export (optional) | `script.sbp_force_discharge` |
-| Consumption sensor | `sensor.solarnet_leistung_verbrauch` (W, Fronius SolarNet) |
-| Temperature sensor | `sensor.aussen_temperatur` |
-| PV forecast today / tomorrow | `sensor.vorhersage_solarproduktion_gesamt_heute` / `…_morgen` (Open-Meteo Solar Forecast) |
-| Current PV power (optional) | e.g. `sensor.solarnet_leistung_produktion` — shown live on the card |
+| Consumption sensor | `sensor.solarnet_power_load` (W, Fronius SolarNet) |
+| Temperature sensor | `sensor.outdoor_temperature` |
+| PV forecast today / tomorrow | `sensor.energy_production_today` / `sensor.energy_production_tomorrow` (Open-Meteo Solar Forecast) |
+| Current PV power (optional) | e.g. `sensor.solarnet_power_photovoltaics` — shown live on the card |
 | Battery charge / discharge energy (optional) | cumulative kWh or Wh meters, both needed for the battery-benefit and pilot-savings sensors and for learning the cold-weather charge limit. Prefer the core Fronius DC counters `Battery charging/discharging energy total` (HA 2026.9+) over a Riemann sum |
 
 Optional features in the options menu:
@@ -260,16 +260,71 @@ Watch these while testing (dry-run first!):
 | `sensor.byd_storctl_mod` | `2` | `0` |
 | `sensor.byd_…` OutWRte (40355) | `65536 − rate`, shown as a negative % | `10000` |
 | `sensor.byd_…` MinRsvPct (40350) | `9900` (99 %) | current SOC × 100, at least `reserve_soc` × 100 |
-| `sensor.solarnet_ladeleistung` | ≈ planned `power_w` | 0 from grid |
-| `sensor.byd_battery_box_premium_hv_stromstarke_dc` | negative (charging) | ~0 discharge |
+| `sensor.solarnet_power_battery_charge` | ≈ planned `power_w` | 0 from grid |
+| `sensor.byd_battery_box_premium_hv_dc_current` | negative (charging) | ~0 discharge |
 
 ## Notes
 
 * The Gen24 occasionally ignores a single Modbus write. If you see this,
   wrap the writes in a retry (`repeat` with a `stop` on success).
-* Negative price handling (stopping PV production below −0.10 EUR/kWh via
-  registers 40232/40236) is independent of this integration and can coexist.
-  From HA 2026.9 the same registers are also `number.*_ac_power_limit` +
-  `switch.*_ac_power_limiting`; do not bind both. Core's AC power limit is
-  inverter output, not a grid export cap, and a value below 10 % may put
-  the Gen24 into standby.
+* Negative price handling (stopping PV production, see below) is independent
+  of this integration and can coexist.
+
+## Negative prices: stopping PV
+
+Many installations stop PV production while the spot price is negative
+enough that exporting costs money, and start it again once it recovers. On
+the Gen24 that is two registers: 40232 (`0` = stop) and 40236 (`0` = PV
+running, `1` = PV blocked).
+
+```yaml
+pv_stop:
+  alias: "PV: stop production"
+  sequence:
+    - service: modbus.write_register
+      data: { hub: gen24, slave: 1, address: 40232, value: 0 }
+    - service: modbus.write_register
+      data: { hub: gen24, slave: 1, address: 40236, value: 1 }
+
+pv_start:
+  alias: "PV: start production"
+  sequence:
+    - service: modbus.write_register
+      data: { hub: gen24, slave: 1, address: 40236, value: 0 }
+```
+
+Trigger them from the price you really pay, e.g. a template sensor of the spot
+price plus your fees:
+
+```yaml
+# template:
+- sensor:
+    - name: "Electricity price total"
+      unique_id: electricity_price_total
+      unit_of_measurement: "EUR/kWh"
+      state: >
+        {{ (states('sensor.nordpool_kwh_de_eur_3_10_0') | float(0) + 0.187) | round(4) }}
+```
+
+```yaml
+# automations.yaml: stop PV below -0.10 EUR/kWh, start again at or above it
+- alias: "PV: stop on negative price"
+  triggers:
+    - trigger: numeric_state
+      entity_id: sensor.electricity_price_total
+      below: -0.1
+  actions:
+    - action: script.pv_stop
+- alias: "PV: start when the price recovers"
+  triggers:
+    - trigger: numeric_state
+      entity_id: sensor.electricity_price_total
+      above: -0.101
+  actions:
+    - action: script.pv_start
+```
+
+From HA 2026.9 the same registers are also `number.*_ac_power_limit` +
+`switch.*_ac_power_limiting`; do not bind both. Core's AC power limit is
+inverter output, not a grid export cap, and a value below 10 % may put the
+Gen24 into standby.

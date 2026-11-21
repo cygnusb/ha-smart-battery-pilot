@@ -2,16 +2,29 @@
 
 ## Where to look first
 
-* **Download diagnostics** (device page → ⋮). It holds the inputs of the last
-  plan, the first day of the plan and the executor's last 50 decisions with
-  their reasons — usually enough to see why a slot was charged, blocked or left
-  alone. Attach it to any issue report.
-* **Debug logging** (device page → *Enable debug logging*) adds every planning
-  run's inputs, how the price adapter parsed the entity, each charge/discharge
-  pairing the optimizer made or rejected (e.g. *spread not reached*, with the
-  arithmetic), the reserve refill pass and every executor decision.
+* **Download diagnostics** (device page → ⋮). It holds the active
+  configuration, the matched price adapter, the forecast model, the inputs of
+  the last plan (SOC, price range, battery limits, tunables, charge factor,
+  backup reserve), the first day of the plan, the learned cold-weather charge
+  ranges, the pilot's savings ledger, the state of the consistency checks and
+  the executor's last 50 decisions with their reasons (applied, unchanged, dry
+  run, disabled, reserve updated, reserve block, EV block, external control,
+  script failed, no valid plan). That is usually enough to see why a slot was
+  charged, blocked or left alone. Attach it to any issue report.
+* **Debug logging** (device page → *Enable debug logging*, or in
+  `configuration.yaml` as below) adds every planning run's inputs, how the
+  price adapter parsed the entity, each charge/discharge pairing the optimizer
+  made or rejected (e.g. *spread not reached*, with the arithmetic), the
+  reserve refill pass, the plan against the do-nothing baseline and every
+  executor decision, including skipped script calls.
 * **Settings → Repairs** shows where the battery does not do what the plan
   expects ([consistency checks](configuration.md#consistency-checks)).
+
+```yaml
+logger:
+  logs:
+    custom_components.smart_battery_pilot: debug
+```
 
 ## Plan status
 
