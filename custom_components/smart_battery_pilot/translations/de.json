@@ -455,8 +455,8 @@
       "description": "An drei Tagen gab sie nur {actual_kwh} kWh der vom Haus benötigten {expected_kwh} kWh ab (zuletzt), obwohl sie Energie hatte.\n\nPrüfe, ob das Auto-Skript die Batterie im Eigenverbrauch lässt und ob der Mindest-SOC des Wechselrichters höher liegt als der des Piloten."
     },
     "auto_not_capturing": {
-      "title": "PV-Überschuss kommt in Auto-Slots nicht in der Batterie an",
-      "description": "An drei Tagen nahm die Batterie nur {actual_kwh} kWh von {expected_kwh} kWh gemessenem Überschuss auf (zuletzt), obwohl sie Platz hatte. Der Plan rechnet mit dieser Energie, seine SOC-Prognose ist also zu hoch.\n\nDas Auto-Skript muss die Batterie aus Überschuss laden lassen. Folgt sie nur Befehlen, muss etwas dem Netzzähler folgen, zum Beispiel eine Automation. Begrenzt du das Laden absichtlich, ignoriere diesen Hinweis."
+      "title": "PV-Überschuss kommt in Auto- und Idle-Slots nicht in der Batterie an",
+      "description": "An drei Tagen nahm die Batterie nur {actual_kwh} kWh von {expected_kwh} kWh gemessenem Überschuss auf (zuletzt), obwohl sie Platz hatte. Der Plan rechnet mit dieser Energie, seine SOC-Prognose ist also zu hoch.\n\nDas Auto- und das Idle-Skript müssen die Batterie aus Überschuss laden lassen. Folgt sie nur Befehlen, muss etwas dem Netzzähler folgen, zum Beispiel eine Automation. Begrenzt du das Laden absichtlich, ignoriere diesen Hinweis."
     },
     "reserve_not_enforced": {
       "title": "Die Batterie entlädt unter die Notstrom-Reserve",

@@ -420,7 +420,7 @@ such as limiting charging, use *Ignore* on the message.
 | Battery discharges in idle slots | over 5 % of the capacity net leaves during idle slots, 3 days | SOC |
 | Export slots don't discharge | under 50 % of the planned energy leaves, 3 days | SOC |
 | Battery doesn't cover the house | under 20 % of the measured deficit is delivered in auto slots, 3 days | Consumption, and live PV power or a slot with no forecast PV |
-| PV surplus doesn't reach the battery | under 20 % of the measured surplus arrives in auto slots, 3 days | Live PV power and consumption |
+| PV surplus doesn't reach the battery | under 20 % of the measured surplus arrives in auto and idle slots, 3 days | Live PV power and consumption |
 | Battery discharges below the backup reserve | 3 % of the capacity leaves in auto slots at or below the reserve, at once | A backup reserve, with the discharge block fallback off |
 
 Good to know:
