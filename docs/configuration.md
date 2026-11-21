@@ -8,7 +8,7 @@
 |---|---|
 | Price forecast entity | Entity of your tariff integration holding the price forecast in its attributes. Supported formats are detected automatically: **Nordpool** (`raw_today`/`raw_tomorrow`; `price_in_cents` or ct/öre/cEUR units are scaled to whole currency units per kWh), **EPEX Spot** (`data` with `price_eur_per_mwh`/`price_ct_per_kwh`), **ENTSO-E** (`prices` with `time`/`price`; the declared unit decides the scale, so a sensor configured for cents is converted too), **aWATTar** (`marketprice` entries) and plain **hourly arrays** (`today`/`tomorrow` float lists). Arrays may hold 23, 24 or 25 values (96 / 92 / 100 at quarter-hour resolution) — on the two clock-change days a local day is not 24 hours long, and the grid follows the real day. |
 | Price offset | Fixed surcharge added to every market price: grid fees, taxes, levies (e.g. `0.187` EUR/kWh in Germany). Self-consumption decisions use the *total* import price you actually pay. Grid export is valued at the feed-in tariff, or at the raw market price when the tariff is `0` — the import surcharge is not treated as export revenue. |
-| Feed-in tariff | What you earn per exported kWh. `0` means the market price is used (dynamic feed-in). Only relevant for the export discharge mode. |
+| Feed-in tariff | What you earn per exported kWh. `0` means the market price is used (dynamic feed-in): the price entity's value without the price offset. The planner only uses it in the export discharge mode. The [battery benefit](optimizer.md#savings-estimate) uses it in every mode, to value the PV energy the battery stores instead of exporting it. If the price entity already delivers the final consumer price (offset `0`), enter a fixed feed-in tariff; `0` would value every exported kWh at the full consumer price, and the battery benefit would charge stored PV at it. |
 
 If your integration is not recognized, create a template sensor with `today`/
 `tomorrow` attributes as plain price arrays — that format is always accepted.
@@ -21,11 +21,13 @@ integration is one of them: its price sensor exposes the current price and a few
 statistics, but no price list. The pilot reads attributes and does not call the
 services of individual integrations, so such a source needs a bridge: a template
 sensor that calls the service and exposes the result as `today` / `tomorrow`
-lists (or `raw_today` / `raw_tomorrow`), selected as the price entity. A worked example is on the
-[price bridges](price-bridges.md) page.
+lists (or `raw_today` / `raw_tomorrow`), selected as the price entity. The
+[price bridges](price-bridges.md) page has worked examples for the official
+Tibber and Nord Pool integrations and for Belgian prices.
 
 Keep the native resolution (for example 15 minutes). If the service returns the
-final consumer price, leave the price offset at `0` so fees are not counted twice.
+final consumer price, leave the price offset at `0` so fees are not counted twice,
+and enter a fixed feed-in tariff.
 
 The alternative is a price integration that exposes the attributes, such as the
 Nordpool HACS integration, with fees and taxes covered by the price offset. That
@@ -71,10 +73,10 @@ carries on unchanged in the meantime.
 
 | Field | Description |
 |---|---|
-| State of charge entity | Live SOC in percent, e.g. `sensor.byd_battery_box_premium_hv_ladezustand`. |
+| State of charge entity | Live SOC in percent, e.g. `sensor.battery_state_of_charge`. |
 | Usable capacity | Battery capacity in kWh. |
 | Max charge / discharge power | Inverter limits in W. |
-| Min / Max SOC | The plan never leaves this window (e.g. 10–95 %). |
+| Min / Max SOC | The plan never leaves this window (e.g. 10–95 %). The minimum reaches the scripts as `reserve_soc` while no backup reserve is set. The maximum is a planning bound only: no script receives it, and in `auto` slots the battery charges from PV up to the inverter's own limit. If the inverter stops charging earlier, set Max SOC to that limit, or the plan expects PV to fit into the battery that does not. |
 | Roundtrip efficiency | Grid → battery → load efficiency, typically 88–92 %. Losses are priced into every charge decision. |
 | Battery charge / discharge energy (optional) | Cumulative kWh or Wh meters. **Both** are required before the battery benefit (net, gross), pilot savings and energy sensors report a value. Unavailable readings are skipped so a glitch cannot inflate the totals. See [how the three money totals differ](optimizer.md) — in short: *battery benefit* is what the battery is worth (counted whether or not the pilot steers), *pilot savings* is only what the pilot added by charging from the grid or holding energy back. |
 
@@ -101,7 +103,13 @@ an update fails, for example because an integration limits how often a register
 can be written, the mode keeps running and the next re-plan or slot boundary
 tries again. If the first call of a slot fails, the pilot falls back to auto
 mode. Two calls can still come close together, so a script should tolerate a
-rate limit or skip writes that wouldn't change anything.
+rate limit or skip writes that wouldn't change anything. Ways to do that:
+
+* Skip a write when the register or entity already holds the target value.
+* Wait out a write cooldown with a bounded `delay`, well inside the 120 s
+  limit below.
+* Put `continue_on_error: true` on a step that may be rate-limited, so the
+  writes after it (the power, for example) still go out.
 
 Only the force-discharge script is optional — and only while the discharge
 mode is *self-consumption*. Selecting **export** mode without it is refused,
@@ -142,7 +150,7 @@ Ready-made scripts for specific hardware: see [examples](examples/README.md).
 
 | Field | Description |
 |---|---|
-| Consumption sensor | Total house consumption. Either a **power** sensor in W (recommended, e.g. `sensor.solarnet_leistung_verbrauch`) or an **energy** sensor in kWh with long-term statistics. Used to train the forecast from recorder history. |
+| Consumption sensor | Total house consumption. Either a **power** sensor in W (recommended, e.g. `sensor.house_load_power`) or an **energy** sensor in kWh with long-term statistics. Used to train the forecast from recorder history. |
 | Outdoor temperature (optional) | Adds a heating-demand feature to the model — recommended for heat pump households. |
 | Heat pump present | Forces the heating-demand feature in the consumption model as soon as any outdoor-temperature history exists (instead of waiting until half the samples are tagged). |
 
@@ -180,6 +188,11 @@ Enter the forecast for the **whole** day, not "remaining today": the
 integration already drops the hours that are over, so a remaining-today
 sensor would be cut down a second time. Helios Forecast numbers its days from
 today: use `energy_day_1` for today and `energy_day_2` for tomorrow.
+
+The plan is only as good as the forecast. Much of a forecast's error is often
+systematic rather than the weather: compare a few weeks of forecast against the real production,
+then correct the forecast integration's own settings (efficiency, damping) or
+use one that calibrates itself.
 
 **Hourly forecast (Energy dashboard).** The even daylight curve knows nothing
 about your roof: an east-facing array produces most of its energy before noon,
@@ -328,7 +341,7 @@ Off by default. Keeps enough energy in the battery for a grid outage.
 | Setting | Default | Meaning |
 |---|---|---|
 | Backup reserve | 0 % | SOC that arbitrage never spends. At or below the minimum SOC the option is off. |
-| Reserve entity | – | Optional `input_number`, `number` or `sensor` in percent. While it reads a number it replaces the fixed value — let an automation raise it on a storm warning, in winter, or before a holiday. If it becomes unavailable, the fixed value applies and one warning is logged. |
+| Reserve entity | – | Optional `input_number`, `number` or `sensor` in percent. While it reads a number it replaces the fixed value — let an automation raise it on a storm warning, in winter, or before a holiday. If it becomes unavailable, the fixed value applies and one warning is logged. Any number counts, `0` included: `0` (or anything at or below the minimum SOC) switches the reserve **off** rather than falling back to the fixed value. To return to a baseline, set the entity to that baseline. |
 | Refill deadline | 12 h | If the SOC is below the reserve, it is brought back up within this many hours: forecast PV first, the rest in the cheapest grid slots, whether or not the price spread pays for it. Until the refill the battery spends nothing, so the plan shows no arbitrage and no `idle` before it. When the cheapest slot comes after a price peak, the pilot refills earlier at a slightly higher price if serving that peak pays more. |
 | Block discharging at the reserve | off | Fallback for inverters without a reserve setting of their own: when the SOC reaches the reserve, the pilot runs the *block discharge* script instead of *auto*, and releases it 2 percentage points above the reserve. It reacts to SOC changes immediately, not only at the next re-plan. |
 
@@ -342,6 +355,12 @@ SOC window.
 > [example](examples/byd-fronius-gen24.md)). When the reserve changes, the
 > pilot runs the current action's script again, so the new value reaches the
 > inverter without waiting for the next action change.
+>
+> Some inverters have more than one SOC floor, for example one for normal
+> operation and one for backup or off-grid mode. Check that the setting your
+> scripts write is the one enforced while the grid is up: if the battery drains
+> below the reserve and is then charged back up to it, it is probably the wrong
+> one.
 
 Below the reserve the plan counts on the battery not discharging, but it still
 shows those slots as `auto`: on an inverter that knows the reserve, `auto` can't
@@ -439,18 +458,10 @@ Good to know:
 
 ## Troubleshooting
 
-* **Download diagnostics** (device page → ⋮) first. It holds the inputs of the
-  last plan, the first day of the plan and the executor's last 50 decisions
-  with their reasons — usually enough to see why a slot was charged, blocked
-  or left alone.
-* **Debug logging** (device page → *Enable debug logging*) adds every planning
-  run's inputs, how the price adapter parsed the entity, each charge/discharge
-  pairing the optimizer made or rejected (e.g. *spread not reached*, with the
-  arithmetic), the reserve refill pass and every executor decision.
-* **"Why does it show savings although the pilot did nothing?"** — *Battery
-  benefit* is what your battery is worth in self-consumption, pilot or not.
-  What the pilot added is *Pilot savings*, which stays at 0.00 while every
-  slot is `auto`.
+Diagnostics, debug logging, what each plan status and plan warning means, and
+answers to common questions ("why doesn't it charge?", "why does the SOC
+forecast end at the minimum?") are on
+[Troubleshooting & FAQ](troubleshooting.md).
 
 ## Dashboard
 
@@ -548,17 +559,17 @@ Alternative with [ApexCharts Card](https://github.com/RomRider/apexcharts-card):
 
 ```yaml
 type: custom:apexcharts-card
-header: { show: true, title: Strompreis & Ladeplan }
+header: { show: true, title: Price & charge plan }
 graph_span: 36h
 span: { start: hour }
 series:
   - entity: sensor.smart_battery_pilot_charge_plan
-    name: Preis
+    name: Price
     data_generator: |
       return entity.attributes.slots.map(s => [new Date(s.start), s.price]);
     type: line
   - entity: sensor.smart_battery_pilot_charge_plan
-    name: SOC-Prognose
+    name: SOC forecast
     data_generator: |
       return entity.attributes.slots.map(s => [new Date(s.start), s.soc_forecast]);
     type: line

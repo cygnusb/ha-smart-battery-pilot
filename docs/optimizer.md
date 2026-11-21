@@ -7,7 +7,10 @@ same inputs always produce the same plan.
 ## Inputs
 
 * Price slots for the next 24–36 h (native resolution of your tariff source,
-  usually 15 min or 1 h), including your configured price offset.
+  usually 15 min or 1 h), including your configured price offset. The horizon
+  ends with the last known price. Energy still stored at its end is worth
+  nothing to the plan, so the SOC forecast usually runs down to the floor by
+  then; the next day's prices extend the horizon and the plan with it.
 * Net demand forecast per slot: learned consumption minus expected PV.
 * Battery state: SOC, capacity, min/max SOC, charge/discharge power limits,
   roundtrip efficiency.
@@ -56,7 +59,9 @@ cold-weather charge factor.
    the same stored energy in this one list, so a cheap night cannot drain the
    battery before a much pricier export peak is considered. The spread
    discount keeps a slot's demand covered unless exporting the energy
-   elsewhere clearly pays more.
+   elsewhere clearly pays more. A slot whose import price (offset included)
+   is zero or negative is never a candidate for covering demand: the grid is
+   free or pays there, so the energy is kept for a later slot.
 2. For each candidate, the energy it needs is sourced:
     1. from **energy already in the battery** (PV surplus, initial SOC) — free
        energy always goes to the most valuable use first;

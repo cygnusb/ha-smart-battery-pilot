@@ -26,6 +26,7 @@ nav:
   - EV charging: ev-charging.md
   - Energy-system reference: energy-system.md
   - Price bridges: price-bridges.md
+  - Troubleshooting & FAQ: troubleshooting.md
   - Examples:
       - examples/README.md
       - BYD + Fronius Gen24: examples/byd-fronius-gen24.md
