@@ -90,7 +90,7 @@ Assistant scripts that you provide. This is what makes it vendor neutral.
 
 | Script | Called when | Receives |
 |---|---|---|
-| Force charge | a `charge` slot starts | variables `power_w` (planned grid charge power), `reserve_soc` |
+| Force charge | a `charge` slot starts | variables `power_w` (planned charge power of the battery, forecast PV surplus included), `reserve_soc` |
 | Block discharge (idle) | an `idle` slot starts | variable `reserve_soc` |
 | Auto mode | an `auto` slot starts; also when the integration is disabled, unloaded, the plan becomes invalid, or dry-run is turned on after a live script was applied | variable `reserve_soc` |
 | Force discharge to grid | an `export` slot starts | variables `power_w` (planned discharge power), `reserve_soc` |
@@ -141,6 +141,21 @@ flat while the battery fills, and the battery benefit books the charge as PV at
 the feed-in tariff. Prefer a setting that only stops discharging, for example
 raising the inverter's minimum SOC to the current SOC, as long as the inverter
 does not charge from the grid to reach it.
+
+PV surplus that turns up in an idle slot anyway still belongs in the battery,
+as in auto. That happens when the sky beats the forecast, or when the pilot
+blocks discharging at the [backup reserve](#backup-reserve) in a slot planned
+as `auto`. A battery that only follows commands needs its meter-following
+automation to keep charging from surplus during idle, and to drop only the
+discharging. The [surplus check](#consistency-checks) counts idle slots too.
+
+The charge script's `power_w` is the power the battery should charge at: the
+planned grid charge plus the PV surplus forecast for the slot. Set the battery
+to charge at that power. PV covers what it can, and the grid supplies the rest.
+A hybrid inverter does this when its forced charge rate sends PV to the battery
+first. A battery that only follows commands does it by drawing the power from
+the house, where the surplus covers part of it. More PV than forecast may still
+charge the battery on top.
 
 Ready-made scripts for specific hardware: see [examples](examples/README.md).
 

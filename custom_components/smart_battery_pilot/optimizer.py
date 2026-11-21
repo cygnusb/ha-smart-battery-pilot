@@ -456,7 +456,15 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
         return assigned
 
     def charge_request_w(i: int, stored: float) -> float:
-        """Power to ask the charge script for, to store `stored` kWh in slot i."""
+        """Power to ask the charge script for, to store `stored` kWh from the
+        grid in slot i.
+
+        It is the battery's charge power, the slot's forecast PV surplus
+        included: the timeline counts that surplus on top of the grid charge.
+        A hybrid inverter's forced charge rate sends PV to the battery first
+        and only draws the rest from the grid; a battery that only follows
+        commands draws it from the house, where the surplus covers part of it.
+        Asking for the grid share alone would leave the surplus out on both."""
         if (
             0.0 < charge_factor < 1.0
             and not grid_limited[i]
@@ -470,7 +478,7 @@ def build_plan(slots: list[InputSlot], battery: BatteryState, config: OptimizerC
             # would overshoot the plan (and max SOC). Under a grid import
             # limit the planned power is the limit, and must stay it.
             return battery.max_charge_power_w
-        return stored / eta_one_way / hours[i] * 1000.0
+        return (stored + pv_surplus_stored[i]) / eta_one_way / hours[i] * 1000.0
 
     def plan_with(refill_stored: list[float], missing: float) -> tuple[Plan, float, float]:
         """The plan around one refill, what it costs in total, and what doing
