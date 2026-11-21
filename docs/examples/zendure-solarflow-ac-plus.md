@@ -12,25 +12,32 @@ charges its battery from its own PV; the SolarFlow AC+ in `output` mode never
 pulls AC power to charge. The pilot plans `auto` slots assuming exactly that
 capture happens, so this example adds a small *assist* automation that provides
 bidirectional self-consumption inside auto slots: discharge to cover the house
-load, charge from surplus otherwise. In the
+load, charge from surplus otherwise. In idle slots the same automation stays on
+in charge-only mode, so surplus that turns up anyway still lands in the battery
+while the plan holds the charge. In the
 [what an auto slot assumes](../optimizer.md#what-an-auto-slot-assumes) table,
 this is the row where nobody follows the meter unless an automation does.
 
 ## Architecture
 
 ```
-                    ┌─ charge slot ──▶ sbp_force_charge ──▶ AC mode input,  input_limit = power_w
-pilot ──▶ scripts ──┼─ idle slot ───▶ sbp_block_discharge ▶ AC mode output, output_limit = 0
+                    ┌─ charge slot ──▶ sbp_force_charge ──▶ AC mode input,  input_limit = power_w, assist OFF
+pilot ──▶ scripts ──┼─ idle slot ───▶ sbp_block_discharge ▶ AC mode output, output_limit = 0, assist charge-only
                     └─ auto slot ───▶ sbp_auto_mode ──────▶ AC mode output + assist automation ON
- assist automation (runs only in auto slots):
-   house load > 150 W ──────────▶ output mode, output_limit = min(load, max_w)
+ assist automation (auto slots; in idle slots charge-only):
+   house load > 150 W ──────────▶ output mode, output_limit = min(load, max_w)   (held off in idle)
    PV surplus > 250 W (stable) ▶ input mode,  input_limit  = min(surplus, max_w)
    otherwise ──────────────────▶ output mode, output_limit = 0
 ```
 
-The assist is the pilot's "hands" in auto mode only: the charge and idle scripts
-switch it off before they command the device, so there is exactly one writer to
-the power limits at any moment. The pilot stays the single brain.
+The assist is the pilot's "hands" in auto mode — and in idle slots it stays on
+in charge-only mode. The charge script switches it off before it commands the
+device; the idle script leaves it running but sets an `input_boolean` that the
+assist's discharge branch checks. That branch is the only writer of a positive
+`output_limit` anywhere, so gating it is what "block discharging" means here:
+the plan holds the battery, and the charge and neutral branches keep working —
+capturing surplus and re-asserting the 0 W hold. The pilot stays the single
+brain.
 
 **What about the device's own smart-meter mode?** With a compatible meter
 paired in the vendor app, the 2400 AC+ can follow the grid meter on its own —
@@ -42,8 +49,8 @@ integration, and it follows the meter in *every* state — it would keep
 discharging through charge and idle slots where the plan wants the battery
 held or charging, trading the plan's price optimization and evening protection
 for plain load-following. So the battery stays in command mode, and the assist
-closes the loop instead — only inside auto slots, and only while the pilot has
-it enabled.
+closes the loop instead — in auto slots, in idle slots charge-only, and only
+while the pilot has it enabled.
 
 ## Prerequisites
 
@@ -54,6 +61,9 @@ it enabled.
     `sensor.…_grid_input_power` (W, AC charge draw)
 * Grid power at the meter: `sensor.dsmr_reading_electricity_currently_delivered`
   / `…_currently_returned` (kW) — any whole-house power sensor works
+* An `input_boolean.assist_charge_only` helper (Settings → Devices & services →
+  Helpers → Toggle) — the idle script sets it, the auto and charge scripts
+  clear it
 * The pilot's `pv_power_entity` set to the inverter's live AC power (OpenDTU)
 
 Entity IDs below use the author's names; yours may differ slightly.
@@ -67,6 +77,9 @@ sbp_force_charge:
     power_w:
       description: Charge power in W
   sequence:
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.assist_charge_only
     - action: automation.turn_off
       target:
         entity_id: automation.assist_discharge_on_import
@@ -86,10 +99,15 @@ sbp_force_charge:
       data:
         value: 0
 
+# Idle: block discharging, keep charging. The assist stays ON so surplus keeps
+# landing in the battery; the flag takes only its discharge branch out.
 sbp_block_discharge:
   alias: "SBP: Block discharge (idle)"
   sequence:
-    - action: automation.turn_off
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.assist_charge_only
+    - action: automation.turn_on
       target:
         entity_id: automation.assist_discharge_on_import
     - action: select.select_option
@@ -106,6 +124,9 @@ sbp_block_discharge:
 sbp_auto_mode:
   alias: "SBP: Auto mode"
   sequence:
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.assist_charge_only
     - action: select.select_option
       target:
         entity_id: select.solarflow_2400_ac_plus_ac_mode
@@ -122,6 +143,9 @@ sbp_force_discharge:
     power_w:
       description: Discharge power in W
   sequence:
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.assist_charge_only
     - action: automation.turn_off
       target:
         entity_id: automation.assist_discharge_on_import
@@ -139,7 +163,9 @@ sbp_force_discharge:
 
 The 2400 AC+ is capped at 800 W per phase on a domestic socket; raise the cap
 together with the pilot's *Battery* power limits once your installation allows
-more.
+more. `power_w` already includes the slot's forecast PV surplus — the battery
+charges at that whole power, with the surplus covering part of it and the grid
+the rest.
 
 ## The assist automation
 
@@ -214,11 +240,13 @@ triggers:
 conditions: []
 actions:
   - choose:
-      # discharge branch - condition re-evaluated at run time, gap > 150
+      # discharge branch - condition re-evaluated at run time, gap > 150;
+      # suppressed while the idle script holds the battery (charge-only flag)
       - conditions:
           - >
             {% set del = ... %} {% set ret = ... %} {% set bout = ... %}
-            {{ (del - ret + bout) > 150 }}
+            {{ (del - ret + bout) > 150
+               and not is_state('input_boolean.assist_charge_only', 'on') }}
         sequence:
           - action: number.set_value
             target:
@@ -284,7 +312,12 @@ from chattering when surplus hovers near the threshold. The 5% SOC floor
 matches a pilot *Min SOC* of 5 % (its default is 10 %); the device's own minimum-SOC setting stays in
 place as the hardware backstop. The `choose` conditions re-evaluate the regime
 at run time, so when two triggers fire around the same moment the newest run
-always acts on the freshest regime.
+always acts on the freshest regime. The idle gate sits in the discharge
+*branch* condition, never in a trigger: a trigger that included the flag could
+latch true and go deaf (same failure as pitfall 2), while a branch condition
+is re-evaluated on every run. With the flag on, a discharge-desired situation
+falls through to the neutral branch, which writes `output_limit = 0` —
+re-asserting the idle hold.
 
 Two pilot limits need one line each. **Max SOC** — the assist charges while
 `soc < 100`, so set the pilot's *Max SOC* to 100 % (its default is 95 %) or
@@ -292,8 +325,9 @@ change the checks to match; otherwise the plan stops at Max SOC while the assist
 on toward 100 %. **Backup reserve** — the fixed 5 % floor ignores
 `reserve_soc`; switch on
 [block discharging at the reserve](../configuration.md#backup-reserve) and the
-pilot runs the block-discharge script at the reserve, which turns the assist
-off, so the assist can never drain a configured reserve.
+pilot runs the block-discharge script at the reserve, which gates the assist's
+discharge branch, so the assist can never drain a configured reserve — while
+still charging from surplus.
 
 ## Integration configuration
 
@@ -317,6 +351,12 @@ off, so the assist can never drain a configured reserve.
   the meter's returned power drops to ≈ 0.
 * Auto + load: `output_home_power` ≈ house load (up to the cap), returned
   power ≈ 0, delivered ≈ 0.
+* Idle + surplus: the assist stays on and the flag is `on`; surplus charges
+  (`grid_input_power` ≈ surplus, returned ≈ 0) while `output_limit` stays 0.
+  When the surplus dies, the neutral branch returns to output mode at 0 W.
+  Sunny idle spans now feed the battery instead of exporting at raw price.
+* Idle + load: with the house importing, `output_home_power` stays 0 even
+  though the discharge trigger wants to fire — the flag gate is doing its job.
 * Regime flips: a cloud edge or a big load stepping on must switch the device
   within one or two meter telegrams. If a wrong state persists for minutes,
   your triggers have latched — see pitfall 2.
@@ -365,3 +405,11 @@ off, so the assist can never drain a configured reserve.
    example assumes discharge mode `self_consumption`.
 7. **SOC reports integer percent** (1% ≈ 53 Wh on 5.28 kWh) — small charge
    movements are invisible in SOC; verify via power sensors instead.
+8. **Gate idle suppression in the branch, not in a trigger.** When the idle
+   script holds the battery, only the assist's discharge branch must stop —
+   the charge and neutral branches keep working (surplus capture, and
+   re-asserting the 0 W hold). Put the `input_boolean` check in the discharge
+   branch condition, which re-evaluates at run time. Never put it in a
+   template trigger: while the flag is on, a true-valued discharge trigger
+   could latch with no false→true edge left when the regime changes, and the
+   assist would go deaf — the same failure as pitfall 2, one layer up.
