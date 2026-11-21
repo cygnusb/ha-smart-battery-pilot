@@ -118,6 +118,19 @@ A battery that only follows charge and discharge commands does not: there, the
 auto script has to hand over to something that does, such as an automation that
 follows the grid meter.
 
+The idle script only **blocks discharging**; everything else stays as in auto.
+The pilot plans `idle` only in slots where the forecast PV is below the house
+load (slots with a PV surplus stay `auto`), and counts on PV still covering part
+of the house there: the grid supplies the rest, and the battery stays where it
+is. Backup or "charge from PV" modes on some inverters do something else: they
+send PV to the battery first and supply the whole house from the grid. Each kWh
+the battery gains that way is one more kWh imported in that slot, at that slot's
+price. That is a grid charge the plan decided against. The SOC forecast stays
+flat while the battery fills, and the battery benefit books the charge as PV at
+the feed-in tariff. Prefer a setting that only stops discharging, for example
+raising the inverter's minimum SOC to the current SOC, as long as the inverter
+does not charge from the grid to reach it.
+
 Ready-made scripts for specific hardware: see [examples](examples/README.md).
 
 > Each script is awaited (`blocking: true`) and must return within **120 s**,
