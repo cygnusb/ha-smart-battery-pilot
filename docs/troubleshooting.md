@@ -114,3 +114,38 @@ the real SOC every 30 minutes, so an unexpected load shows up in the next plan.
 The large planned loads are usually cars, and those have their own handling:
 the wallbox is taken out of the learned consumption, and with evcc the planned
 sessions are part of the plan ([EV charging](ev-charging.md)).
+
+### My tariff bills my highest 15-minute peak. Can the pilot keep energy for it?
+
+Not by itself. The pilot plans by energy prices only, so it doesn't know that a
+kWh during your peak hours is worth more to you, and it spends the battery down
+to the floor when the prices say so. Its consumption forecast is learned from
+hourly values, too: a heat pump that draws 4 kW for 15 minutes adds only 1 kW to
+its hour, so the forecast doesn't show the peaks a capacity tariff
+bills.
+
+Three settings together cover it:
+
+* **Peak shaving in the inverter.** Only the inverter can follow the grid power
+  second by second. If it has a peak-shaving mode with a grid import limit, let
+  your `idle` script use it (and the `charge` script, if the inverter can charge
+  in that mode), with the limit at your tariff's threshold. An `idle` slot then
+  still lets the battery cover the load above the limit. The pilot doesn't count
+  on that in its plan; it sees the lower SOC at the next re-plan.
+* **A [backup reserve](configuration.md#backup-reserve) with *Block discharging
+  at the reserve* on.** Arbitrage never spends the energy below the reserve, and
+  below it the pilot runs the `idle` script, so that energy is left for the
+  peaks. Size the reserve from what the house draws above the threshold in its
+  peak windows: your SOC and grid power history shows it. To let something else
+  decide how much to keep, for example a model of your own, point *Reserve
+  entity* at an `input_number` and let that set it. Prefer a level that changes
+  slowly: the refill deadline counts from each re-plan, so a reserve raised
+  shortly before a peak is not guaranteed to be full by then.
+* **The [grid import limit](ev-charging.md#grid-import-limit)**, set to the same
+  threshold. It caps the planned grid charge at what the forecast house load
+  leaves below it. That can be very little in your peak hours, which is
+  intended. It is a planning bound, not a live guard: only the inverter keeps the
+  real grid power under the limit.
+
+Keep the hard floor in the inverter as well: its own minimum SOC is the only one
+that holds when Home Assistant is down.
