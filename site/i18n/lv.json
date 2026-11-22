@@ -28,11 +28,8 @@
   },
   "board": {
     "title": "Ziemas dienas piemērs",
-    "subtitle": "96 ceturtstundu cenas EUR/kWh, katra iekrāsota pēc tā, ko pilots dara šajā laika posmā",
-    "hint": "Lai nolasītu vienu laika posmu, norādi uz stabiņu vai fokusē diagrammu un izmanto bulttaustiņus.",
-    "segment_charge": "Uzlāde par 0,10",
-    "segment_cover": "Akumulators sedz",
-    "segment_hold": "Bloķēts vakaram",
+    "subtitle": "96 ceturtstundu tapas, katra tās darbības krāsā, ko pilots šajā intervālā veic; stari iekšpusē ir cena (EUR/kWh).",
+    "hint": "Norādi uz ciparnīcu vai fokusē to un izmanto bulttaustiņus, lai nolasītu vienu intervālu.",
     "chart_label": "Ziemas dienas piemērs: naktī cenas ap 0,10 EUR/kWh, rīta maksimums tuvu 0,45, dienā ap 0,20 un vakara maksimums tuvu 0,50. Pilots uzlādē no 02:00 līdz 06:00, akumulators sedz patēriņu no 06:00 līdz 09:00 un no 17:00 līdz 21:00, bet no 09:00 līdz 17:00 lādiņš tiek noturēts; pirms 02:00 un pēc 21:00 invertors darbojas pats.",
     "sum": "Naktī par 0,10 uzlādēta kWh, dalīta ar 90 % lietderības koeficientu turp un atpakaļ, plus 0,10 starpība, maksā 0,21. Tas ir krietni zem vakara maksimuma 0,50, tāpēc nakts elektrību ir vērts uzkrāt. Dienā pie 0,20 akumulatoru tērēt nav vērts, tāpēc lādiņš gaida."
   },

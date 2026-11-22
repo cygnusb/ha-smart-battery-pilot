@@ -28,11 +28,8 @@
   },
   "board": {
     "title": "Een voorbeelddag in de winter",
-    "subtitle": "96 kwartierprijzen in EUR/kWh, elk gekleurd naar wat de pilot in dat tijdvak doet",
-    "hint": "Wijs een staaf aan, of selecteer de grafiek en gebruik de pijltjestoetsen, om één tijdvak af te lezen.",
-    "segment_charge": "Laden voor 0,10",
-    "segment_cover": "Accu levert",
-    "segment_hold": "Geblokkeerd voor de avond",
+    "subtitle": "96 pinnen voor 96 kwartieren, elk in de kleur van wat de pilot in dat slot doet; de stralen binnenin zijn de prijs in EUR/kWh.",
+    "hint": "Wijs naar de wijzerplaat, of geef hem focus en gebruik de pijltjestoetsen, om één slot af te lezen.",
     "chart_label": "Voorbeelddag in de winter: ’s nachts prijzen rond 0,10 EUR/kWh, ’s ochtends een piek rond 0,45, overdag ongeveer 0,20 en ’s avonds een piek rond 0,50. De pilot laadt van 02:00 tot 06:00, de accu levert van 06:00 tot 09:00 en van 17:00 tot 21:00, en van 09:00 tot 17:00 blijft de lading vastgehouden; vóór 02:00 en na 21:00 regelt de omvormer het zelf.",
     "sum": "Een kWh die ’s nachts voor 0,10 is geladen, gedeeld door 90% rendement (heen en terug), plus een spread van 0,10, kost 0,21. Dat is ruim onder de avondpiek van 0,50, dus de nacht is het opslaan waard. Overdag, bij 0,20, loont het niet om de accu aan te spreken, dus wacht de lading."
   },

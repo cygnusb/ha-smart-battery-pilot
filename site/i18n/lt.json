@@ -28,11 +28,8 @@
   },
   "board": {
     "title": "Žiemos dienos pavyzdys",
-    "subtitle": "96 ketvirčio valandos kainos EUR/kWh, kiekviena nuspalvinta pagal tai, ką pilotas daro tuo intervalu",
-    "hint": "Norėdamas perskaityti vieną intervalą, užvesk žymeklį ant stulpelio arba pažymėk diagramą ir naudok rodyklių klavišus.",
-    "segment_charge": "Įkrauti už 0,10",
-    "segment_cover": "Baterija dengia",
-    "segment_hold": "Blokuota vakarui",
+    "subtitle": "96 ketvirčio valandos kaiščiai, kiekvienas tos veiklos spalvos, kurią pilotas tame intervale atlieka; spinduliai viduje rodo kainą (EUR/kWh).",
+    "hint": "Nukreipk žymeklį į ciferblatą arba suteik jam fokusą ir naudok rodyklių klavišus, kad perskaitytum vieną intervalą.",
     "chart_label": "Žiemos dienos pavyzdys: naktį kainos apie 0,10 EUR/kWh, rytinis pikas apie 0,45, dieną apie 0,20 ir vakarinis pikas apie 0,50. Pilotas krauna nuo 02:00 iki 06:00, baterija dengia suvartojimą nuo 06:00 iki 09:00 ir nuo 17:00 iki 21:00, o nuo 09:00 iki 17:00 įkrova laikoma; iki 02:00 ir po 21:00 keitiklis veikia savarankiškai.",
     "sum": "Naktį už 0,10 įkrauta kWh, padalyta iš 90 % naudingumo koeficiento pirmyn ir atgal, plius 0,10 skirtumas, kainuoja 0,21. Tai gerokai mažiau nei vakarinis 0,50 pikas, todėl naktinę elektrą verta kaupti. Dieną, kai kaina 0,20, bateriją naudoti neapsimoka, todėl įkrova laukia."
   },

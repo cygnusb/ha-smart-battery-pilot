@@ -28,11 +28,8 @@
   },
   "board": {
     "title": "Esimerkki: talvipäivä",
-    "subtitle": "96 varttihintaa (EUR/kWh), kukin väritetty sen mukaan, mitä pilotti kyseisellä jaksolla tekee",
-    "hint": "Osoita pylvästä tai siirrä fokus kaavioon ja käytä nuolinäppäimiä, niin näet yksittäisen jakson.",
-    "segment_charge": "Lataa hintaan 0,10",
-    "segment_cover": "Akusta",
-    "segment_hold": "Säästetään illaksi",
+    "subtitle": "96 varttinastaa, kukin asetettu sen värin mukaan, mitä pilotti kyseisellä jaksolla tekee; säteet sisällä ovat hinta (EUR/kWh).",
+    "hint": "Osoita kellotaulua tai siirrä fokus siihen ja käytä nuolinäppäimiä, niin näet yksittäisen jakson.",
     "chart_label": "Esimerkki talvipäivästä: yöllä hinnat noin 0,10 EUR/kWh, aamuhuippu lähes 0,45, päivällä noin 0,20 ja iltahuippu lähes 0,50. Pilotti lataa klo 02:00–06:00, akku kattaa kulutuksen klo 06:00–09:00 ja 17:00–21:00, ja lataus säästetään klo 09:00–17:00; ennen klo 02:00 ja klo 21:00 jälkeen invertteri toimii itsenäisesti.",
     "sum": "Yöllä hintaan 0,10 ladattu kWh maksaa 0,21, kun se jaetaan 90 %:n lataus- ja purkuhyötysuhteella ja siihen lisätään 0,10:n hintaero. Se on selvästi alle 0,50:n iltahuipun, joten yösähkö kannattaa varastoida. Päivän 0,20:n hinnalla akkua ei kannata käyttää, joten lataus odottaa."
   },

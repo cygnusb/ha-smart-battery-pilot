@@ -28,11 +28,8 @@
   },
   "board": {
     "title": "En vinterdag som eksempel",
-    "subtitle": "96 kvarterpriser i EUR/kWh, hver farvet efter, hvad piloten gør i det tidsrum",
-    "hint": "Peg på en søjle, eller vælg diagrammet og brug piletasterne, for at aflæse et enkelt tidsrum.",
-    "segment_charge": "Lad til 0,10",
-    "segment_cover": "Batteriet dækker",
-    "segment_hold": "Blokeret til aftenen",
+    "subtitle": "96 kvarterstifter, hver sat i farven for det, piloten gør i det slot; strålerne indeni er prisen i EUR/kWh.",
+    "hint": "Peg på urskiven, eller giv den fokus og brug piletasterne, for at aflæse ét slot.",
     "chart_label": "Vinterdag som eksempel: priser omkring 0,10 EUR/kWh om natten, en morgentop nær 0,45, omkring 0,20 i løbet af dagen og en aftentop nær 0,50. Piloten lader fra 02:00 til 06:00, batteriet dækker forbruget fra 06:00 til 09:00 og fra 17:00 til 21:00, og ladningen holdes fra 09:00 til 17:00; før 02:00 og efter 21:00 klarer inverteren sig selv.",
     "sum": "En kWh, der lades om natten til 0,10, divideret med 90 % virkningsgrad frem og tilbage, plus et spread på 0,10, koster 0,21. Det er et godt stykke under aftentoppen på 0,50, så nattestrømmen er værd at gemme. Dagen til 0,20 er ikke værd at bruge batteriet på, så ladningen venter."
   },

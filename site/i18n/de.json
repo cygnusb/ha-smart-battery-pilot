@@ -28,11 +28,8 @@
   },
   "board": {
     "title": "Ein Beispieltag im Winter",
-    "subtitle": "96 Viertelstundenpreise in EUR/kWh, jeweils gefärbt nach dem, was der Pilot in diesem Slot tut",
-    "hint": "Zeige auf einen Balken oder fokussiere das Diagramm und nutze die Pfeiltasten, um einen Slot abzulesen.",
-    "segment_charge": "Laden zu 0,10",
-    "segment_cover": "Akku übernimmt",
-    "segment_hold": "Gesperrt für den Abend",
+    "subtitle": "96 Viertelstunden-Reiter, jeder in der Farbe dessen gesetzt, was der Pilot in diesem Slot tut; die Strahlen innen sind der Preis in EUR/kWh.",
+    "hint": "Zeige auf das Zifferblatt oder fokussiere es und nutze die Pfeiltasten, um einen Slot abzulesen.",
     "chart_label": "Beispieltag im Winter: nachts Preise um 0,10 EUR/kWh, morgens eine Spitze nahe 0,45, tagsüber etwa 0,20 und abends eine Spitze nahe 0,50. Der Pilot lädt von 02:00 bis 06:00, der Akku übernimmt von 06:00 bis 09:00 und von 17:00 bis 21:00, und von 09:00 bis 17:00 bleibt die Ladung gesperrt; vor 02:00 und nach 21:00 regelt der Wechselrichter selbst.",
     "sum": "Eine kWh, nachts für 0,10 geladen, geteilt durch 90 % Roundtrip-Wirkungsgrad, plus 0,10 Spread, kostet 0,21. Das liegt deutlich unter der Abendspitze von 0,50, also lohnt es sich, Nachtstrom zu speichern. Den Tag zu 0,20 aus dem Akku zu decken, lohnt sich nicht, also wartet die Ladung."
   },

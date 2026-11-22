@@ -84,6 +84,64 @@ STRIPS = [
 ]
 assert all(len(hours) == 24 for _, hours in STRIPS)
 
+
+def _polar(r: float, turn: float) -> tuple[float, float]:
+    """A point on the 600 x 600 dial: radius r, turn 0..1 clockwise from 00:00 at the top."""
+    a = 2 * math.pi * turn
+    return round(300 + r * math.sin(a), 2), round(300 - r * math.cos(a), 2)
+
+
+# The hero's 24-hour timer dial, like the segment timer in a fuse box: one pin
+# per quarter hour on the rim, set in the colour of the pilot's action, and the
+# price as a ray inside, 0 EUR/kWh at the hub, 0.55 at RAY_FULL.
+RAY_HUB, RAY_FULL = 100, 212
+
+
+def _dial() -> dict:
+    rays = []
+    for q, bar in enumerate(BARS):
+        turn = (q + 0.5) / 96
+        x1, y1 = _polar(RAY_HUB + 2, turn)
+        x2, y2 = _polar(RAY_HUB + bar["p"] / 0.55 * (RAY_FULL - RAY_HUB), turn)
+        rays.append({"x1": x1, "y1": y1, "x2": x2, "y2": y2})
+    numerals = []
+    for h in range(24):
+        x, y = _polar(228, h / 24)
+        numerals.append({"h": h, "x": x, "y": y, "major": h % 6 == 0})
+    rings = [
+        {"v": v, "r": round(RAY_HUB + v / 0.55 * (RAY_FULL - RAY_HUB), 2)}
+        for v in (0.1, 0.2, 0.3, 0.4, 0.5)
+    ]
+    return {
+        "rays": rays,
+        "pins": [round((q + 0.5) * 3.75, 3) for q in range(96)],
+        "numerals": numerals,
+        "rings": rings,
+    }
+
+
+DIAL = _dial()
+
+
+def _mini_at(r: float, turn: float) -> str:
+    """A point on the 200 x 200 mini dial, as an SVG path coordinate pair."""
+    a = 2 * math.pi * turn
+    return f"{100 + r * math.sin(a):.2f} {100 - r * math.cos(a):.2f}"
+
+
+def _mini(hours: str) -> list[dict]:
+    """A season's 24 hours as ring segments on a 200 x 200 mini dial."""
+    at = _mini_at
+    segments = []
+    for h, k in enumerate(hours):
+        t0, t1 = h / 24, (h + 1) / 24
+        d = f"M{at(90, t0)} A90 90 0 0 1 {at(90, t1)} L{at(60, t1)} A60 60 0 0 0 {at(60, t0)} Z"
+        segments.append({"k": k, "d": d})
+    return segments
+
+
+MINIS = {name: _mini(hours) for name, hours in STRIPS}
+
 # The card screenshots in the viewer, with each image's height in pixels.
 SCREENSHOTS = [
     {"name": "dunkelflaute", "height": 958},
@@ -174,6 +232,8 @@ def build(out: Path) -> None:
             og_image=BASE_URL + shots + "card_dunkelflaute_light.png",
             json_ld=_json_ld(t, lang),
             bars=BARS,
+            dial=DIAL,
+            minis=MINIS,
             strips=STRIPS,
             screenshots=SCREENSHOTS,
         )

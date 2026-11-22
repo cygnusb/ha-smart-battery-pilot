@@ -28,11 +28,8 @@
   },
   "board": {
     "title": "An example winter day",
-    "subtitle": "96 quarter-hour prices in EUR/kWh, each coloured by what the pilot does in that slot",
-    "hint": "Point at a bar, or focus the chart and use the arrow keys, to read one slot.",
-    "segment_charge": "Charge at 0.10",
-    "segment_cover": "Battery covers",
-    "segment_hold": "Held for the evening",
+    "subtitle": "96 quarter-hour pins, each set in the colour of what the pilot does in that slot; the rays inside are the price in EUR/kWh.",
+    "hint": "Point at the dial, or focus it and use the arrow keys, to read one slot.",
     "chart_label": "Example winter day: prices around 0.10 EUR/kWh at night, a morning peak near 0.45, about 0.20 through the day and an evening peak near 0.50. The pilot charges from 02:00 to 06:00, the battery covers 06:00 to 09:00 and 17:00 to 21:00, and the charge is held from 09:00 to 17:00; the inverter runs on its own before 02:00 and after 21:00.",
     "sum": "A kWh charged at night for 0.10, divided by 90 % round-trip efficiency, plus a 0.10 spread, costs 0.21. That is well under the 0.50 evening peak, so the night is worth storing. The day at 0.20 is not worth spending the battery on, so the charge waits."
   },
