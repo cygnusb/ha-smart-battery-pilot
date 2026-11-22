@@ -77,12 +77,12 @@ sbp_force_charge:
     power_w:
       description: Charge power in W
   sequence:
-    - action: input_boolean.turn_off
-      target:
-        entity_id: input_boolean.assist_charge_only
     - action: automation.turn_off
       target:
         entity_id: automation.assist_discharge_on_import
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.assist_charge_only
     - action: select.select_option
       target:
         entity_id: select.solarflow_2400_ac_plus_ac_mode
@@ -107,19 +107,28 @@ sbp_block_discharge:
     - action: input_boolean.turn_on
       target:
         entity_id: input_boolean.assist_charge_only
+    - if:
+        - condition: state
+          entity_id: automation.assist_discharge_on_import
+          state: "off"
+      then:
+        # coming from a charge or discharge slot: end grid charging / export first
+        - action: select.select_option
+          target:
+            entity_id: select.solarflow_2400_ac_plus_ac_mode
+          data:
+            option: output
+        - action: number.set_value
+          target:
+            entity_id: number.solarflow_2400_ac_plus_output_limit
+          data:
+            value: 0
     - action: automation.turn_on
       target:
         entity_id: automation.assist_discharge_on_import
-    - action: select.select_option
+    - action: automation.trigger
       target:
-        entity_id: select.solarflow_2400_ac_plus_ac_mode
-      data:
-        option: output
-    - action: number.set_value
-      target:
-        entity_id: number.solarflow_2400_ac_plus_output_limit
-      data:
-        value: 0
+        entity_id: automation.assist_discharge_on_import
 
 sbp_auto_mode:
   alias: "SBP: Auto mode"
@@ -127,12 +136,26 @@ sbp_auto_mode:
     - action: input_boolean.turn_off
       target:
         entity_id: input_boolean.assist_charge_only
-    - action: select.select_option
-      target:
-        entity_id: select.solarflow_2400_ac_plus_ac_mode
-      data:
-        option: output
+    - if:
+        - condition: state
+          entity_id: automation.assist_discharge_on_import
+          state: "off"
+      then:
+        # coming from a charge or discharge slot: end grid charging / export first
+        - action: select.select_option
+          target:
+            entity_id: select.solarflow_2400_ac_plus_ac_mode
+          data:
+            option: output
+        - action: number.set_value
+          target:
+            entity_id: number.solarflow_2400_ac_plus_output_limit
+          data:
+            value: 0
     - action: automation.turn_on
+      target:
+        entity_id: automation.assist_discharge_on_import
+    - action: automation.trigger
       target:
         entity_id: automation.assist_discharge_on_import
 
@@ -143,12 +166,12 @@ sbp_force_discharge:
     power_w:
       description: Discharge power in W
   sequence:
-    - action: input_boolean.turn_off
-      target:
-        entity_id: input_boolean.assist_charge_only
     - action: automation.turn_off
       target:
         entity_id: automation.assist_discharge_on_import
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.assist_charge_only
     - action: select.select_option
       target:
         entity_id: select.solarflow_2400_ac_plus_ac_mode
@@ -313,11 +336,13 @@ matches a pilot *Min SOC* of 5 % (its default is 10 %); the device's own minimum
 place as the hardware backstop. The `choose` conditions re-evaluate the regime
 at run time, so when two triggers fire around the same moment the newest run
 always acts on the freshest regime. The idle gate sits in the discharge
-*branch* condition, never in a trigger: a trigger that included the flag could
-latch true and go deaf (same failure as pitfall 2), while a branch condition
-is re-evaluated on every run. With the flag on, a discharge-desired situation
-falls through to the neutral branch, which writes `output_limit = 0` —
-re-asserting the idle hold.
+*branch* condition, so it is re-evaluated on every run. With the flag on, a
+discharge-desired moment falls through to the neutral branch, which writes
+`output_limit = 0` — re-asserting the idle hold. The scripts also trigger the
+assist once after flipping the flag: a template trigger that is already true
+does not fire again, so without that kick the first moments of the slot after
+an idle hold would wait for the 5-minute backstop before discharging or
+charging (see pitfall 8).
 
 Two pilot limits need one line each. **Max SOC** — the assist charges while
 `soc < 100`, so set the pilot's *Max SOC* to 100 % (its default is 95 %) or
@@ -357,6 +382,8 @@ still charging from surplus.
   Sunny idle spans now feed the battery instead of exporting at raw price.
 * Idle + load: with the house importing, `output_home_power` stays 0 even
   though the discharge trigger wants to fire — the flag gate is doing its job.
+* Idle → auto with house load: the battery starts discharging within a
+  telegram or two, not after the 5-minute backstop.
 * Regime flips: a cloud edge or a big load stepping on must switch the device
   within one or two meter telegrams. If a wrong state persists for minutes,
   your triggers have latched — see pitfall 2.
@@ -405,11 +432,20 @@ still charging from surplus.
    example assumes discharge mode `self_consumption`.
 7. **SOC reports integer percent** (1% ≈ 53 Wh on 5.28 kWh) — small charge
    movements are invisible in SOC; verify via power sensors instead.
-8. **Gate idle suppression in the branch, not in a trigger.** When the idle
-   script holds the battery, only the assist's discharge branch must stop —
-   the charge and neutral branches keep working (surplus capture, and
-   re-asserting the 0 W hold). Put the `input_boolean` check in the discharge
-   branch condition, which re-evaluates at run time. Never put it in a
-   template trigger: while the flag is on, a true-valued discharge trigger
-   could latch with no false→true edge left when the regime changes, and the
-   assist would go deaf — the same failure as pitfall 2, one layer up.
+8. **Keep the idle gate in the branch — and kick the assist when the flag
+   flips.** The gate must suppress only the discharge branch, so charge and
+   neutral keep working (surplus capture, re-asserting the 0 W hold). Gating
+   the branch does leave the *trigger* latched, though: in an idle slot with
+   the house importing, the discharge trigger fires once, the neutral branch
+   writes 0 W, and the trigger template stays true — and it will still be true
+   when the next auto slot clears the flag, because a template trigger only
+   fires on a false→true edge and `automation.turn_on` on an already-on
+   automation re-arms nothing. Without a kick the battery sits through up to
+   five minutes of import (at the evening peak, typically) until the backstop.
+   So every script that flips the flag ends with an explicit
+   `automation.trigger` of the assist, making the `choose` evaluate the current
+   regime immediately. Putting the flag in the *trigger* template instead looks
+   tempting — the template is false while idle and fires on the flag clear, so
+   it cannot latch — but it would leave the idle hold without its self-healing
+   neutral re-assert while the flag is on. Gate in the branch, kick from the
+   scripts.
