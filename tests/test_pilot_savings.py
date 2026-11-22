@@ -100,6 +100,50 @@ def test_held_back_energy_earns_the_later_price():
     assert coord.pilot_ledger.savings_eur == pytest.approx(0.40 - 0.20)
 
 
+def test_an_idle_slot_at_the_backup_reserve_holds_nothing_back():
+    """Below the reserve the battery may not discharge anyway: an idle slot
+    there kept nothing from the house, and must not open a lot that a later
+    discharge at a lower price would book as the pilot's loss."""
+    hass = _FakeHass()
+    coord = _coordinator(hass, backup_reserve=30.0)
+    plan = _plan(
+        _plan_slot("idle", 0.36, T0, hours=8), _plan_slot("auto", 0.30, T0 + timedelta(hours=8))
+    )
+    _meters(hass, 0.0, 0.0, soc=30.0)  # at the reserve, 2 kWh above min SOC
+    _step(coord, plan, ACTION_IDLE, T0)
+    _step(coord, plan, ACTION_AUTO, T0 + timedelta(hours=8))
+    assert coord.pilot_ledger.total_kwh == 0.0
+
+    _meters(hass, 0.0, 0.2, soc=30.0)  # PV lifted it, auto spends it again
+    _step(coord, plan, ACTION_AUTO, T0 + timedelta(hours=9))
+    assert coord.pilot_ledger.savings_eur == 0.0
+
+
+def test_an_idle_slot_above_the_reserve_holds_only_the_energy_above_it():
+    hass = _FakeHass()
+    coord = _coordinator(hass, backup_reserve=30.0)
+    plan = _plan(
+        _plan_slot("idle", 0.20, T0, hours=3), _plan_slot("auto", 0.40, T0 + timedelta(hours=3))
+    )  # 1 kWh of forecast demand, but only 0.5 kWh sits above the reserve
+    _meters(hass, 0.0, 0.0, soc=35.0)
+    _step(coord, plan, ACTION_IDLE, T0)
+    _step(coord, plan, ACTION_AUTO, T0 + timedelta(hours=3))
+    assert coord.pilot_ledger.total_kwh == pytest.approx(0.5)
+
+
+def test_the_reserve_in_force_during_the_idle_slot_counts():
+    """A reserve raised at the end of the slot does not undo the hold."""
+    hass = _FakeHass()
+    coord = _coordinator(hass, backup_reserve_entity="input_number.reserve")
+    plan = _plan(_plan_slot("idle", 0.20, T0), _plan_slot("auto", 0.40, T0 + timedelta(hours=1)))
+    hass.states.set("input_number.reserve", 10.0)  # at min SOC: off
+    _meters(hass, 0.0, 0.0, soc=50.0)
+    _step(coord, plan, ACTION_IDLE, T0)
+    hass.states.set("input_number.reserve", 60.0)
+    _step(coord, plan, ACTION_AUTO, T0 + timedelta(hours=1))
+    assert coord.pilot_ledger.total_kwh == pytest.approx(1.0 / ETA)
+
+
 def test_a_stale_charge_mode_books_nothing_while_the_pilot_is_off():
     hass = _FakeHass()
     coord = _coordinator(hass, steering=False)
