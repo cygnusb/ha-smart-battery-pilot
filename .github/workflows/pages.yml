@@ -41,19 +41,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-  deploy:
+  # Build and deploy are separate jobs, as in GitHub's own Pages workflow. In
+  # one job, deploy-pages looked the artifact up a second after the upload had
+  # finished and sometimes found none yet ("No artifacts named github-pages
+  # were found"), which failed the deploy of a good build.
+  build:
     if: github.event_name != 'release'
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pages: write
-      id-token: write
-    concurrency:
-      group: pages
-      cancel-in-progress: true
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      # configure-pages reads the repository's Pages settings.
+      pages: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -72,5 +70,19 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v4
