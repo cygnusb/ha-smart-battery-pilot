@@ -33,13 +33,13 @@ final consumer price, leave the price offset at `0` so fees are not counted twic
 and enter a fixed feed-in tariff.
 
 The alternative is a price integration that exposes the attributes, such as the
-Nordpool HACS integration, with fees and taxes covered by the price offset. That
+Nordpool custom integration, with fees and taxes covered by the price offset. That
 is only an approximation when part of the surcharge is proportional (VAT, for
 example). Note that the official Home Assistant **Nord Pool** integration is not
 that integration: like Tibber, it only offers the curve through an action
 (`nordpool.get_prices_for_date`), and its sensors carry no price list.
 
-The Nordpool HACS integration is a third-party component, and it has been
+The Nordpool custom integration is a third-party component, and it has been
 reported to keep serving the previous day's curve as "today" for many hours
 after its upstream API stopped answering, while the sensor still looked alive.
 Depending on how much of the stale curve still lies in the future, the pilot

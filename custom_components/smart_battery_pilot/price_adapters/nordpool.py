@@ -1,4 +1,4 @@
-"""Adapter for the Nordpool HACS integration (custom_components/nordpool).
+"""Adapter for the Nordpool custom integration (custom_components/nordpool).
 
 Format: attributes contain `raw_today` / `raw_tomorrow` lists of
 {"start": iso, "end": iso, "value": float} entries (EUR/kWh) and a

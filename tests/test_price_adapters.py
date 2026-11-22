@@ -64,7 +64,7 @@ def test_nordpool_without_tomorrow():
 
 
 def test_nordpool_price_in_cents():
-    """Nordpool HACS can emit `value` in cents/öre when price_in_cents is set."""
+    """The Nordpool custom integration can emit `value` in cents/öre when price_in_cents is set."""
     start = datetime(2026, 6, 11, 12, 0, tzinfo=TZ)
     attrs = {
         "raw_today": [

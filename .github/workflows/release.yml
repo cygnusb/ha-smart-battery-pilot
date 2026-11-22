@@ -1,7 +1,8 @@
 name: Release
 
-# Attaches the integration as a ZIP to every published release. HACS installs
-# this asset (zip_release in hacs.json) and its download counter counts it.
+# Attaches the integration as a ZIP to every published release. The Marketplace
+# (HACS before Home Assistant 2026.11) installs this asset (zip_release in
+# hacs.json) and its download counter counts it.
 
 on:
   release:

@@ -17,7 +17,7 @@
   "hero": {
     "title": "Lad i de billige timer. Dæk de dyre.",
     "lede": "Smart Battery Pilot er en Home Assistant-integration, der planlægger dit husbatteri 24 til 36 timer frem ud fra din variable elpris, din husstands eget forbrug og solcelleprognosen. Den styrer enhver inverter, du kan styre med et script.",
-    "cta_install": "Installér fra HACS",
+    "cta_install": "Installér fra Marketplace",
     "cta_planner": "Sådan virker planlæggeren",
     "facts": {
       "free": "Gratis, MIT-licens",
@@ -188,10 +188,10 @@
     "bridges_link": "Prisbroer (EN)"
   },
   "install": {
-    "title": "Installér fra HACS",
-    "lede": "Smart Battery Pilot ligger i HACS’ standardrepository, så der er intet brugerdefineret repository at tilføje. Den installeres slukket og i testkørsel: de første dage er det en plan at læse, intet andet.",
-    "open_hacs": "Åbn i HACS",
-    "download": "Søg efter <strong>Smart Battery Pilot</strong> i HACS, download den, og genstart Home Assistant.",
+    "title": "Installér fra Marketplace",
+    "lede": "Smart Battery Pilot ligger i standardkataloget i Marketplace, som er indbygget i Home Assistant siden 2026.11 og før det hed HACS. Der er altså intet brugerdefineret repository at tilføje. Den installeres slukket og i testkørsel: de første dage er det en plan at læse, intet andet.",
+    "open": "Åbn i Home Assistant",
+    "download": "Åbn <strong>Indstillinger</strong>, <strong>Marketplace</strong>, søg efter <strong>Smart Battery Pilot</strong>, og installér den. På Home Assistant 2026.10 eller ældre downloader du den fra HACS og genstarter Home Assistant.",
     "scripts": "Skriv styringsscripts til din inverter.",
     "scripts_detail": "Tre korte Home Assistant-scripts (opladning, spær afladning, auto) er måden, piloten styrer ethvert batteri på.",
     "scripts_link": "Trin-for-trin-vejledning og eksempler (EN)",

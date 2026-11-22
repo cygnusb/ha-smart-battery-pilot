@@ -17,7 +17,7 @@
   "hero": {
     "title": "Lataa, kun on halpaa. Pura, kun on kallista.",
     "lede": "Smart Battery Pilot on Home Assistant -integraatio, joka suunnittelee kotiakkusi käytön 24–36 tuntia eteenpäin pörssisähkön hinnan, kotitaloutesi oman kulutuksen ja aurinkoennusteen perusteella. Se ohjaa mitä tahansa invertteriä, jota voi ohjata skriptillä.",
-    "cta_install": "Asenna HACSista",
+    "cta_install": "Asenna Marketplacesta",
     "cta_planner": "Näin suunnittelija toimii",
     "facts": {
       "free": "Ilmainen, MIT-lisenssi",
@@ -188,10 +188,10 @@
     "bridges_link": "Hintasillat (EN)"
   },
   "install": {
-    "title": "Asenna HACSista",
-    "lede": "Smart Battery Pilot löytyy HACSin oletusrepositoriosta, joten mukautettua repositoriota ei tarvitse lisätä. Se asentuu pois päältä ja testiajoon: ensimmäiset päivät ovat vain suunnitelma luettavaksi.",
-    "open_hacs": "Avaa HACSissa",
-    "download": "Hae <strong>Smart Battery Pilot</strong> HACSista, lataa se ja käynnistä Home Assistant uudelleen.",
+    "title": "Asenna Marketplacesta",
+    "lede": "Smart Battery Pilot löytyy Marketplacen oletusluettelosta. Marketplace on ollut osa Home Assistantia versiosta 2026.11 lähtien, ja sitä ennen sen nimi oli HACS, joten mukautettua repositoriota ei tarvitse lisätä. Se asentuu pois päältä ja testiajoon: ensimmäiset päivät ovat vain suunnitelma luettavaksi.",
+    "open": "Avaa Home Assistantissa",
+    "download": "Avaa <strong>Asetukset</strong>, <strong>Marketplace</strong>, hae <strong>Smart Battery Pilot</strong> ja asenna se. Home Assistant 2026.10:ssä ja vanhemmissa lataa se HACSista ja käynnistä Home Assistant uudelleen.",
     "scripts": "Kirjoita ohjausskriptit invertterillesi.",
     "scripts_detail": "Kolme lyhyttä Home Assistant -skriptiä (lataus, purun esto, auto): niiden kautta pilotti ohjaa mitä tahansa akkua.",
     "scripts_link": "Vaiheittainen opas ja esimerkit (EN)",

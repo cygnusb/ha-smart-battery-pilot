@@ -11,7 +11,7 @@ the placeholders to your setup.
 |---|---|
 | Official Home Assistant **Nord Pool** integration | [automation + MQTT sensor](#official-nord-pool-integration) |
 | Official Home Assistant **Tibber** integration | [trigger template sensor](#official-tibber-integration) |
-| **Belgian electricity prices** (`be_electricity_prices`, HACS) | [template sensor](#belgian-electricity-prices-be_electricity_prices) |
+| **Belgian electricity prices** (`be_electricity_prices`, custom integration) | [template sensor](#belgian-electricity-prices-be_electricity_prices) |
 
 ## Bridges that deliver the final price
 
@@ -125,7 +125,7 @@ actions:
 **3.** Select `sensor.nord_pool_price_curve` as the price entity.
 
 * The prices are the raw spot price, so the [price offset](configuration.md#1-price-source)
-  still applies once, exactly as with the Nordpool HACS integration.
+  still applies once, exactly as with the Nordpool custom integration.
 * The `raw_*` timestamps may be UTC, and the local day then starts the evening
   before. The pilot matches slots by timestamp, so this needs no handling.
 * The state is the day's average only so that the sensor has a value; the pilot

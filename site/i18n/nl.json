@@ -17,7 +17,7 @@
   "hero": {
     "title": "Laden in de goedkope uren. Ontladen in de dure.",
     "lede": "Smart Battery Pilot is een Home Assistant-integratie die je thuisaccu 24 tot 36 uur vooruit plant, op basis van je dynamische contract, het verbruik van je eigen huishouden en de PV-prognose. Hij stuurt elke omvormer aan die je met een script kunt bedienen.",
-    "cta_install": "Installeren via HACS",
+    "cta_install": "Installeren via de Marketplace",
     "cta_planner": "Zo werkt de planner",
     "facts": {
       "free": "Gratis, MIT-licentie",
@@ -188,10 +188,10 @@
     "bridges_link": "Prijsbruggen (EN)"
   },
   "install": {
-    "title": "Installeren via HACS",
-    "lede": "Smart Battery Pilot staat in de standaardrepository van HACS, dus je hoeft geen aangepaste repository toe te voegen. Hij start uitgeschakeld en in testmodus: de eerste dagen is het een plan om te lezen, meer niet.",
-    "open_hacs": "Openen in HACS",
-    "download": "Zoek in HACS naar <strong>Smart Battery Pilot</strong>, download hem en herstart Home Assistant.",
+    "title": "Installeren via de Marketplace",
+    "lede": "Smart Battery Pilot staat in de standaardcatalogus van de Marketplace, die sinds 2026.11 in Home Assistant is ingebouwd en daarvoor HACS heette. Je hoeft dus geen aangepaste repository toe te voegen. Hij start uitgeschakeld en in testmodus: de eerste dagen is het een plan om te lezen, meer niet.",
+    "open": "Openen in Home Assistant",
+    "download": "Open <strong>Instellingen</strong>, <strong>Marketplace</strong>, zoek naar <strong>Smart Battery Pilot</strong> en installeer hem. Op Home Assistant 2026.10 of ouder download je hem via HACS en herstart je Home Assistant.",
     "scripts": "Schrijf de stuurscripts voor je omvormer.",
     "scripts_detail": "Drie korte Home Assistant-scripts (laden, ontladen blokkeren, auto): zo stuurt de pilot elke accu aan.",
     "scripts_link": "Stapsgewijze handleiding en voorbeelden (EN)",
