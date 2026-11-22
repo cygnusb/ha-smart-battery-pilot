@@ -232,7 +232,7 @@ SOC sensor in `sbp_block_discharge`.
 
 | Config flow field | Entity / value |
 |---|---|
-| Price forecast entity | `sensor.nordpool_kwh_de_eur_3_10_0` (Nordpool HACS) |
+| Price forecast entity | `sensor.nordpool_kwh_de_eur_3_10_0` (Nordpool custom integration) |
 | Price offset | `0.187` EUR/kWh (German grid fees + taxes) |
 | SOC entity | `sensor.byd_battery_box_premium_hv_state_of_charge` |
 | Capacity | `12.8` kWh |

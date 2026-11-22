@@ -17,7 +17,7 @@
   "hero": {
     "title": "Laadi odavalt. Kata kallid tunnid.",
     "lede": "Smart Battery Pilot on Home Assistanti sidumine, mis planeerib koduaku tööd 24–36 tundi ette sinu dünaamilise tariifi, majapidamise enda tarbimise ja päikeseprognoosi põhjal. See sobib iga inverteriga, mida saab skriptiga juhtida.",
-    "cta_install": "Paigalda HACS-ist",
+    "cta_install": "Paigalda Marketplace’ist",
     "cta_planner": "Kuidas planeerija töötab",
     "facts": {
       "free": "Tasuta, MIT-litsents",
@@ -188,10 +188,10 @@
     "bridges_link": "Hinnasillad (EN)"
   },
   "install": {
-    "title": "Paigalda HACS-ist",
-    "lede": "Smart Battery Pilot on HACS-i vaikerepositooriumis, seega pole vaja kohandatud repositooriumi lisada. See paigaldub välja lülitatult ja testkäivituses: esimestel päevadel on see vaid plaan, mida lugeda, ei midagi enamat.",
-    "open_hacs": "Ava HACS-is",
-    "download": "Otsi HACS-ist <strong>Smart Battery Pilot</strong>, laadi see alla ja taaskäivita Home Assistant.",
+    "title": "Paigalda Marketplace’ist",
+    "lede": "Smart Battery Pilot on Marketplace’i vaikekataloogis. Marketplace on alates versioonist 2026.11 Home Assistanti sisse ehitatud ja kandis varem nime HACS, seega pole vaja kohandatud repositooriumi lisada. See paigaldub välja lülitatult ja testkäivituses: esimestel päevadel on see vaid plaan, mida lugeda, ei midagi enamat.",
+    "open": "Ava Home Assistantis",
+    "download": "Ava <strong>Seaded</strong>, <strong>Marketplace</strong>, otsi <strong>Smart Battery Pilot</strong> ja paigalda see. Home Assistant 2026.10 või vanema puhul laadi see alla HACS-ist ja taaskäivita Home Assistant.",
     "scripts": "Kirjuta oma inverterile juhtimisskriptid.",
     "scripts_detail": "Kolm lühikest Home Assistanti skripti (laadimine, tühjenemise blokeerimine, auto) – nende kaudu juhib piloot mis tahes akut.",
     "scripts_link": "Samm-sammuline juhend ja näited (EN)",

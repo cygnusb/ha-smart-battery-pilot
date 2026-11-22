@@ -49,8 +49,9 @@ how the load follows the temperature. A local sensor beats a weather service.
 
 ## 2. Install and set up
 
-1. In HACS, search for **Smart Battery Pilot**, download it and restart Home
-   Assistant.
+1. On Home Assistant 2026.11 or newer, go to *Settings → Marketplace*, search
+   for **Smart Battery Pilot** and install it. On older versions, search for it
+   in HACS, download it and restart Home Assistant.
 2. *Settings → Devices & Services → Add Integration → Smart Battery Pilot.*
 3. The setup asks for the price source, the battery, the control scripts, the
    consumption sensor and the PV forecast, in that order. Each step is

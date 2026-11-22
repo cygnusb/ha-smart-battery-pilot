@@ -1,4 +1,4 @@
-"""Adapter for the EPEX Spot HACS integration (mampfes/ha_epex_spot).
+"""Adapter for the EPEX Spot custom integration (mampfes/ha_epex_spot).
 
 Format: attributes contain `data`, a list of
 {"start_time": iso, "end_time": iso, "price_eur_per_mwh": float}

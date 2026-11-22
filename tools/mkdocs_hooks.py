@@ -77,7 +77,7 @@ def _changelog(releases):
         "# Changelog\n\n"
         "Every release of Smart Battery Pilot, newest first. The same notes are on "
         f"[GitHub]({RELEASES_URL}), and Home Assistant shows them in the update "
-        "dialog when HACS offers a new version.\n\n"
+        "dialog when the Marketplace (HACS before 2026.11) offers a new version.\n\n"
         + "\n".join(index)
         + "\n\n"
         + "\n".join(sections)

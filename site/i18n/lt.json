@@ -17,7 +17,7 @@
   "hero": {
     "title": "Įkrauk pigiai. Padenk brangias valandas.",
     "lede": "Smart Battery Pilot – tai Home Assistant integracija, kuri 24–36 valandas į priekį suplanuoja tavo namų baterijos darbą pagal dinaminį tarifą, tavo namų ūkio suvartojimą ir saulės prognozę. Ji tinka bet kuriam keitikliui, kurį galima valdyti scenarijumi.",
-    "cta_install": "Įdiegti per HACS",
+    "cta_install": "Įdiegti per Marketplace",
     "cta_planner": "Kaip veikia planuoklis",
     "facts": {
       "free": "Nemokama, MIT licencija",
@@ -188,10 +188,10 @@
     "bridges_link": "Kainų tiltai (EN)"
   },
   "install": {
-    "title": "Diegimas per HACS",
-    "lede": "Smart Battery Pilot yra numatytojoje HACS saugykloje, todėl nereikia pridėti jokios pasirinktinės saugyklos. Integracija įdiegiama išjungta ir bandomojo paleidimo režimu: pirmomis dienomis tai tik planas, kurį galima perskaityti, ir nieko daugiau.",
-    "open_hacs": "Atidaryti HACS",
-    "download": "HACS paieškoje surask <strong>Smart Battery Pilot</strong>, atsisiųsk ir paleisk Home Assistant iš naujo.",
+    "title": "Diegimas per Marketplace",
+    "lede": "Smart Battery Pilot yra numatytajame Marketplace kataloge. Marketplace nuo 2026.11 versijos įdiegtas į Home Assistant, o anksčiau vadinosi HACS, todėl nereikia pridėti jokios pasirinktinės saugyklos. Integracija įdiegiama išjungta ir bandomojo paleidimo režimu: pirmomis dienomis tai tik planas, kurį galima perskaityti, ir nieko daugiau.",
+    "open": "Atidaryti Home Assistant",
+    "download": "Atidaryk <strong>Nustatymai</strong>, <strong>Marketplace</strong>, surask <strong>Smart Battery Pilot</strong> ir įdiek. Home Assistant 2026.10 ar senesnėje versijoje atsisiųsk ją per HACS ir paleisk Home Assistant iš naujo.",
     "scripts": "Parašyk valdymo scenarijus savo keitikliui.",
     "scripts_detail": "Trys trumpi Home Assistant scenarijai (įkrovimas, iškrovimo blokavimas, auto) – per juos pilotas valdo bet kokią bateriją.",
     "scripts_link": "Žingsnis po žingsnio vadovas ir pavyzdžiai (EN)",

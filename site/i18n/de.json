@@ -17,7 +17,7 @@
   "hero": {
     "title": "Günstig laden. Teure Stunden abdecken.",
     "lede": "Smart Battery Pilot ist eine Home-Assistant-Integration, die deinen Hausakku 24 bis 36 Stunden im Voraus plant – nach deinem dynamischen Tarif, dem Verbrauch deines Haushalts und der PV-Prognose. Sie steuert jeden Wechselrichter, den du per Script ansprechen kannst.",
-    "cta_install": "Über HACS installieren",
+    "cta_install": "Über den Marketplace installieren",
     "cta_planner": "So arbeitet der Planer",
     "facts": {
       "free": "Kostenlos, MIT-Lizenz",
@@ -188,10 +188,10 @@
     "bridges_link": "Preis-Bridges (EN)"
   },
   "install": {
-    "title": "Über HACS installieren",
-    "lede": "Smart Battery Pilot ist im HACS-Standard-Repository, du musst also kein benutzerdefiniertes Repository hinzufügen. Die Integration startet ausgeschaltet und im Testmodus: In den ersten Tagen gibt es nur einen Plan zum Mitlesen, mehr nicht.",
-    "open_hacs": "In HACS öffnen",
-    "download": "Suche in HACS nach <strong>Smart Battery Pilot</strong>, lade die Integration herunter und starte Home Assistant neu.",
+    "title": "Über den Marketplace installieren",
+    "lede": "Smart Battery Pilot ist im Standardkatalog des Marketplace, der seit 2026.11 in Home Assistant eingebaut ist und vorher HACS hieß. Du musst also kein benutzerdefiniertes Repository hinzufügen. Die Integration startet ausgeschaltet und im Testmodus: In den ersten Tagen gibt es nur einen Plan zum Mitlesen, mehr nicht.",
+    "open": "In Home Assistant öffnen",
+    "download": "Öffne <strong>Einstellungen</strong>, <strong>Marketplace</strong>, suche nach <strong>Smart Battery Pilot</strong> und installiere die Integration. Unter Home Assistant 2026.10 oder älter lädst du sie über HACS herunter und startest Home Assistant neu.",
     "scripts": "Schreib die Steuerungs-Scripts für deinen Wechselrichter.",
     "scripts_detail": "Drei kurze Home-Assistant-Scripts (Laden, Entladen sperren, Auto) – darüber steuert der Pilot jeden Akku.",
     "scripts_link": "Schritt-für-Schritt-Anleitung und Beispiele (EN)",

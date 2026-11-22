@@ -17,7 +17,7 @@
   "hero": {
     "title": "Charge in the cheap hours. Cover the expensive ones.",
     "lede": "Smart Battery Pilot is a Home Assistant integration that plans your home battery 24 to 36 hours ahead, from your dynamic tariff, your household’s own consumption and the PV forecast. It drives any inverter you can control with a script.",
-    "cta_install": "Install from HACS",
+    "cta_install": "Install from the Marketplace",
     "cta_planner": "How the planner works",
     "facts": {
       "free": "Free, MIT licence",
@@ -188,10 +188,10 @@
     "bridges_link": "Price bridges"
   },
   "install": {
-    "title": "Install from HACS",
-    "lede": "Smart Battery Pilot is in the HACS default repository, so there is no custom repository to add. It installs switched off and in dry-run: the first days are a plan to read, nothing more.",
-    "open_hacs": "Open in HACS",
-    "download": "Search for <strong>Smart Battery Pilot</strong> in HACS, download it and restart Home Assistant.",
+    "title": "Install from the Marketplace",
+    "lede": "Smart Battery Pilot is in the default catalog of the Marketplace, built into Home Assistant since 2026.11 and called HACS before that, so there is no custom repository to add. It installs switched off and in dry-run: the first days are a plan to read, nothing more.",
+    "open": "Open in Home Assistant",
+    "download": "Open <strong>Settings</strong>, <strong>Marketplace</strong>, search for <strong>Smart Battery Pilot</strong> and install it. On Home Assistant 2026.10 or older, download it from HACS and restart Home Assistant.",
     "scripts": "Write the control scripts for your inverter.",
     "scripts_detail": "Three short Home Assistant scripts (charge, block discharge, auto) are how the pilot steers any battery.",
     "scripts_link": "Step-by-step guide and examples",

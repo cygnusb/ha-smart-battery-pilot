@@ -1,4 +1,4 @@
-"""Adapter for the ENTSO-E HACS integration (JaccoR/hass-entso-e).
+"""Adapter for the ENTSO-E custom integration (JaccoR/hass-entso-e).
 
 Format: attributes contain `prices` (and/or `prices_today` /
 `prices_tomorrow`), lists of {"time": iso, "price": float}. The integration's

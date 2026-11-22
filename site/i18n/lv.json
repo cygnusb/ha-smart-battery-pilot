@@ -17,7 +17,7 @@
   "hero": {
     "title": "Uzlādē lēti. Sedz dārgās stundas.",
     "lede": "Smart Battery Pilot ir Home Assistant integrācija, kas plāno tava mājas akumulatora darbu 24–36 stundas uz priekšu, ņemot vērā tavu dinamisko tarifu, mājsaimniecības patēriņu un saules prognozi. Tā darbojas ar jebkuru invertoru, ko var vadīt ar skriptu.",
-    "cta_install": "Instalēt no HACS",
+    "cta_install": "Instalēt no Marketplace",
     "cta_planner": "Kā darbojas plānotājs",
     "facts": {
       "free": "Bezmaksas, MIT licence",
@@ -188,10 +188,10 @@
     "bridges_link": "Cenu tilti (EN)"
   },
   "install": {
-    "title": "Instalēšana no HACS",
-    "lede": "Smart Battery Pilot ir HACS noklusējuma repozitorijā, tāpēc pielāgots repozitorijs nav jāpievieno. Tas sākas izslēgts un testa palaišanas režīmā: pirmajās dienās tas ir tikai plāns, ko izlasīt, nekas vairāk.",
-    "open_hacs": "Atvērt HACS",
-    "download": "Sameklē <strong>Smart Battery Pilot</strong> HACS katalogā, lejupielādē to un restartē Home Assistant.",
+    "title": "Instalēšana no Marketplace",
+    "lede": "Smart Battery Pilot ir Marketplace noklusējuma katalogā. Marketplace kopš versijas 2026.11 ir iebūvēts Home Assistant, un iepriekš to sauca par HACS, tāpēc pielāgots repozitorijs nav jāpievieno. Tas sākas izslēgts un testa palaišanas režīmā: pirmajās dienās tas ir tikai plāns, ko izlasīt, nekas vairāk.",
+    "open": "Atvērt Home Assistant",
+    "download": "Atver <strong>Konfigurācija</strong>, <strong>Marketplace</strong>, sameklē <strong>Smart Battery Pilot</strong> un instalē to. Home Assistant 2026.10 vai vecākā versijā lejupielādē to no HACS un restartē Home Assistant.",
     "scripts": "Uzraksti vadības skriptus savam invertoram.",
     "scripts_detail": "Trīs īsi Home Assistant skripti (uzlāde, izlādes bloķēšana, auto) – ar tiem pilots vada jebkuru akumulatoru.",
     "scripts_link": "Soli pa solim ceļvedis un piemēri (EN)",
