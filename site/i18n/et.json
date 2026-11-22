@@ -28,11 +28,8 @@
   },
   "board": {
     "title": "Näide: üks talvepäev",
-    "subtitle": "96 veerandtunni hinda EUR/kWh, iga tulp värvitud selle järgi, mida piloot sel veerandtunnil teeb",
-    "hint": "Ühe veerandtunni nägemiseks osuta tulbale või vali graafik ja liigu nooleklahvidega.",
-    "segment_charge": "Laadimine hinnaga 0,10",
-    "segment_cover": "Aku katab",
-    "segment_hold": "Blokeeritud õhtuks",
+    "subtitle": "96 veerandtunni tihvti, igaüks selle tegevuse värvi, mida piloot selles ajavahemikus teeb; sisemised kiired on hind (EUR/kWh).",
+    "hint": "Osuta sihverplaadile või vii fookus sellele ja kasuta nooleklahve, et lugeda üht ajavahemikku.",
     "chart_label": "Näidistalvepäev: öösel hinnad umbes 0,10 EUR/kWh, hommikune tipp ligi 0,45, päeval umbes 0,20 ja õhtune tipp ligi 0,50. Piloot laeb kell 02:00–06:00, aku katab tarbimise kell 06:00–09:00 ja 17:00–21:00 ning kell 09:00–17:00 hoitakse laeng alles; enne 02:00 ja pärast 21:00 töötab inverter omaette.",
     "sum": "Öösel hinnaga 0,10 laetud kWh, jagatud 90 % edasi-tagasi kasuteguriga ja lisatud 0,10 hinnavahe, maksab 0,21. See jääb tublisti alla õhtuse tipu 0,50, nii et öist elektrit tasub salvestada. Päeval hinnaga 0,20 ei tasu akut kulutada, seega laeng ootab."
   },

@@ -1,46 +1,46 @@
-/* The project page's daylight price-board look on top of Material for MkDocs:
-   cool paper, graphite ink, hairline rules, Archivo condensed headlines over
-   Atkinson Hyperlegible Next. The fonts come from assets/fonts/fonts.css. */
+/* The project page's timer-dial look on top of Material for MkDocs:
+   appliance-grey housing, a white face, graphite ink, Barlow Condensed
+   headlines over Barlow. The fonts come from assets/fonts/fonts.css. */
 
 :root {
-  --sbp-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --sbp-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
   /* Material puts its own system-font fallbacks after this one. */
-  --md-text-font: "Atkinson Hyperlegible Next";
+  --md-text-font: "Barlow";
 }
 
 [data-md-color-scheme="default"] {
-  --sbp-paper: #eef2f3;
-  --sbp-ink: #13262d;
-  --sbp-rule: #d2dce0;
-  --sbp-hold: #6f5bd6;
-  --md-default-bg-color: #ffffff;
+  --sbp-paper: #dfe3de;
+  --sbp-ink: #1c2421;
+  --sbp-rule: #c2cac4;
+  --sbp-hold: #6652cf;
+  --md-default-bg-color: #f8f9f6;
   --md-default-fg-color: var(--sbp-ink);
-  --md-default-fg-color--light: #475c65;
-  --md-default-fg-color--lighter: #5c7079;
+  --md-default-fg-color--light: #4b5751;
+  --md-default-fg-color--lighter: #5f6b65;
   --md-default-fg-color--lightest: var(--sbp-rule);
   --md-typeset-color: var(--sbp-ink);
   --md-typeset-a-color: #5a46c4;
-  --md-code-bg-color: var(--sbp-paper);
+  --md-code-bg-color: #eceee9;
   --md-code-fg-color: var(--sbp-ink);
 }
 
 [data-md-color-scheme="slate"] {
-  --sbp-paper: #121b1f;
-  --sbp-ink: #e3ebee;
-  --sbp-rule: #2b3b43;
-  --sbp-hold: #8b7bf0;
-  --md-hue: 200;
-  --md-default-bg-color: #18232a;
+  --sbp-paper: #141a18;
+  --sbp-ink: #e6ece9;
+  --sbp-rule: #34403b;
+  --sbp-hold: #8d7cf2;
+  --md-hue: 150;
+  --md-default-bg-color: #1d2522;
   --md-default-fg-color: var(--sbp-ink);
-  --md-default-fg-color--light: #a6b6bd;
-  --md-default-fg-color--lighter: #8fa2aa;
+  --md-default-fg-color--light: #a9b5af;
+  --md-default-fg-color--lighter: #8e9b95;
   --md-default-fg-color--lightest: var(--sbp-rule);
   --md-typeset-color: var(--sbp-ink);
   --md-typeset-a-color: #a59af5;
   --md-code-bg-color: var(--sbp-paper);
   --md-code-fg-color: var(--sbp-ink);
   --md-footer-bg-color: var(--sbp-paper);
-  --md-footer-bg-color--dark: #0d1417;
+  --md-footer-bg-color--dark: #0c100f;
 }
 
 [data-md-color-primary="custom"] {
@@ -53,7 +53,7 @@
 
 [data-md-color-accent="custom"] {
   --md-accent-fg-color: var(--sbp-hold);
-  --md-accent-fg-color--transparent: rgba(111, 91, 214, 0.1);
+  --md-accent-fg-color--transparent: rgba(102, 82, 207, 0.1);
   --md-accent-bg-color: #ffffff;
 }
 
@@ -92,7 +92,6 @@
 .md-typeset h2,
 .md-typeset h3 {
   font-family: var(--sbp-display);
-  font-stretch: 75%;
   font-weight: 700;
   letter-spacing: 0;
   color: var(--md-typeset-color);
@@ -115,7 +114,7 @@
   font-size: 1.3em;
 }
 
-/* Quoted notes read as callouts with a violet rule, the board's "held" colour. */
+/* Quoted notes read as callouts with a violet rule, the dial's "held" colour. */
 .md-typeset blockquote {
   border-left: 0.2rem solid var(--sbp-hold);
   background: var(--md-accent-fg-color--transparent);
