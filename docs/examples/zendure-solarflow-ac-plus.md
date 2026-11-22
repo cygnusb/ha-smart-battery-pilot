@@ -21,9 +21,10 @@ this is the row where nobody follows the meter unless an automation does.
 ## Architecture
 
 ```
-                    ┌─ charge slot ──▶ sbp_force_charge ──▶ AC mode input,  input_limit = power_w, assist OFF
-pilot ──▶ scripts ──┼─ idle slot ───▶ sbp_block_discharge ▶ AC mode output, output_limit = 0, assist charge-only
-                    └─ auto slot ───▶ sbp_auto_mode ──────▶ AC mode output + assist automation ON
+                    ┌─ charge slot ──▶ sbp_force_charge ──▶ assist OFF, AC mode input, input_limit = power_w
+pilot ──▶ scripts ──┼─ idle slot ───▶ sbp_block_discharge ▶ assist ON in charge-only mode, triggered once
+                    └─ auto slot ───▶ sbp_auto_mode ──────▶ assist ON, triggered once
+   (idle and auto, after a charge or discharge slot: AC mode output, output_limit = 0 first)
  assist automation (auto slots; in idle slots charge-only):
    house load > 150 W ──────────▶ output mode, output_limit = min(load, max_w)   (held off in idle)
    PV surplus > 250 W (stable) ▶ input mode,  input_limit  = min(surplus, max_w)
@@ -32,8 +33,9 @@ pilot ──▶ scripts ──┼─ idle slot ───▶ sbp_block_discharge 
 
 The assist is the pilot's "hands" in auto mode — and in idle slots it stays on
 in charge-only mode. The charge script switches it off before it commands the
-device; the idle script leaves it running but sets an `input_boolean` that the
-assist's discharge branch checks. That branch is the only writer of a positive
+device; the idle script keeps it on (switching it back on after a charge slot),
+sets an `input_boolean` that the assist's discharge branch checks, and triggers
+the assist once so it acts on the new state right away. That branch is the only writer of a positive
 `output_limit` anywhere, so gating it is what "block discharging" means here:
 the plan holds the battery, and the charge and neutral branches keep working —
 capturing surplus and re-asserting the 0 W hold. The pilot stays the single
